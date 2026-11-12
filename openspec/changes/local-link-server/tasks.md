@@ -1,8 +1,8 @@
 ## 1. Workspaces and tooling
 
-- [ ] 1.1 Create `app/app/` (workspace: `apps/http2scheme` bin, `components/linkserver` lib with empty `core/{domain,application}` and `adapters/{primary,secondary}` modules, `[workspace.package] version = "0.0.0"`, the `[workspace.lints]` table of `tech-matrix-rust.md`, `clippy.toml` with the size thresholds of R-130/R-132/R-133/R-134 and `allow-unwrap-in-tests`, `allow-expect-in-tests`, `allow-panic-in-tests = true`), `app/e2e/` (workspace with the same `[workspace.lints]` table and `clippy.toml`, every crate `lints.workspace = true`, cucumber harness `cucumber_e2e`), `clap` and `env_logger` without their `color` features, `rust-toolchain.toml` pinned to 1.99.0, `deny.toml`, `.gitignore`; every dependency pinned with `=`; `cargo build` succeeds in both workspaces
-- [ ] 1.2 Add `justfile` with `test-one`, `test`, `e2e`, `fmt`, `lint`, `deny` and the `_require-<tool>` guards
-- [ ] 1.3 Commit (`kit ship`)
+- [x] 1.1 Create `app/app/` (workspace: `apps/http2scheme` bin, `components/linkserver` lib with empty `core/{domain,application}` and `adapters/{primary,secondary}` modules, `[workspace.package] version = "0.0.0"`, the `[workspace.lints]` table of `tech-matrix-rust.md`, `clippy.toml` with the size thresholds of R-130/R-132/R-133/R-134 and `allow-unwrap-in-tests`, `allow-expect-in-tests`, `allow-panic-in-tests = true`), `app/e2e/` (workspace with the same `[workspace.lints]` table and `clippy.toml`, every crate `lints.workspace = true`, cucumber harness `cucumber_e2e`), `clap` and `env_logger` without their `color` features, `rust-toolchain.toml` pinned to 1.99.0, `deny.toml`, `.gitignore`; every dependency pinned with `=`; `cargo build` succeeds in both workspaces
+- [x] 1.2 Add `justfile` with `test-one`, `test`, `e2e`, `fmt`, `lint`, `deny` and the `_require-<tool>` guards
+- [x] 1.3 Commit (`kit ship`)
 
 ## 2. Domain
 
