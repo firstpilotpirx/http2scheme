@@ -63,6 +63,17 @@ impl LaunchdAgentSupervisorGateway {
             })
     }
 
+    /// Boots `label` out, then waits until launchd no longer lists it, at most `unload_wait`.
+    async fn boot_out(&self, label: &str) -> Result<(), AgentControlError> {
+        self.run_checked(&["bootout".to_owned(), self.service(label)])
+            .await?;
+        let deadline = Instant::now() + self.unload_wait;
+        while self.is_loaded(label).await? && Instant::now() < deadline {
+            sleep(UNLOAD_POLL).await;
+        }
+        Ok(())
+    }
+
     async fn run_checked(&self, arguments: &[String]) -> Result<(), AgentControlError> {
         let output = self.run(arguments).await?;
         if output.status.success() {
@@ -90,13 +101,7 @@ impl AgentSupervisorService for LaunchdAgentSupervisorGateway {
     }
 
     async fn unload(&self, label: &str) -> Result<(), AgentControlError> {
-        self.run_checked(&["bootout".to_owned(), self.service(label)])
-            .await?;
-        let deadline = Instant::now() + self.unload_wait;
-        while self.is_loaded(label).await? && Instant::now() < deadline {
-            sleep(UNLOAD_POLL).await;
-        }
-        Ok(())
+        self.boot_out(label).await
     }
 
     async fn is_loaded(&self, label: &str) -> Result<bool, AgentControlError> {

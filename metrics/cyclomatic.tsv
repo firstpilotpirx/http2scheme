@@ -80,6 +80,7 @@ app/app/components/linkserver/src/adapters/secondary/agentcontrol/filesystem/fil
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/filesystem/filesystem_agent_definition_repository.rs	FilesystemAgentDefinitionRepository::save	4
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/filesystem/filesystem_agent_definition_repository.rs	io_error	1
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::<anonymous>	1
+app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::boot_out	5
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::domain	1
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::is_loaded	2
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::load	1
@@ -88,6 +89,7 @@ app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launch
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::run_checked	3
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::service	1
 app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::unload	1
+app/app/components/linkserver/src/adapters/secondary/agentcontrol/launchd/launchd_agent_supervisor_gateway.rs	LaunchdAgentSupervisorGateway::with_unload_wait	1
 app/app/components/linkserver/src/adapters/secondary/apporder/lsappinfo/ls_app_info_app_order_gateway.rs	<anonymous>	1
 app/app/components/linkserver/src/adapters/secondary/apporder/lsappinfo/ls_app_info_app_order_gateway.rs	LsAppInfoAppOrderGateway::<anonymous>	1
 app/app/components/linkserver/src/adapters/secondary/apporder/lsappinfo/ls_app_info_app_order_gateway.rs	LsAppInfoAppOrderGateway::bring_back_left_app	2
