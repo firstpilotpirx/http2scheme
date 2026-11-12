@@ -163,6 +163,34 @@ fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// The setup and the async runtime every path needs, or why they could not be made.
+fn prepare() -> Result<(LinkserverSetup, Runtime), String> {
+    let setup = setup()?;
+    let runtime = Runtime::new().map_err(|error| format!("async runtime: {error}"))?;
+    Ok((setup, runtime))
+}
+
+/// Runs `command`, or with none the menu bar app from a bundle, or else prints the help.
+fn dispatch(
+    command: Option<Command>,
+    setup: LinkserverSetup,
+    runtime: &Runtime,
+    style: TerminalStyleConfig,
+) -> ExitCode {
+    match command {
+        Some(command) => {
+            let ports = LinkserverPorts::macos(&setup);
+            let root = LinkserverConfig::new(setup, ports, style);
+            ExitCode::from(runtime.block_on(run(command, root)))
+        }
+        None if MenubarConfig::is_bundle_program(&setup.program) => app(runtime, &setup),
+        None => {
+            let _ = Cli::command().print_help();
+            ExitCode::from(2)
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
@@ -170,30 +198,11 @@ fn main() -> ExitCode {
         TerminalStyleConfig::detect(cli.no_color, std::io::stdout().is_terminal(), |name| {
             std::env::var(name).ok()
         });
-    let setup = match setup() {
-        Ok(setup) => setup,
+    match prepare() {
+        Ok((setup, runtime)) => dispatch(cli.command, setup, &runtime, style),
         Err(reason) => {
             eprintln!("{}", style.fail(&reason));
-            return ExitCode::from(1);
-        }
-    };
-    let runtime = match tokio::runtime::Runtime::new() {
-        Ok(runtime) => runtime,
-        Err(error) => {
-            eprintln!("{}", style.fail(&format!("async runtime: {error}")));
-            return ExitCode::from(1);
-        }
-    };
-    match cli.command {
-        Some(command) => {
-            let ports = LinkserverPorts::macos(&setup);
-            let root = LinkserverConfig::new(setup, ports, style);
-            ExitCode::from(runtime.block_on(run(command, root)))
-        }
-        None if MenubarConfig::is_bundle_program(&setup.program) => app(&runtime, &setup),
-        None => {
-            let _ = Cli::command().print_help();
-            ExitCode::from(2)
+            ExitCode::from(1)
         }
     }
 }

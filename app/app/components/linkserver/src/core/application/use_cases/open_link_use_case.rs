@@ -81,14 +81,22 @@ impl OpenLink for OpenLinkUseCase {
             Ok(link) => self.open(&link).await,
             Err(refused) => refused,
         };
-        let text = match command.link() {
-            Some(link) if !link.is_empty() => link.to_owned(),
-            Some(_) => LinkRejectedError::Empty.to_string(),
-            None => LinkRejectedError::Missing.to_string(),
-        };
-        let event = LinkOpenAttemptedDomainEvent::new(SystemTime::now(), text, outcome.clone());
+        let event = LinkOpenAttemptedDomainEvent::new(
+            SystemTime::now(),
+            logged_link(command.link()),
+            outcome.clone(),
+        );
         let _ = self.attempts.record(&event).await;
         outcome
+    }
+}
+
+/// The link as the request log keeps it, or the reason there is none.
+fn logged_link(link: Option<&str>) -> String {
+    match link {
+        Some(link) if !link.is_empty() => link.to_owned(),
+        Some(_) => LinkRejectedError::Empty.to_string(),
+        None => LinkRejectedError::Missing.to_string(),
     }
 }
 

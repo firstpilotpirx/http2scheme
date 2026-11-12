@@ -17,7 +17,7 @@ fn record(link: &str) -> LinkRecordValueObject {
 async fn show_lists_the_latest_hundred_requests() {
     let mut history = MockLinkHistoryRepository::new();
     history
-        .expect_latest()
+        .expect_find_latest()
         .withf(|limit| *limit == 100)
         .returning(|_| Ok(vec![record("idea://b"), record("idea://a")]));
     let mut replay = MockLinkReplayService::new();
@@ -43,7 +43,7 @@ async fn replay_opens_the_link_then_reads_the_log_again() {
             "opened".to_owned()
         });
     let mut history = MockLinkHistoryRepository::new();
-    history.expect_latest().returning(move |_| {
+    history.expect_find_latest().returning(move |_| {
         read.lock().unwrap().push("read");
         Ok(vec![record("idea://a")])
     });
@@ -58,7 +58,7 @@ async fn replay_opens_the_link_then_reads_the_log_again() {
 #[tokio::test]
 async fn an_unreadable_log_is_an_error() {
     let mut history = MockLinkHistoryRepository::new();
-    history.expect_latest().returning(|_| {
+    history.expect_find_latest().returning(|_| {
         Err(MenuActionError::History {
             path: "/l/requests.log".to_owned(),
             reason: "denied".to_owned(),

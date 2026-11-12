@@ -75,3 +75,11 @@ async fn the_launched_server_prints_its_state_to_the_handed_output() {
         ServerStateEnum::Running("http://127.0.0.1:7777".to_owned())
     );
 }
+
+#[tokio::test]
+async fn a_default_gateway_is_starting_and_shows_its_state() {
+    let mut gateway = ServeOutputServerStateGateway::default();
+    gateway.flush().unwrap();
+    assert_eq!(gateway.current().await, ServerStateEnum::Starting);
+    assert!(format!("{gateway:?}").contains("Starting"));
+}

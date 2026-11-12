@@ -16,7 +16,7 @@ fn write_log(dir: &Path, lines: &str) {
 
 async fn links(dir: &Path, limit: usize) -> Vec<String> {
     FilesystemLinkHistoryRepository::new(dir)
-        .latest(limit)
+        .find_latest(limit)
         .await
         .unwrap()
         .iter()

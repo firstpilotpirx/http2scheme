@@ -58,7 +58,9 @@ const OLD_PROGRAM: &str = "/old/http2scheme";
 async fn user_installs(world: &mut LinkserverWorld, again: String) {
     if !again.is_empty() {
         let text = fs::read_to_string(definition(world)).unwrap();
-        fs::write(definition(world), text.replace(PROGRAM, OLD_PROGRAM)).unwrap();
+        let old = text.replace(PROGRAM, OLD_PROGRAM);
+        assert_ne!(old, text, "the first install names the current program");
+        fs::write(definition(world), old).unwrap();
     }
     install(world).await;
 }

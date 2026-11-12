@@ -41,7 +41,7 @@ impl BrowseHistory for BrowseHistoryUseCase {
             let result = self.replay.replay(&link).await;
             log::info!("history: replayed a link: {result}");
         }
-        let rows = self.history.latest(HISTORY_LIMIT).await?;
+        let rows = self.history.find_latest(HISTORY_LIMIT).await?;
         Ok(HistoryViewValueObject::new(rows))
     }
 }

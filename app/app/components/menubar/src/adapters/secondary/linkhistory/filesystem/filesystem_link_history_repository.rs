@@ -29,7 +29,10 @@ impl FilesystemLinkHistoryRepository {
 
 #[async_trait]
 impl LinkHistoryRepository for FilesystemLinkHistoryRepository {
-    async fn latest(&self, limit: usize) -> Result<Vec<LinkRecordValueObject>, MenuActionError> {
+    async fn find_latest(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<LinkRecordValueObject>, MenuActionError> {
         let text = match std::fs::read(&self.file) {
             Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
             Err(error) if error.kind() == ErrorKind::NotFound => return Ok(Vec::new()),

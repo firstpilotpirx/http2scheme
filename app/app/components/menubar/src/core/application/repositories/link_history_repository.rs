@@ -13,7 +13,10 @@ pub trait LinkHistoryRepository: Send + Sync {
     ///
     /// # Errors
     /// The log exists but cannot be read.
-    async fn latest(&self, limit: usize) -> Result<Vec<LinkRecordValueObject>, MenuActionError>;
+    async fn find_latest(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<LinkRecordValueObject>, MenuActionError>;
 }
 
 #[cfg(test)]

@@ -25,6 +25,6 @@ async fn the_macos_ports_read_the_server_output_and_no_bundle() {
         ports.login_item.status().await,
         LoginItemStateEnum::Unavailable
     );
-    assert_eq!(ports.history.latest(100).await, Ok(Vec::new()));
+    assert_eq!(ports.history.find_latest(100).await, Ok(Vec::new()));
     assert_eq!(ports.replay.replay("idea://x").await, "opened idea://x");
 }
