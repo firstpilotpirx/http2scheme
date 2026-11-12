@@ -22,7 +22,7 @@ Started from its app bundle with no command, the program SHALL run as a menu bar
 
 ### Requirement: The menu shows the app and the server state
 
-The status item's menu SHALL show, in this order: the app name with its version; one status line; Start at Login; Open Settings Folder; Open Logs Folder; Quit http2scheme. The status line SHALL read `Starting…` until the server listens, `Running on <address>` while it listens, and `Stopped: <reason>` after the server failed to start or stopped, with the reason the `serve` command would print.
+The status item's menu SHALL show, in this order: the app name with its version; one status line; Serve Links; Link History…; Start at Login; Open Settings Folder; Open Logs Folder; Quit http2scheme. The status line SHALL read `Starting…` until the server listens, `Running on <address>` while it listens, `Stopped: <reason>` after the server failed to start or stopped, with the reason the `serve` command would print, and `Off` while the user turned the server off.
 
 #### Scenario: A running server
 
@@ -36,6 +36,72 @@ The status item's menu SHALL show, in this order: the app name with its version;
 - **GIVEN** another program holds the configured port 7777
 - **WHEN** the user opens the menu
 - **THEN** the status line reads "Stopped: port 7777 is taken"
+
+### Requirement: Serve Links turns the server off and on
+
+Serve Links SHALL show a check mark exactly while the server is not turned off. Choosing it while the server is on SHALL stop the server, so the open address no longer answers, and the status line SHALL read `Off`. Choosing it while the server is off SHALL start the server again with the settings and key as they are then. The app SHALL start with the server on at every launch.
+
+#### Scenario: Turning the server off
+
+- **GIVEN** the app runs and its server answers
+- **WHEN** the user chooses Serve Links
+- **THEN** the server no longer answers
+- **AND** the status line reads "Off"
+- **AND** Serve Links shows no check mark
+
+#### Scenario: Turning the server on again
+
+- **GIVEN** the user turned the server off
+- **WHEN** the user chooses Serve Links
+- **THEN** the server answers again
+- **AND** Serve Links shows a check mark
+
+### Requirement: The Link History window lists the latest requests
+
+Link History… SHALL open the Link History window, or bring it to the front when it is open. The window SHALL list the latest 100 lines of the request log, newest first, one row per line, each row showing the time of the request in local time, its result and its scheme link. It SHALL read the request log again each time it is brought to the front. A log line it cannot read SHALL have no row. When the log holds no line, the window SHALL say `No link has been opened yet.` instead of an empty table.
+
+#### Scenario: Requests are listed newest first
+
+- **GIVEN** the request log holds an opened IntelliJ link and, after it, a GoLand link with the wrong key
+- **WHEN** the user opens the Link History window
+- **THEN** the first row shows the GoLand link with the result "wrong key"
+- **AND** the second row shows the IntelliJ link with the result "opened"
+
+#### Scenario: Only the latest 100 requests are listed
+
+- **GIVEN** the request log holds 105 requests
+- **WHEN** the user opens the Link History window
+- **THEN** it lists 100 rows, the latest 100
+
+#### Scenario: An unreadable log line has no row
+
+- **GIVEN** the request log holds two requests and a damaged line between them
+- **WHEN** the user opens the Link History window
+- **THEN** it lists the two requests
+
+#### Scenario: No request yet
+
+- **GIVEN** the request log does not exist
+- **WHEN** the user opens the Link History window
+- **THEN** the window says no link has been opened yet
+
+### Requirement: A row's link opens again
+
+Each row of the Link History window SHALL have a ▶ button that opens the row's scheme link again, as the server opens a keyed request: the link SHALL be checked against the allowed schemes of the settings, opened with the macOS opener, and the attempt SHALL be appended to the request log with its result. It SHALL need no key and SHALL close no browser tab. The window SHALL then list the new request as its first row.
+
+#### Scenario: Opening an IntelliJ link again
+
+- **GIVEN** the Link History window lists an opened IntelliJ link
+- **WHEN** the user chooses ▶ on its row
+- **THEN** the Mac opens that IntelliJ link
+- **AND** the first row shows that IntelliJ link with the result "opened"
+
+#### Scenario: A link whose scheme is not allowed stays closed
+
+- **GIVEN** the Link History window lists a Slack link with the result "scheme not allowed"
+- **WHEN** the user chooses ▶ on its row
+- **THEN** the Mac opens nothing
+- **AND** the first row shows that Slack link with the result "scheme not allowed"
 
 ### Requirement: Start at Login follows the system's login items
 

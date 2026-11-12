@@ -102,7 +102,7 @@ The menu bar app is the component `components/menubar` beside `linkserver`; the 
 
 ### D15: unsafe code only in the AppKit adapters
 
-AppKit and ServiceManagement are reached through `objc2` 0.6.4, `objc2-foundation`, `objc2-app-kit` and `objc2-service-management` 0.3.2, the versions VoicePuncher runs; their calls are `unsafe`. ADR-001 (`docs/decisions/ADR-001-appkit-ffi.html`) allows `unsafe` in exactly two files, `status_menu_handler.rs` and `sm_app_service_login_item_gateway.rs`, each under `#![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]` with a `// SAFETY:` comment above every block and at most three such blocks a file (R-080): the menu item and its target are made in one block, and every ServiceManagement call goes through one block over a private operation enum. Every crate keeps `lints.workspace = true` (R-140); the workspace table sets `unsafe_code = "deny"` in place of `forbid`, and `linkserver` and the app keep `#![forbid(unsafe_code)]` at their crate roots, which `cargo geiger --forbid-only` checks. `just unsafe-count` keeps checking that `http2scheme` and `linkserver` forbid unsafe code and counts the `unsafe` uses per file of `menubar` against `metrics/unsafe.tsv` (R-144): a higher count fails, a lower one must be written back in the same commit. Rejected: `tray-icon` + `muda` — more dependencies and their own event loop for a four-item menu, and the login item would still need ServiceManagement; a Swift helper — a second language and toolchain.
+AppKit and ServiceManagement are reached through `objc2` 0.6.4, `objc2-foundation`, `objc2-app-kit` and `objc2-service-management` 0.3.2, the versions VoicePuncher runs; their calls are `unsafe`. ADR-001 (`docs/decisions/ADR-001-appkit-ffi.html`) allows `unsafe` in exactly three files, `status_menu_handler.rs`, `history_window_handler.rs` (D18) and `sm_app_service_login_item_gateway.rs`, each under `#![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]` with a `// SAFETY:` comment above every block and at most three such blocks a file (R-080): the menu item and its target are made in one block, and every ServiceManagement call goes through one block over a private operation enum. Every crate keeps `lints.workspace = true` (R-140); the workspace table sets `unsafe_code = "deny"` in place of `forbid`, and `linkserver` and the app keep `#![forbid(unsafe_code)]` at their crate roots, which `cargo geiger --forbid-only` checks. `just unsafe-count` keeps checking that `http2scheme` and `linkserver` forbid unsafe code and counts the `unsafe` uses per file of `menubar` against `metrics/unsafe.tsv` (R-144): a higher count fails, a lower one must be written back in the same commit. Rejected: `tray-icon` + `muda` — more dependencies and their own event loop for a four-item menu, and the login item would still need ServiceManagement; a Swift helper — a second language and toolchain.
 
 ### D16: the login item
 
@@ -111,6 +111,14 @@ AppKit and ServiceManagement are reached through `objc2` 0.6.4, `objc2-foundatio
 ### D17: the bundle and the disk image
 
 As `tech-matrix-rust.md` § macOS Desktop says and as VoicePuncher does: `app/packaging/Info.plist` template (`CFBundleIdentifier` `io.github.firstpilotpirx.http2scheme`, `CFBundleExecutable` `http2scheme`, `LSUIElement` true, `LSMinimumSystemVersion` 15.0, `NSAppleEventsUsageDescription` — the tab closer's `osascript` runs as the app's child, so macOS asks in the app's name); `just bundle` builds the release binary, writes `dist/http2scheme.app` (the binary, the icon from `app/packaging/icons/http2scheme.iconset` through `iconutil`, the plist with the version through `plutil -replace`) and signs it (`_sign`: `codesign --force --sign <identity> --timestamp=none`, no hardened runtime, then `codesign --verify --deep --strict`); `just dmg` builds `dist/http2scheme-vX.Y.Z.dmg` through `create-dmg` 1.3.0 (background `app/packaging/dmg-background.png`, the app icon at the left, the Applications link at the right) and its `.sha256`; `just signing-identity` creates the self-signed certificate `http2scheme` once per machine. The pictures are drawn by `app/packaging/draw-artwork.swift` (`swift` of the Xcode command line tools) and committed. The menu bar icon is the SF Symbol `link` as a template picture, so it follows the menu bar's light and dark look. The pictures follow `tech-matrix-rust.md`: the script draws one 1024-pixel picture, `sips` scales it into the ten sizes of the iconset (16, 32, 128, 256 and 512 points, each at 1× and 2×). The gate's `bundle` stage, after `build` and before `coverage` (R-091 "build+packaging"), builds the disk image (ad-hoc signed when no certificate is named) and runs the `@bundle` E2E scenarios on it. README § Install follows VoicePuncher's: download, check the `.sha256`, drag to Applications, Open Anyway once per version.
+
+### D18: Serve Links and the Link History window
+
+The owner asked for both on 2026-11-12, after the menu was built, "the same technologies as VoicePuncher": VoicePuncher's dictation history window (an `NSWindow` built with `objc2-app-kit`, rows newest first, a button per row) is the model.
+
+Serve Links. `ServerStateEnum` gains `Off` (status line `Off`); `MenuCommandEnum` gains `ToggleServer`; `MenuViewValueObject` gains `serve_checked` (true unless `Off`). `OperateMenuUseCase` on `ToggleServer` calls the new port `ServerSwitchService` (`turn_off` when the state is not `Off`, else `turn_on`). Its adapter is `ServeOutputServerStateGateway` itself, which already owns the state: it now also holds the app's server launcher, `ServeLauncher` (`Arc<dyn Fn(ServeShutdown) + Send + Sync>`, where `ServeShutdown` is a boxed `Future<Output = ()> + Send`), and a `tokio::sync::oneshot` sender per run. `turn_on` sets `Starting`, makes a channel and hands its receiver to the launcher, which spawns `serve_command().run(shutdown, out, err)` on the app's runtime; `turn_off` sends on the channel and sets `Off`, and a line `serve` prints after that does not change `Off`. `MenubarConfig::start_server` turns it on at launch. The app passes the launcher in `MenubarHooks` (`serve`, `replay`) to `MenubarConfig::macos`; `menubar` still knows nothing of `linkserver` (R-027).
+
+Link History. New domain `LinkRecordValueObject` (time, result, link) in `menubar`; port `LinkHistoryRepository` (`latest(limit)`), adapter `linkhistory/filesystem/FilesystemLinkHistoryRepository` that reads `requests.log` in the logs folder — the line format of `link-opening` (`<RFC 3339 UTC>\t<result>\t<escaped link>`) is the contract; it keeps the last 100 well-formed lines, unescapes the link, and a missing file is an empty list. Port `LinkReplayService` (`replay(link) -> result`), adapter `linkreplay/inprocess/InProcessLinkReplayGateway` over the `replay` hook, `LinkReplayer` (`Arc<dyn Fn(&str) -> String + Send + Sync>`), which the app runs to its end on its own runtime (`Handle::block_on`), so the menu's no-op-waker `block_on` (D14) still finds the future ready at its first poll. Use case `BrowseHistory`/`BrowseHistoryUseCase`: `execute(HistoryCommandEnum)` with `Show` and `Replay(link)`, answering the fresh `HistoryViewValueObject` (rows newest first, or the note `No link has been opened yet.`). In `linkserver` the replay is the use case `ReplayLink`/`ReplayLinkUseCase` (settings through `PrepareSettingsUseCase`, the allow list check, the opener, the request log; no key, no tab closer) behind the primary adapter `linkreplay/inprocess/ReplayLinkHandler` (`replay(&str) -> String`, the result word), which `LinkserverConfig::replay_handler` builds and the app wraps as the `replay` hook. Primary adapter `historywindow/appkit/HistoryWindowHandler`: one `NSWindow` titled `Link History`, 720 × 480, built on first use and brought to the front after, with an `NSScrollView` over rows laid out by frame (no table data source, so no delegate `unsafe`): Time (local time through `NSTimeZone`, `2026-11-12 19:42:05`), Result, Link (truncated in the middle, the whole link as tool tip), ▶. The button is made with its target in one `unsafe` block (R-080, ADR-001). The status menu gets `Link History…`, which calls a closure that shows the window, so the two primary adapters stay apart. No live refresh: the window reads the log again when it is shown and after a ▶ (VoicePuncher's once-a-second check is left out, a non-goal for a list the user reopens).
 
 ## Test levels
 
@@ -161,6 +169,14 @@ Slice: `app/app/components/<component>/tests/features/slice/<capability>.feature
 | menu-bar-app: The bundled program is also the command line tool | E2E (`@bundle`) |
 | menu-bar-app: A running server | slice (menubar) |
 | menu-bar-app: A taken port | slice (menubar) |
+| menu-bar-app: Turning the server off | slice (menubar) + integration (gateway) |
+| menu-bar-app: Turning the server on again | slice (menubar) + integration (gateway) |
+| menu-bar-app: Requests are listed newest first | slice (menubar) + integration (repository) |
+| menu-bar-app: Only the latest 100 requests are listed | slice (menubar) + integration (repository) |
+| menu-bar-app: An unreadable log line has no row | slice (menubar) + integration (repository) |
+| menu-bar-app: No request yet | slice (menubar) + integration (repository) |
+| menu-bar-app: Opening an IntelliJ link again | slice (menubar) + integration (linkserver handler) |
+| menu-bar-app: A link whose scheme is not allowed stays closed | slice (menubar) + integration (linkserver handler) |
 | menu-bar-app: Turning Start at Login on | slice (menubar) |
 | menu-bar-app: Turning Start at Login off | slice (menubar) |
 | menu-bar-app: A login item that waits for approval | slice (menubar) |
@@ -188,13 +204,27 @@ The menu bar app's menu follows VoicePuncher's menu (title line, status line, ac
 ```
 [link icon]
   http2scheme 0.1.0                       (disabled)
-  Running on http://127.0.0.1:7777        (disabled; or "Starting…", "Stopped: port 7777 is taken")
+  Running on http://127.0.0.1:7777        (disabled; or "Starting…", "Stopped: port 7777 is taken", "Off")
+  ✓ Serve Links                           (no check mark while "Off")
+  Link History…
   ─────────────
   ✓ Start at Login                        (or "Start at Login (approve in System Settings)")
   Open Settings Folder
   Open Logs Folder
   ─────────────
   Quit http2scheme                  ⌘Q
+```
+
+The Link History window (D18), VoicePuncher's history window in its layout:
+
+```
+┌ Link History ─────────────────────────────────────────────────────────────┐
+│ Time                 Result               Link                         ▶  │
+│ 2026-11-12 19:42:05  opened               idea://open?file=/a/B.java&… [▶]│
+│ 2026-11-12 19:40:11  wrong key            goland://open?file=/c/D.go&… [▶]│
+│ 2026-11-12 19:38:57  scheme not allowed   slack://channel?team=T1&id…  [▶]│
+└───────────────────────────────────────────────────────────────────────────┘
+  (empty log: one line "No link has been opened yet.")
 ```
 
 The disk image window: 600 × 400, the app icon at (150, 200), the Applications link at (450, 200), an arrow between them on the background. The LaunchAgent label is `io.github.firstpilotpirx.http2scheme`.
