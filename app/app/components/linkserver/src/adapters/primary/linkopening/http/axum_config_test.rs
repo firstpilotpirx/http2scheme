@@ -9,4 +9,5 @@ fn serves_each_host_with_the_port() {
         PortValueObject::new(7777).unwrap(),
     );
     assert_eq!(config.authorities(), ["127.0.0.1:7777", "localhost:7777"]);
+    assert_eq!(config.address(), "http://127.0.0.1:7777");
 }

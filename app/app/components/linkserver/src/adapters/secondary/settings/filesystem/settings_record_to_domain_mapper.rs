@@ -17,9 +17,8 @@ pub fn to_domain(
     record: &SettingsRecord,
     file: &str,
 ) -> Result<ServerSettingsValueObject, SettingsInvalidError> {
-    let port = PortValueObject::new(record.port).ok_or_else(|| {
-        SettingsInvalidError::new(file, "port", "must be a number from 1024 to 65535")
-    })?;
+    let port = PortValueObject::new(record.port)
+        .ok_or_else(|| SettingsInvalidError::new(file, "port", "must be between 1024 and 65535"))?;
     let schemes = record
         .allowed_schemes
         .iter()

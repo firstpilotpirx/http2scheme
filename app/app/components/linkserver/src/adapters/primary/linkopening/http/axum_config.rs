@@ -44,6 +44,12 @@ impl AxumConfig {
             .collect()
     }
 
+    /// `http://<bind host>:<port>`.
+    #[must_use]
+    pub fn address(&self) -> String {
+        format!("http://{}:{}", self.bind_host, self.port.value())
+    }
+
     /// The routes, the host guard and the privacy headers.
     pub fn router(&self, handler: OpenLinkHandler) -> Router {
         Router::new()

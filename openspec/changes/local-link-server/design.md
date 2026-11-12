@@ -76,7 +76,7 @@ The app reads three test hooks from the environment and passes them to `Linkserv
 
 ### D9: async boundary
 
-Port traits use `#[async_trait]` and are object-safe (`architecture-rust.md`); the adapters run their blocking work (`std::process::Command`, file writes) in `tokio::task::spawn_blocking`.
+Port traits use `#[async_trait]` and are object-safe (`architecture-rust.md`); the adapters run child programs through `tokio::process::Command` (no shell), the blocking health request in `tokio::task::spawn_blocking`, and their small file reads and writes with `std::fs`.
 
 ### D10: terminal output
 

@@ -48,11 +48,11 @@
 
 ## 6. CLI primary adapters
 
-- [ ] 6.1 Red: `prepare_link_command_integration_test.rs` (assert_cmd on a tiny test binary target that mounts only this command with a mocked `PrepareLink`: prints one link, percent-encodes, failure status and reason) and the same for `serve_command`, the five agent commands and `TerminalStyleConfig` (no color when not a TTY, `NO_COLOR`, `--no-color`, `TERM=dumb`; `FORCE_COLOR=1`); sibling `*_test.rs` unit tests for every implementation file this group adds (R-071); they fail
-- [ ] 6.2 Green: `PrepareLinkCommand`, `ServeCommand`, `InstallAgentCommand`, `UninstallAgentCommand`, `StartAgentCommand`, `StopAgentCommand`, `AgentStatusCommand`, `TerminalStyleConfig` writing to an injected writer, output as in the agreed mock; the tests pass
-- [ ] 6.3 Red: slice features `link_sharing.feature`, `server_settings.feature`, `background_service.feature` (one `Rule:` per requirement, every scenario), steps in `tests/steps/`, fakes for every secondary port, temp home for settings; component feature `tests/features/component/link_sharing.feature` (a link printed by the link command, followed through the HTTP adapter, opens through the fake opener); they fail
-- [ ] 6.4 Green: `LinkserverConfig` builds the commands (with its sibling `linkserver_config_test.rs`); the scenarios pass
-- [ ] 6.5 Commit (`kit ship`)
+- [x] 6.1 Red: `prepare_link_command_integration_test.rs` (assert_cmd on a tiny test binary target that mounts only this command with a mocked `PrepareLink`: prints one link, percent-encodes, failure status and reason) and the same for `serve_command`, the five agent commands and `TerminalStyleConfig` (no color when not a TTY, `NO_COLOR`, `--no-color`, `TERM=dumb`; `FORCE_COLOR=1`); sibling `*_test.rs` unit tests for every implementation file this group adds (R-071); they fail
+- [x] 6.2 Green: `PrepareLinkCommand`, `ServeCommand`, `InstallAgentCommand`, `UninstallAgentCommand`, `StartAgentCommand`, `StopAgentCommand`, `AgentStatusCommand`, `TerminalStyleConfig` writing to an injected writer, output as in the agreed mock; the tests pass
+- [x] 6.3 Red: slice features `link_sharing.feature`, `server_settings.feature`, `background_service.feature` (one `Rule:` per requirement, every scenario), steps in `tests/steps/`, fakes for every secondary port, temp home for settings; component feature `tests/features/component/link_sharing.feature` (a link printed by the link command, followed through the HTTP adapter, opens through the fake opener); they fail
+- [x] 6.4 Green: `LinkserverConfig` builds the commands (with its sibling `linkserver_config_test.rs`); the scenarios pass
+- [x] 6.5 Commit (`kit ship`)
 
 ## 7. App and E2E
 

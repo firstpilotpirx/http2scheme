@@ -34,14 +34,15 @@ impl UninstallAgentUseCase {
 
 #[async_trait]
 impl UninstallAgent for UninstallAgentUseCase {
-    async fn execute(&self) -> Result<(), AgentControlError> {
+    async fn execute(&self) -> Result<bool, AgentControlError> {
         if self.supervisor.is_loaded(&self.label).await? {
             self.supervisor.unload(&self.label).await?;
         }
-        if self.repository.exists(&self.label).await? {
+        let installed = self.repository.exists(&self.label).await?;
+        if installed {
             self.repository.delete(&self.label).await?;
         }
-        Ok(())
+        Ok(installed)
     }
 }
 

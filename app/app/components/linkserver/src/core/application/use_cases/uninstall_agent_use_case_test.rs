@@ -27,7 +27,7 @@ async fn unloads_and_deletes_an_installed_agent() {
         .returning(|_| Ok(()));
     let use_case =
         UninstallAgentUseCase::new(LABEL.to_owned(), Arc::new(repository), Arc::new(supervisor));
-    assert_eq!(use_case.execute().await, Ok(()));
+    assert_eq!(use_case.execute().await, Ok(true));
 }
 
 #[tokio::test]
@@ -40,5 +40,5 @@ async fn is_harmless_when_nothing_is_installed() {
     supervisor.expect_unload().never();
     let use_case =
         UninstallAgentUseCase::new(LABEL.to_owned(), Arc::new(repository), Arc::new(supervisor));
-    assert_eq!(use_case.execute().await, Ok(()));
+    assert_eq!(use_case.execute().await, Ok(false));
 }
