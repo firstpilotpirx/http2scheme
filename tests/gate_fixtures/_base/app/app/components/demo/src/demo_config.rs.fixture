@@ -1,0 +1,16 @@
+//! Composition root.
+use crate::adapters::primary::opening::cli::open_door_command::OpenDoorCommand;
+
+/// The root.
+pub struct DemoConfig;
+
+impl DemoConfig {
+    /// `open`.
+    pub fn open_door_command(&self) -> OpenDoorCommand {
+        OpenDoorCommand
+    }
+}
+
+#[cfg(test)]
+#[path = "demo_config_test.rs"]
+mod demo_config_test;

@@ -1,0 +1,8 @@
+//! `open`.
+
+/// The command.
+pub struct OpenDoorCommand;
+
+#[cfg(test)]
+#[path = "open_door_command_test.rs"]
+mod open_door_command_test;

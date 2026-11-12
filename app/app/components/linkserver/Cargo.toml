@@ -1,0 +1,41 @@
+[package]
+name = "linkserver"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+owo-colors.workspace = true
+percent-encoding.workspace = true
+axum.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+config.workspace = true
+getrandom.workspace = true
+log.workspace = true
+serde.workspace = true
+tokio.workspace = true
+ureq.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+cucumber.workspace = true
+reqwest.workspace = true
+mockall.workspace = true
+tempfile.workspace = true
+wiremock.workspace = true
+
+[[bin]]
+name = "linkserver-cli-fixture"
+path = "tests/cli_fixture/main.rs"
+test = false
+doc = false
+
+[[test]]
+name = "cucumber_integration"
+harness = false

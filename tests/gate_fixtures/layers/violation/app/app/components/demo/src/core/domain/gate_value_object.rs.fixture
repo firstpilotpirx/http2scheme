@@ -1,0 +1,2 @@
+//! A gate.
+use crate::adapters::primary::opening::cli::open_door_command::OpenDoorCommand;

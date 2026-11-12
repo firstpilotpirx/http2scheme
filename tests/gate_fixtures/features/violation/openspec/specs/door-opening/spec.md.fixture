@@ -1,0 +1,15 @@
+# door-opening
+
+## Requirements
+
+### Requirement: Doors open
+
+#### Scenario: A door opens
+
+- **WHEN** the guest opens a door
+- **THEN** it is open
+
+#### Scenario: A locked door stays shut
+
+- **WHEN** the guest opens a locked door
+- **THEN** it stays shut

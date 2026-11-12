@@ -1,0 +1,1 @@
+R-073: app/app/components/demo/src/adapters/primary/opening/cli/close_door_command.rs (CloseDoorCommand) is driven by no slice test

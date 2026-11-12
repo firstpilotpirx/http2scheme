@@ -1,0 +1,1 @@
+R-024: app/app/components/demo/src/core/domain/gate_value_object.rs imports out of the domain

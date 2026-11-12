@@ -1,0 +1,1 @@
+R-136: app/app/components/demo/src/core/domain/door_value_object.rs DoorValueObject::number rose from 2 to 4

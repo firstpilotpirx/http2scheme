@@ -1,0 +1,8 @@
+//! Door errors.
+
+/// A door error.
+pub struct DoorError;
+
+#[cfg(test)]
+#[path = "door_error_test.rs"]
+mod door_error_test;

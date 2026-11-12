@@ -1,0 +1,3 @@
+//! IT.
+#[test]
+fn works() {}

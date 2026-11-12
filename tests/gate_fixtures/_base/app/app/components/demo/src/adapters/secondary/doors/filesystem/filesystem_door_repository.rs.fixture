@@ -1,0 +1,9 @@
+//! Doors on disk.
+use std::fs;
+
+/// The repository.
+pub struct FilesystemDoorRepository;
+
+#[cfg(test)]
+#[path = "filesystem_door_repository_test.rs"]
+mod filesystem_door_repository_test;

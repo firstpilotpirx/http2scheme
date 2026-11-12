@@ -1,0 +1,45 @@
+[workspace]
+members = ["."]
+resolver = "3"
+
+[package]
+name = "e2e"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[lints]
+workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+cucumber = { version = "=0.23.0", features = ["output-junit"] }
+percent-encoding = "=2.3.2"
+tempfile = "=3.27.0"
+tokio = { version = "=1.54.1", features = ["rt-multi-thread", "macros", "process", "time", "fs", "net", "io-util"] }
+
+[[test]]
+name = "cucumber_e2e"
+harness = false
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+cognitive_complexity = "deny"
+redundant_clone = "deny"
+use_self = "deny"
+or_fun_call = "deny"
+needless_collect = "deny"
+significant_drop_in_scrutinee = "deny"
+undocumented_unsafe_blocks = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+too_many_lines = "deny"
+too_many_arguments = "deny"
+excessive_nesting = "deny"
+allow_attributes_without_reason = "deny"

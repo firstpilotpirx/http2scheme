@@ -1,0 +1,1 @@
+R-137: app/app/components/demo/src/core/domain/wide_value_object.rs: WideValueObject has 13 fields (budget 12)

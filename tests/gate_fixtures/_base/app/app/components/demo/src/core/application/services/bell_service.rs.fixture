@@ -1,0 +1,11 @@
+//! The bell.
+
+/// Rings.
+pub trait BellService {
+    /// Rings it.
+    fn ring(&self);
+}
+
+#[cfg(test)]
+#[path = "bell_service_test.rs"]
+mod bell_service_test;

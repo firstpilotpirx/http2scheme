@@ -1,0 +1,11 @@
+//! The doors.
+
+/// Stores doors.
+pub trait DoorRepository {
+    /// One door.
+    fn read_door(&self) -> u16;
+}
+
+#[cfg(test)]
+#[path = "door_repository_test.rs"]
+mod door_repository_test;

@@ -1,0 +1,8 @@
+@door_opening
+Feature: Door opening
+
+  @slice
+  Scenario: A door opens
+    Given a closed door
+    When the guest opens it
+    Then the door is open

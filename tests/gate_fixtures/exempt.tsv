@@ -1,0 +1,19 @@
+rule-coverage	its subject is the repository rule ledger, not a source tree
+gate-fixtures	it is the runner of the fixtures; running it on itself would recurse
+repo	its subject is the repository itself (README, qa.sh, justfile, git), not a source tree
+fmt	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+lint	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+check	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+machete	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+unsafe-count	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+modules	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+typos	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+recipes	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+dup	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+deny	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+coverage	a pinned third-party tool; it proves its own failures, no script of this repository decides the verdict
+unit	the test suites and the build; a failing test or build fails the stage
+integration	the test suites and the build; a failing test or build fails the stage
+e2e	the test suites and the build; a failing test or build fails the stage
+build	the test suites and the build; a failing test or build fails the stage
+bundle	the test suites and the build; a failing test or build fails the stage

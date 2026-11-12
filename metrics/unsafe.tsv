@@ -1,0 +1,4 @@
+app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	4
+app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	4
+app/app/components/menubar/src/adapters/primary/statusmenu/appkit/status_menu_handler.rs	4
+app/app/components/menubar/src/adapters/secondary/loginitem/smappservice/sm_app_service_login_item_gateway.rs	1

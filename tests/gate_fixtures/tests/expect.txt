@@ -1,0 +1,1 @@
+R-071: app/app/components/demo/src/core/domain/key_value_object.rs has no sibling key_value_object_test.rs

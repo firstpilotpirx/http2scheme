@@ -1,0 +1,6 @@
+{
+  "threshold": 4.4,
+  "format": ["rust"],
+  "reporters": ["console"],
+  "silent": true
+}
