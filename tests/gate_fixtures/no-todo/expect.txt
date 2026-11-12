@@ -1,1 +1,2 @@
 R-081: app/app/components/demo/src/core/domain/hinge_value_object.rs:2 holds a TODO or FIXME
+R-080: app/app/components/demo/src/core/domain/hinge_justified_value_object.rs holds 4 SAFETY or WHY justifications, more than 3

@@ -1,0 +1,32 @@
+[package]
+name = "menubar"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+log.workspace = true
+objc2.workspace = true
+objc2-app-kit.workspace = true
+objc2-foundation.workspace = true
+objc2-service-management.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+cucumber.workspace = true
+mockall.workspace = true
+tempfile.workspace = true
+tokio.workspace = true
+
+[[test]]
+name = "cucumber_integration"
+harness = false
+
+[[test]]
+name = "status_menu_handler_integration_test"
+harness = false

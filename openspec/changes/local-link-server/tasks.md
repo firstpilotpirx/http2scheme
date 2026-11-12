@@ -70,12 +70,33 @@
 - [x] 8.5 `README.md` (one screen: Install, Run (dev), Run (production), Test, allow the Automation prompt once per browser, how the agent writes links); `AGENTS.md` (layout, check commands, Gherkin levels, release) and `.claude/kit.yaml` (build inputs, version file `app/app/Cargo.toml`, release command, manual-run area `adapters/secondary/linkopening/**`, `browsertabs/**` and `agentcontrol/**`); `kit doctor` reports no config problem
 - [x] 8.6 Commit (`kit ship`)
 
-## 9. Release
+## 10. Menu bar component
 
-- [x] 9.1 Add `just release` (D12); bump `version` in `app/app/Cargo.toml` to 0.1.0; `kit version-check local-link-server` passes
-- [x] 9.2 Commit (`kit ship`)
+- [x] 10.1 Red: crate `components/menubar` (`lints.workspace = true`; the workspace `unsafe_code` becomes `"deny"`, `linkserver` and the app keep `#![forbid(unsafe_code)]`, D15; `objc2` 0.6.4, `objc2-foundation`, `objc2-app-kit`, `objc2-service-management` 0.3.2 pinned with `=`); sibling unit tests for `ServerStateEnum` (status line words), `LoginItemStateEnum`, `MenuViewValueObject` (title with version, status line, login title, check mark, enabled), `AppFolderEnum`, `MenuCommandEnum` and `MenuActionError`; they fail
+- [x] 10.2 Green: implement them; the tests pass
+- [x] 10.3 Red: unit tests for `OperateMenuUseCase` (`Show` answers the view; `ToggleLoginItem`: `Off` registers, `On` unregisters, `NeedsApproval` opens the Login Items pane, `Unavailable` does nothing; `OpenFolder` creates the folder, then opens it, and an opener failure is a `MenuActionError`) and `OfferLoginItemUseCase` (the D16 cases), with `mockall` ports; they fail
+- [x] 10.4 Green: the `#[async_trait]` ports and the two use cases; the tests pass
+- [x] 10.5 Red: integration tests `serve_output_server_state_gateway_integration_test.rs` (the `serve` lines in, the states out), `filesystem_first_launch_repository_integration_test.rs` (temp folder), `launch_services_folder_opener_gateway_integration_test.rs` (recording script: one argument, the folder; a non-zero exit is an error), `sm_app_service_login_item_gateway_integration_test.rs` (outside a bundle: `Unavailable`, register refused, the system never asked; the bundle path check), `status_menu_handler_integration_test.rs` (`harness = false`, on the main thread: the items in order with their words; choosing an item runs its command through the use case); sibling unit tests for every implementation file (R-071); they fail
+- [x] 10.6 Green: the five adapters and `AppKitConfig`; `docs/decisions/ADR-001-appkit-ffi.html` (`kit report`); `scripts/arch/adr.sh` (R-006: the five ADR sections) with `tests/gate_fixtures/adr/{violation,clean}/` and the R-006 row of `scripts/rules.tsv` turned into `check adr`; `metrics/unsafe.tsv` and the per-file count in `just unsafe-count` (R-144); the tests pass
+- [x] 10.7 Red: `tests/features/slice/menu_bar_app.feature` (one `Rule:` per requirement, every slice scenario of the design's table), steps in `tests/steps/menu_bar_app.rs`, harness `tests/cucumber_integration.rs` with `harness = false` on the main thread, fakes for every secondary port; they fail
+- [x] 10.8 Green: `MenubarConfig` (with `MenubarSetup` and its sibling tests) builds the handler and the use cases; the scenarios pass
+- [x] 10.9 Commit (`kit ship`)
+
+## 11. App mode, bundle and disk image
+
+- [ ] 11.1 Red: `app/e2e/tests/features/menu_bar_app.feature` and `app_distribution.feature` with the `@bundle` scenarios of the design's table, steps on `dist/http2scheme.app` and its disk image (`BUNDLE_APP`, `BUNDLE_DMG`), the app started with a temp `HOME` and a recording `open`; they fail
+- [ ] 11.2 Green: `main.rs` runs the menu bar app when it has no command and runs from a bundle (D14); `app/packaging/Info.plist`, `draw-artwork.swift`, `icons/http2scheme.iconset` (ten sizes by `sips`), `dmg-background.png`; recipes `bundle`, `dmg`, `_sign`, `_require-signing-identity`, `_require-release-identity`, `signing-identity`, `_require-create-dmg`; the `bundle` stage of `scripts/qa.sh` after `build`, before `coverage`; the scenarios pass
+- [ ] 11.3 `README.md` § Install as VoicePuncher's (download, checksum, drag to Applications, Open Anyway, the menu, `http2scheme uninstall` for a CLI agent, the command line tool in the bundle); `AGENTS.md` (layout, the `bundle` stage, § Release: the disk image and its `.sha256` in place of the tarball, § Gherkin: the slice paths of both components); `.claude/kit.yaml` (build inputs `app/packaging/**`, manual-run area `components/menubar/src/adapters/**`)
+- [ ] 11.4 Commit (`kit ship`)
+
+## 12. Release
+
+- [x] 12.1 Add `just release` (D12); bump `version` in `app/app/Cargo.toml` to 0.1.0; `kit version-check local-link-server` passes
+- [x] 12.2 Commit (`kit ship`)
+- [ ] 12.3 `just release` publishes the disk image and its `.sha256` in place of the tarball (D12); the version stays 0.1.0, the first release
+- [ ] 12.4 Commit (`kit ship`)
 
 Manual checks the user performs:
 
-- [ ] 9.3 `cargo install --path app/app/apps/http2scheme`, `http2scheme install`; in the Claude chat, click a link printed by `http2scheme link 'idea://open?file=<a file>&line=<n>'` — IntelliJ opens that file at that line and the browser tab closes (after allowing the Automation prompt once); the same with a `goland://` link
-- [ ] 9.4 Restart the Mac; a link still opens with no other step; `http2scheme status` shows three ✓; `~/Library/Logs/http2scheme/requests.log` holds each click
+- [ ] 12.5 Open `dist/http2scheme-v0.1.0.dmg`, drag the app to Applications, open it (Open Anyway once); the menu bar shows the link icon, the menu reads `Running on http://127.0.0.1:7777` and Start at Login has a check mark; in the Claude chat, click a link printed by `/Applications/http2scheme.app/Contents/MacOS/http2scheme link 'idea://open?file=<a file>&line=<n>'` — IntelliJ opens that file at that line and the browser tab closes (after allowing the Automation prompt once); the same with a `goland://` link
+- [ ] 12.6 Restart the Mac; the app is in the menu bar and a link still opens with no other step; Open Logs Folder shows `requests.log` holding each click

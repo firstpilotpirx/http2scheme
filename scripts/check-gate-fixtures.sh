@@ -8,7 +8,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FIXTURES="$ROOT/tests/gate_fixtures"
 
 # Every check the gate runs, as name and script.
-CHECKS="layout:scripts/arch/layout.sh
+CHECKS="adr:scripts/arch/adr.sh
+layout:scripts/arch/layout.sh
 layers:scripts/arch/layers.sh
 purity:scripts/arch/purity.sh
 naming:scripts/arch/naming.sh

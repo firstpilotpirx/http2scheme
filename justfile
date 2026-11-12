@@ -83,7 +83,8 @@ complexity: _require-rust-code-analysis
 machete: _require-cargo-machete
     cargo machete {{app}} {{e2e}}
 
-# Every crate the binary is built from forbids unsafe code in every entry point (R-144).
+# The binary and linkserver forbid unsafe code in every entry point; menubar keeps its unsafe
+# blocks and impls per file at the counts in metrics/unsafe.tsv (R-144, ADR-001).
 # The E2E crate has only test targets, which cargo-geiger does not scan; its [lints] forbid unsafe code.
 unsafe-count: _require-cargo-geiger
     #!/usr/bin/env bash
@@ -92,6 +93,14 @@ unsafe-count: _require-cargo-geiger
     for name in http2scheme linkserver; do
       grep -qE "^:\) [│├└─ ]*$name " <<<"$report" || { echo "$name does not forbid unsafe code in every entry point"; exit 1; }
     done
+    actual="$(grep -rlE 'unsafe (\{|impl)' {{app}}/components/menubar/src | sort | while IFS= read -r file; do
+      printf '%s\t%s\n' "$file" "$(grep -oE 'unsafe (\{|impl)' "$file" | wc -l | tr -d ' ')"
+    done)"
+    if [ "$actual" != "$(cat metrics/unsafe.tsv)" ]; then
+      echo "unsafe uses differ from metrics/unsafe.tsv (a higher count needs ADR-001 updated; write a lower one back):"
+      diff <(cat metrics/unsafe.tsv) <(echo "$actual") || true
+      exit 1
+    fi
 
 # No cycle between the modules of a component (R-148).
 modules: _require-cargo-modules

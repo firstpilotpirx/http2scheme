@@ -1,0 +1,1 @@
+R-006: docs/decisions/ADR-002-missing-one.html has no Alternatives section

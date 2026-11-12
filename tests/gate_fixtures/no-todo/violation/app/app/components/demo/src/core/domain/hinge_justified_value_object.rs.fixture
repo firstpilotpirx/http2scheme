@@ -1,0 +1,8 @@
+//! Four justifications in one file are one too many.
+
+pub fn swing() {
+    // SAFETY: first.
+    // SAFETY: second.
+    // WHY: third.
+    // SAFETY: fourth.
+}

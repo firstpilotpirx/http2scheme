@@ -1,11 +1,11 @@
 # rule	verdict	checks (comma-separated qa stages or scripts) or the reason it does not apply (R-096)
 R-001	check	repo
 R-002	check	repo
-R-003	n/a	not applicable: no docs/ until the documentation change
-R-005	n/a	not applicable: no docs/ until the documentation change
-R-006	n/a	not applicable: no docs/ until the documentation change
-R-007	n/a	not applicable: no docs/ until the documentation change
-R-008	n/a	not applicable: no docs/ until the documentation change
+R-003	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
+R-005	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
+R-006	check	adr
+R-007	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
+R-008	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
 R-009	check	repo
 R-010	check	repo
 R-011	check	layout
@@ -54,7 +54,7 @@ R-062	check	tests,integration
 R-063	check	tests
 R-064	check	features
 R-065	check	features
-R-066	n/a	not applicable: no docs/ until the documentation change
+R-066	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
 R-067	check	layers,e2e
 R-068	check	tests
 R-069	n/a	not applicable: the project runs on no database or other production engine
@@ -88,9 +88,9 @@ R-094	check	repo
 R-095	check	repo
 R-096	check	rule-coverage,arch-tests
 R-129	check	gate-fixtures,arch-tests
-R-100	n/a	not applicable: no docs/ until the documentation change
-R-102	n/a	not applicable: no docs/ until the documentation change
-R-103	n/a	not applicable: no docs/ until the documentation change
+R-100	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
+R-102	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
+R-103	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
 R-110	check	unit
 R-111	n/a	not applicable: http2scheme has no --json mode, and qa.sh --json turns color off
 R-112	check	repo
@@ -98,8 +98,8 @@ R-120	n/a	not applicable: a Spring rule; the project has no Spring
 R-121	check	repo
 R-122	check	repo
 R-123	check	repo
-R-124	n/a	not applicable: no docs/ until the documentation change
-R-125	n/a	not applicable: no docs/ until the documentation change
+R-124	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
+R-125	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
 R-126	n/a	not applicable: the architecture rules are scripts in their own arch stage, not tests in a source set
 R-127	check	exact-versions
 R-139	check	repo
