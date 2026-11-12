@@ -755,7 +755,7 @@ dependencies = [
 
 [[package]]
 name = "http2scheme"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "env_logger",
@@ -1105,7 +1105,7 @@ checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "linkserver"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_cmd",
  "async-trait",
@@ -1159,7 +1159,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "menubar"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "cucumber",

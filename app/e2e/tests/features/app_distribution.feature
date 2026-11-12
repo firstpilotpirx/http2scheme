@@ -13,6 +13,14 @@ Feature: App distribution
       And it marks the app as a menu bar app with no Dock icon
       And it gives the reason for controlling a browser
 
+  Rule: The app bundle carries the license texts
+
+    @e2e @bundle
+    Scenario: The bundle holds both license texts
+      Given the app bundle is built
+      When the bundle's resources are listed
+      Then they hold "LICENSE-MIT" and "LICENSE-APACHE" equal to the repository's files
+
   Rule: The bundle is signed
 
     @e2e @bundle

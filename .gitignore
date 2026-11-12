@@ -1,5 +1,12 @@
-/target
+# Rust build output
+target/
+
+# Release builds (just dmg)
+/dist
+
+# Agent worktrees
 /.worktrees
 /.claude/worktrees
-target/
-/dist
+
+# macOS
+.DS_Store

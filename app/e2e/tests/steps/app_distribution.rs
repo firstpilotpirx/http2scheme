@@ -71,6 +71,31 @@ fn browser_reason(_world: &mut E2eWorld) {
     assert!(info("NSAppleEventsUsageDescription").contains("browser tab"));
 }
 
+#[when(regex = r"^the bundle's resources are listed$")]
+fn list_resources(world: &mut E2eWorld) {
+    let names = std::fs::read_dir(bundle_app().join("Contents/Resources"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned());
+    world.printed.out = names.collect::<Vec<_>>().join("\n");
+}
+
+#[then(regex = r#"^they hold "(.+)" and "(.+)" equal to the repository's files$"#)]
+fn holds_licenses(world: &mut E2eWorld, first: String, second: String) {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for name in [first, second] {
+        assert!(
+            world.printed.out.lines().any(|line| line == name),
+            "{name} missing"
+        );
+        let bundled = std::fs::read(bundle_app().join("Contents/Resources").join(&name)).unwrap();
+        assert_eq!(
+            bundled,
+            std::fs::read(root.join(&name)).unwrap(),
+            "{name} differs"
+        );
+    }
+}
+
 #[when(regex = r"^its signature is checked strictly$")]
 fn check_signature(world: &mut E2eWorld) {
     let output = Command::new("/usr/bin/codesign")
