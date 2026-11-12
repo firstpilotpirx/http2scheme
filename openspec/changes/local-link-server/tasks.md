@@ -6,13 +6,13 @@
 
 ## 2. Domain
 
-- [ ] 2.1 Red: unit tests for `SchemeNameValueObject` and `SchemeLinkValueObject` (D4: length 1–4096, control characters, space, scheme grammar, lower-case scheme, exact text kept); `just test-one` fails
-- [ ] 2.2 Green: implement both; the tests pass
-- [ ] 2.3 Red: unit tests for `AccessKeyValueObject` (64 hex, from 32 bytes, `matches` true only for the same key, false for wrong, empty and other-length candidates, redacted `Debug`) and `PortValueObject` (1024–65535); they fail
-- [ ] 2.4 Green: implement both with `subtle::ConstantTimeEq` (D5); the tests pass
-- [ ] 2.5 Red: unit tests for `SchemeAllowlistPolicy` (permits listed schemes, never `http`/`https`/`file`), `ServerSettingsValueObject`, `PreparedLinkValueObject`, `AgentDefinitionValueObject`, `AgentStatusValueObject` (healthy only when installed, loaded and answering), `OpenOutcomeEnum` labels, `LinkOpenAttemptedDomainEvent`, `LinkRejectedError`, `SettingsInvalidError` messages; they fail
-- [ ] 2.6 Green: implement them; every domain test passes
-- [ ] 2.7 Commit (`kit ship`)
+- [x] 2.1 Red: unit tests for `SchemeNameValueObject` and `SchemeLinkValueObject` (D4: length 1–4096, control characters, space, scheme grammar, lower-case scheme, exact text kept); `just test-one` fails
+- [x] 2.2 Green: implement both; the tests pass
+- [x] 2.3 Red: unit tests for `AccessKeyValueObject` (64 hex, from 32 bytes, `matches` true only for the same key, false for wrong, empty and other-length candidates, redacted `Debug`) and `PortValueObject` (1024–65535); they fail
+- [x] 2.4 Green: implement both with `subtle::ConstantTimeEq` (D5); the tests pass
+- [x] 2.5 Red: unit tests for `SchemeAllowlistPolicy` (permits listed schemes, never `http`/`https`/`file`), `ServerSettingsValueObject`, `PreparedLinkValueObject`, `AgentDefinitionValueObject`, `AgentStatusValueObject` (healthy only when installed, loaded and answering), `OpenOutcomeEnum` labels, `LinkOpenAttemptedDomainEvent`, `LinkRejectedError`, `SettingsInvalidError` messages; they fail
+- [x] 2.6 Green: implement them; every domain test passes
+- [x] 2.7 Commit (`kit ship`)
 
 ## 3. Application
 
