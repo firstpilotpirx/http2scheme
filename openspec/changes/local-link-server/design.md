@@ -92,11 +92,29 @@ After a successful open, `OpenLinkUseCase` calls `BrowserTabCloserService::close
 
 ### D12: version and release
 
-`version` in `[workspace.package]` of `app/app/Cargo.toml`; `just release` on a clean `origin/main`: the gate, a release build, `http2scheme-vX.Y.Z-aarch64-apple-darwin.tar.gz` with its `.sha256`, tag, `gh release create`.
+`version` in `[workspace.package]` of `app/app/Cargo.toml`; `just release` on a clean `origin/main` with `HTTP2SCHEME_SIGNING_IDENTITY` named and in the keychain: the gate, `just dmg` (D17), tag, `gh release create` with `http2scheme-vX.Y.Z.dmg` and its `.sha256`, as VoicePuncher releases. The owner, 2026-11-12, in the chat (translated): "build it like VoicePuncher, the way I already have it — not a separate change, in this current task". This replaces the first plan's tarball of the bare binary and the line of `AGENTS.md` § Release that names it (`http2scheme-vX.Y.Z-aarch64-apple-darwin.tar.gz`); task 11.3 rewrites that line.
+
+### D14: the menu bar app is a second component
+
+The menu bar app is the component `components/menubar` beside `linkserver`; the app crate wires both. ADR-001 is the project's first file under `docs/`; `scripts/arch/adr.sh` checks that every `docs/decisions/ADR-*.html` has the sections Status, Context, Decision, Alternatives and Consequences (R-006), with its gate fixtures (R-129). `menubar` knows nothing of `linkserver`: the app hands it the server's state through `ServerStateService`, whose adapter `ServeOutputServerStateGateway` (reached by the app only through `MenubarConfig::server_output`, R-030) reads the lines the `serve` command writes (`listening on <address>` → `Running`, an error line → `Stopped: <reason>`), so the state and its words are exactly the CLI's. Without a command, `main` checks whether its program is `<x>.app/Contents/MacOS/http2scheme`: then it starts the server on a tokio worker and runs the AppKit loop on the main thread; otherwise it prints the help as before. A terminate signal ends the process; so do Quit and a quit from the system (`NSApplication terminate`). Rejected: the app installing the LaunchAgent of `background-service` for itself — two copies of the program (the one in the bundle and the agent) and a second place that decides the state; SMAppService registers the app itself, as VoicePuncher does. The LaunchAgent commands stay for a CLI-only setup.
+
+`menubar` types: `core/domain` — `ServerStateEnum` (`Starting`, `Running`, `Stopped`), `LoginItemStateEnum` (`On`, `Off`, `NeedsApproval`, `Unavailable`), `MenuViewValueObject` (the menu's words and check mark), `AppFolderEnum` (`Settings`, `Logs`), `MenuCommandEnum` (`Show`, `ToggleLoginItem`, `OpenFolder`); `core/application` — `use_cases/` `OperateMenu`/`OperateMenuUseCase` (one `execute(MenuCommandEnum)` for Show, Toggle Login Item and Open Folder, answering the fresh `MenuViewValueObject`, so the menu adapter reaches the core through one use case, R-036) and `OfferLoginItem`/`OfferLoginItemUseCase` (the first launch from `/Applications`, run by `MenubarConfig` at launch); `services/` `LoginItemService`, `ServerStateService`, `FolderOpenerService`; `repositories/` `FirstLaunchRepository` (`exists`, `record`); `exceptions/` `MenuActionError`. Adapters: primary `statusmenu/appkit/` `StatusMenuHandler` (status item, menu, item target) and `AppKitConfig` (the shared application with the accessory policy, its run loop and the system quit); secondary `loginitem/smappservice/` `SmAppServiceLoginItemGateway`, `folders/launchservices/` `LaunchServicesFolderOpenerGateway` (`/usr/bin/open <folder>`, no shell, the same system the link opener of `linkserver` uses), `firstlaunch/filesystem/` `FilesystemFirstLaunchRepository` (the marker file `login-item-offered` in the settings folder), `serverstate/serveoutput/` `ServeOutputServerStateGateway`. New technology words: `appkit` (the AppKit framework), `smappservice` (ServiceManagement's `SMAppService`), `serveoutput` (the text stream of the in-process `serve` command, the only system on the other side of that port). The ports are `#[async_trait] … : Send + Sync`, as D9 and `architecture-rust.md` ask; their adapters do their short work (a file, one `open`, one ServiceManagement call) without awaiting anything, so `StatusMenuHandler`, which runs on the main thread outside any tokio runtime, drives the use case with a no-op-waker `block_on` of its own: the future is ready at its first poll.
+
+### D15: unsafe code only in the AppKit adapters
+
+AppKit and ServiceManagement are reached through `objc2` 0.6.4, `objc2-foundation`, `objc2-app-kit` and `objc2-service-management` 0.3.2, the versions VoicePuncher runs; their calls are `unsafe`. ADR-001 (`docs/decisions/ADR-001-appkit-ffi.html`) allows `unsafe` in exactly two files, `status_menu_handler.rs` and `sm_app_service_login_item_gateway.rs`, each under `#![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]` with a `// SAFETY:` comment above every block and at most three such blocks a file (R-080): the menu item and its target are made in one block, and every ServiceManagement call goes through one block over a private operation enum. Every crate keeps `lints.workspace = true` (R-140); the workspace table sets `unsafe_code = "deny"` in place of `forbid`, and `linkserver` and the app keep `#![forbid(unsafe_code)]` at their crate roots, which `cargo geiger --forbid-only` checks. `just unsafe-count` keeps checking that `http2scheme` and `linkserver` forbid unsafe code and counts the `unsafe` uses per file of `menubar` against `metrics/unsafe.tsv` (R-144): a higher count fails, a lower one must be written back in the same commit. Rejected: `tray-icon` + `muda` — more dependencies and their own event loop for a four-item menu, and the login item would still need ServiceManagement; a Swift helper — a second language and toolchain.
+
+### D16: the login item
+
+`SmAppServiceLoginItemGateway` asks `SMAppService.mainAppService` for the status, registers and unregisters, and opens the Login Items pane (`SMAppService.openSystemSettingsLoginItems`); outside a bundle it reports `Unavailable` and never asks the system. `OfferLoginItemUseCase` runs once at launch: when the program is under `/Applications/`, no marker exists and the state is `Off`, it registers and records the marker; any other case records nothing but the marker when it was under `/Applications/`. So a user who removed the login item keeps it removed, and builds run from `dist/` never touch the login items. No restart after a crash: a login item, unlike `KeepAlive`, is started once per login; the server runs in the app's process and has no crash path of its own besides a panic, which the `serve` tests cover.
+
+### D17: the bundle and the disk image
+
+As `tech-matrix-rust.md` § macOS Desktop says and as VoicePuncher does: `app/packaging/Info.plist` template (`CFBundleIdentifier` `io.github.firstpilotpirx.http2scheme`, `CFBundleExecutable` `http2scheme`, `LSUIElement` true, `LSMinimumSystemVersion` 15.0, `NSAppleEventsUsageDescription` — the tab closer's `osascript` runs as the app's child, so macOS asks in the app's name); `just bundle` builds the release binary, writes `dist/http2scheme.app` (the binary, the icon from `app/packaging/icons/http2scheme.iconset` through `iconutil`, the plist with the version through `plutil -replace`) and signs it (`_sign`: `codesign --force --sign <identity> --timestamp=none`, no hardened runtime, then `codesign --verify --deep --strict`); `just dmg` builds `dist/http2scheme-vX.Y.Z.dmg` through `create-dmg` 1.3.0 (background `app/packaging/dmg-background.png`, the app icon at the left, the Applications link at the right) and its `.sha256`; `just signing-identity` creates the self-signed certificate `http2scheme` once per machine. The pictures are drawn by `app/packaging/draw-artwork.swift` (`swift` of the Xcode command line tools) and committed. The menu bar icon is the SF Symbol `link` as a template picture, so it follows the menu bar's light and dark look. The pictures follow `tech-matrix-rust.md`: the script draws one 1024-pixel picture, `sips` scales it into the ten sizes of the iconset (16, 32, 128, 256 and 512 points, each at 1× and 2×). The gate's `bundle` stage, after `build` and before `coverage` (R-091 "build+packaging"), builds the disk image (ad-hoc signed when no certificate is named) and runs the `@bundle` E2E scenarios on it. README § Install follows VoicePuncher's: download, check the `.sha256`, drag to Applications, Open Anyway once per version.
 
 ## Test levels
 
-Slice: `app/app/components/linkserver/tests/features/slice/<capability>.feature` with fake secondary adapters. Component: `…/features/component/link_sharing.feature`. Integration: the adapter's `*_integration_test.rs`. E2E: `app/e2e/tests/features/<capability>.feature` on the built binary with recording `open`, `launchctl` and `osascript` scripts (D8).
+Slice: `app/app/components/<component>/tests/features/slice/<capability>.feature` with fake secondary adapters; the `menubar` slice drives the real `StatusMenuHandler` on the main thread (a `harness = false` test), reads the menu's items and chooses them, with fakes behind every secondary port. Component: `…/features/component/link_sharing.feature`. Integration: the adapter's `*_integration_test.rs`. E2E: `app/e2e/tests/features/<capability>.feature` on the built binary with recording `open`, `launchctl` and `osascript` scripts (D8).
 
 | Scenario | Level |
 | --- | --- |
@@ -139,14 +157,53 @@ Slice: `app/app/components/linkserver/tests/features/slice/<capability>.feature`
 | server-settings: An allowed scheme added by hand is honored | slice + E2E |
 | server-settings: A broken settings file stops the start with its reason | slice + E2E |
 | server-settings: A key file readable by others stops the start | slice + E2E |
+| menu-bar-app: The app serves a keyed link | E2E (`@bundle`) |
+| menu-bar-app: The bundled program is also the command line tool | E2E (`@bundle`) |
+| menu-bar-app: A running server | slice (menubar) |
+| menu-bar-app: A taken port | slice (menubar) |
+| menu-bar-app: Turning Start at Login on | slice (menubar) |
+| menu-bar-app: Turning Start at Login off | slice (menubar) |
+| menu-bar-app: A login item that waits for approval | slice (menubar) |
+| menu-bar-app: Not an installed app | slice (menubar) |
+| menu-bar-app: The first launch from Applications | slice (menubar) |
+| menu-bar-app: A login item the user removed stays removed | slice (menubar) |
+| menu-bar-app: A launch from another folder | slice (menubar) |
+| menu-bar-app: Open the settings folder | slice (menubar) |
+| menu-bar-app: Open the logs folder before the first request | slice (menubar) |
+| menu-bar-app: A terminate signal ends the app | E2E (`@bundle`) |
+| app-distribution: The bundle's information | E2E (`@bundle`) |
+| app-distribution: A built bundle passes the signature check | E2E (`@bundle`) |
+| app-distribution: A release without a certificate stops | E2E (`@bundle`) |
+| app-distribution: The disk image holds the app and the Applications link | E2E (`@bundle`) |
+| app-distribution: The checksum file matches the disk image | E2E (`@bundle`) |
 | key comparison timing (D5) | not tested: a timing test is too noisy to pass or fail reliably; `AccessKey::matches` uses `subtle::ConstantTimeEq`, and its unit test checks equal keys and keys that differ in the first and in the last byte |
-| manual run | the user clicks printed IntelliJ and GoLand links in the Claude chat and the tab closes; after `install` and a Mac restart, a link still works |
+| manual run | the user installs the app from the disk image (Open Anyway once), clicks printed IntelliJ and GoLand links in the Claude chat and the tab closes; the menu shows `Running on …` with Start at Login checked; after a Mac restart, a link still works |
 
 ## Interface mock
 
-[http2scheme interface mock](https://claude.ai/artifact/DDotUxHvNFqK8Cbujs7GRh) — the browser pages and the command output, each in light and dark. The LaunchAgent label is `io.github.firstpilotpirx.http2scheme`.
+[http2scheme interface mock](https://claude.ai/artifact/DDotUxHvNFqK8Cbujs7GRh) — the browser pages and the command output, each in light and dark.
+
+The menu bar app's menu follows VoicePuncher's menu (title line, status line, actions, Quit), the owner's model for the app (2026-11-12):
+
+```
+[link icon]
+  http2scheme 0.1.0                       (disabled)
+  Running on http://127.0.0.1:7777        (disabled; or "Starting…", "Stopped: port 7777 is taken")
+  ─────────────
+  ✓ Start at Login                        (or "Start at Login (approve in System Settings)")
+  Open Settings Folder
+  Open Logs Folder
+  ─────────────
+  Quit http2scheme                  ⌘Q
+```
+
+The disk image window: 600 × 400, the app icon at (150, 200), the Applications link at (450, 200), an arrow between them on the background. The LaunchAgent label is `io.github.firstpilotpirx.http2scheme`.
 
 ## Risks / Trade-offs
+
+- [Gatekeeper blocks the first launch] → the app is self-signed, not notarized; README says to click Open Anyway once per version, as for VoicePuncher.
+- [The app and a CLI LaunchAgent both run] → the second one finds the port taken; the menu shows `Stopped: port 7777 is taken` and README says to run `http2scheme uninstall` after installing the app.
+- [The menu slice needs a logged-in desktop] → the gate runs on the owner's Mac, where the window server is there; without it the slice harness fails at its first step, naming the reason.
 
 - [The browser leaves a tab after each click] → D13 closes it in the five supported browsers; Firefox keeps it (the page tries `window.close()`).
 - [The Automation permission prompt] → shown once per browser on the first click; `README.md` says to allow it.
