@@ -22,7 +22,7 @@ Started from its app bundle with no command, the program SHALL run as a menu bar
 
 ### Requirement: The menu shows the app and the server state
 
-The status item's menu SHALL show, in this order: the app name with its version; one status line; Serve Links; Link History…; Start at Login; Open Settings Folder; Open Logs Folder; Quit http2scheme. The status line SHALL read `Starting…` until the server listens, `Running on <address>` while it listens, `Stopped: <reason>` after the server failed to start or stopped, with the reason the `serve` command would print, and `Off` while the user turned the server off.
+The status item's menu SHALL show, in this order: the app name with its version; one status line; Serve Links; Start at Login; Settings…; Link History…; Quit http2scheme. The status line SHALL read `Starting…` until the server listens, `Running on <address>` while it listens, `Stopped: <reason>` after the server failed to start or stopped, with the reason the `serve` command would print, and `Off` while the user turned the server off.
 
 #### Scenario: A running server
 
@@ -39,7 +39,7 @@ The status item's menu SHALL show, in this order: the app name with its version;
 
 ### Requirement: Serve Links turns the server off and on
 
-Serve Links SHALL show a check mark exactly while the server is not turned off. Choosing it while the server is on SHALL stop the server, so the open address no longer answers, and the status line SHALL read `Off`. Choosing it while the server is off SHALL start the server again with the settings and key as they are then. The app SHALL start with the server on at every launch.
+Serve Links SHALL show a check mark, and the Serve links switch of the Settings window SHALL be on, exactly while the server is not turned off. Choosing either while the server is on SHALL stop the server, so the open address no longer answers, and the status line SHALL read `Off`. Choosing it while the server is off SHALL start the server again with the settings and key as they are then. The app SHALL start with the server on at every launch.
 
 #### Scenario: Turning the server off
 
@@ -56,61 +56,75 @@ Serve Links SHALL show a check mark exactly while the server is not turned off. 
 - **THEN** the server answers again
 - **AND** Serve Links shows a check mark
 
-### Requirement: The Link History window lists the latest requests
+#### Scenario: Turning the server off in the Settings window
 
-Link History… SHALL open the Link History window, or bring it to the front when it is open. The window SHALL list the latest 100 lines of the request log, newest first, one row per line, each row showing the time of the request in local time, its result and its scheme link. It SHALL read the request log again each time it is brought to the front. A log line it cannot read SHALL have no row. When the log holds no line, the window SHALL say `No link has been opened yet.` instead of an empty table. When the log exists but cannot be read, the window SHALL list no row and say `The link history could not be read: <reason>`.
+- **GIVEN** the app runs and its server answers
+- **WHEN** the user turns the Serve links switch off in the Settings window
+- **THEN** the server no longer answers
+- **AND** the line under the switch reads "Off"
+
+### Requirement: The History tab lists the latest requests
+
+Link History… SHALL bring the Settings window to the front with its History tab. The tab SHALL list the latest 100 lines of the request log, newest first, each row showing the local time, the result and the scheme link, and SHALL read the log again each time it is shown. A log line it cannot read SHALL have no row. With no line in the log it SHALL say `No link has been opened yet.`; with a log it cannot read it SHALL list no row and say `The link history could not be read: <reason>`.
 
 #### Scenario: Requests are listed newest first
 
 - **GIVEN** the request log holds an opened IntelliJ link and, after it, a GoLand link with the wrong key
-- **WHEN** the user opens the Link History window
+- **WHEN** the user opens the History tab
 - **THEN** the first row shows the GoLand link with the result "wrong key"
 - **AND** the second row shows the IntelliJ link with the result "opened"
 
 #### Scenario: Only the latest 100 requests are listed
 
 - **GIVEN** the request log holds 105 requests
-- **WHEN** the user opens the Link History window
+- **WHEN** the user opens the History tab
 - **THEN** it lists 100 rows, the latest 100
 
 #### Scenario: An unreadable log line has no row
 
 - **GIVEN** the request log holds two requests and a damaged line between them
-- **WHEN** the user opens the Link History window
+- **WHEN** the user opens the History tab
 - **THEN** it lists the two requests
 
 #### Scenario: No request yet
 
 - **GIVEN** the request log does not exist
-- **WHEN** the user opens the Link History window
-- **THEN** the window says no link has been opened yet
+- **WHEN** the user opens the History tab
+- **THEN** the tab says no link has been opened yet
 
 ### Requirement: A row's link opens again
 
-Each row of the Link History window SHALL have a ▶ button that opens the row's scheme link again, as the server opens a keyed request: the link SHALL be checked against the allowed schemes of the settings, opened with the macOS opener, and the attempt SHALL be appended to the request log with its result. It SHALL need no key and SHALL close no browser tab. The window SHALL then list the new request as its first row.
+Each row of the History tab SHALL have a ▶ button that opens the row's scheme link again, as the server opens a keyed request: the link SHALL be checked against the allowed schemes of the settings, opened with the macOS opener, and the attempt SHALL be appended to the request log with its result. It SHALL need no key and SHALL close no browser tab. The tab SHALL then list the new request as its first row.
 
 #### Scenario: Opening an IntelliJ link again
 
-- **GIVEN** the Link History window lists an opened IntelliJ link
+- **GIVEN** the History tab lists an opened IntelliJ link
 - **WHEN** the user chooses ▶ on its row
 - **THEN** the Mac opens that IntelliJ link
 - **AND** the first row shows that IntelliJ link with the result "opened"
 
 #### Scenario: A link whose scheme is not allowed stays closed
 
-- **GIVEN** the Link History window lists a Slack link with the result "scheme not allowed"
+- **GIVEN** the History tab lists a Slack link with the result "scheme not allowed"
 - **WHEN** the user chooses ▶ on its row
 - **THEN** the Mac opens nothing
 - **AND** the first row shows that Slack link with the result "scheme not allowed"
 
 ### Requirement: Start at Login follows the system's login items
 
-Start at Login SHALL show a check mark exactly while macOS lists the app in its login items as enabled. Choosing it SHALL add the app to the login items when it is not there and remove it when it is. When macOS waits for the user's approval, the item SHALL read `Start at Login (approve in System Settings)` and choosing it SHALL open the Login Items pane of System Settings. Outside an installed app bundle the item SHALL be disabled.
+Start at Login SHALL show a check mark, and the Start at login switch SHALL be on, exactly while macOS lists the app as an enabled login item. Choosing either SHALL add the app to the login items or remove it. While macOS waits for approval, the item SHALL read `Start at Login (approve in System Settings)` and choosing either SHALL open the Login Items pane of System Settings. Outside an installed app bundle both SHALL be disabled.
 
 #### Scenario: Turning Start at Login on
 
 - **GIVEN** the app is not in the login items
 - **WHEN** the user chooses Start at Login
+- **THEN** the app is in the login items
+- **AND** Start at Login shows a check mark
+
+#### Scenario: Turning Start at login on in the Settings window
+
+- **GIVEN** the app is not in the login items
+- **WHEN** the user turns the Start at login switch on in the Settings window
 - **THEN** the app is in the login items
 - **AND** Start at Login shows a check mark
 
@@ -155,22 +169,26 @@ The first time the app runs from the `/Applications` folder, it SHALL add itself
 - **WHEN** the app starts
 - **THEN** the login items are unchanged
 
-### Requirement: The menu opens the app's folders and quits
+### Requirement: The Settings window shows the switches and the history
 
-Open Settings Folder SHALL open the settings folder in the Finder, and Open Logs Folder the folder of the request log, creating the folder first when it does not exist. Quit http2scheme SHALL stop the server and end the app; so SHALL a quit from the system (logout, shutdown, a terminate signal).
+Settings… SHALL bring the window `http2scheme Settings` to the front with its General tab; the window SHALL have the tabs General and History. General SHALL show the Serve links switch with the status line under it, and the Start at login switch with the line `The app starts when you log in to the Mac.` under it, or the reason it waits or is disabled. The window SHALL read the state again each time it is shown and after each switch.
 
-#### Scenario: Open the settings folder
+#### Scenario: Settings opens the General tab
+
+- **GIVEN** the app runs and its server listens on port 7777
+- **WHEN** the user chooses Settings…
+- **THEN** the Settings window shows its General tab
+- **AND** the Serve links switch is on with "Running on http://127.0.0.1:7777" under it
+
+#### Scenario: Link History opens the History tab
 
 - **GIVEN** the app runs
-- **WHEN** the user chooses Open Settings Folder
-- **THEN** the Finder opens the settings folder
+- **WHEN** the user chooses Link History…
+- **THEN** the Settings window shows its History tab
 
-#### Scenario: Open the logs folder before the first request
+### Requirement: Quit and the system end the app
 
-- **GIVEN** the app runs and no request was logged yet
-- **WHEN** the user chooses Open Logs Folder
-- **THEN** the logs folder exists
-- **AND** the Finder opens it
+Quit http2scheme SHALL stop the server and end the app; so SHALL a quit from the system (logout, shutdown, a terminate signal).
 
 #### Scenario: A terminate signal ends the app
 

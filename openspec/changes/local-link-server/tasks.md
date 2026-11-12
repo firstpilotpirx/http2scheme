@@ -99,6 +99,15 @@
 - [x] 12.6 Fixes from the spec-test review: a request with no or an unreadable link logs the reason in the link field (`open_link_use_case_test`, `event_to_log_line_mapper_test`); "A second install replaces the first" starts from a definition naming an old program and asserts it is gone (slice + E2E); D2 names both components; the slice step of "A scheme link becomes an open link" follows the link; the slice of "A failed tab close keeps the link opened" asserts the close was tried; task 10.3 says the gateway creates the folder; the design table adds slice to "Two first uses create two different keys"; D7 says a failed log write keeps the answer
 - [x] 12.7 README § Install and the menu: Serve Links, Link History; commit (`kit ship`)
 
+## 14. Settings window and the app order
+
+- [ ] 14.1 Red: `linkserver` unit tests: `process_list_to_left_app_mapper` (a browser in front → the second ASN; no browser in front, one entry, an empty list → none; `bundleID="…"` read, `[ NULL ]` → none); `OpenLinkUseCase` brings the left app back before it opens an admitted link, brings none back for a refused one, and a failed reorder keeps "opened"; `menubar` unit tests: `MenuViewValueObject::login_note` for the four login states, `OperateMenuUseCase` without folders; they fail
+- [ ] 14.2 Green: `AppOrderService`, `OpenLinkError::ReorderFailed`, the use case's sixth port, the mapper (D20); remove `AppFolderEnum`, `AppFoldersValueObject`, `MenuCommandEnum::OpenFolder`, `FolderOpenerService` and `LaunchServicesFolderOpenerGateway` with their tests (D19); the tests pass
+- [ ] 14.3 Red: `ls_app_info_app_order_gateway_integration_test.rs` (recording `lsappinfo` and `open`: Safari in front with Claude behind → `open -b com.anthropic.claudefordesktop`; Ghostty in front → no `open`; a failing `lsappinfo` → an error); `settings_window_handler_integration_test.rs` (`harness = false`, main thread: Settings… shows General with the switches and lines, Link History… shows History, each switch runs its command, the rows and ▶ of the History tab); the menu's new items in `status_menu_handler_integration_test.rs`; they fail
+- [ ] 14.4 Green: `LsAppInfoAppOrderGateway`, `LinkserverSetup::lsappinfo_program`, `main.rs`; `SettingsWindowHandler`, `HistoryTabHandler` (the former `HistoryWindowHandler`), the menu items, `MenubarConfig::{settings_window, status_menu}`; ADR-001 and `metrics/unsafe.tsv` (D19); the tests pass
+- [ ] 14.5 Red → Green: the slice scenarios of the design's table for D19 and D20 (`link_opening.feature` with a fake app order; `menu_bar_app.feature` of `menubar` over the Settings window); the folder scenarios leave the slice and E2E features
+- [ ] 14.6 README § Install and the menu: Settings…, Link History…, Command-Tab after a click; task 13.6 names the Settings window; commit (`kit ship`)
+
 ## 13. Release
 
 - [x] 13.1 Add `just release` (D12); bump `version` in `app/app/Cargo.toml` to 0.1.0; `kit version-check local-link-server` passes
@@ -109,4 +118,4 @@
 Manual checks the user performs:
 
 - [ ] 13.5 Open `dist/http2scheme-v0.1.0.dmg`, drag the app to Applications, open it (Open Anyway once); the menu bar shows the link icon, the menu reads `Running on http://127.0.0.1:7777`, Serve Links and Start at Login have a check mark; in the Claude chat, click a link printed by `/Applications/http2scheme.app/Contents/MacOS/http2scheme link 'idea://open?file=<a file>&line=<n>'` — IntelliJ opens that file at that line and the browser tab closes (after allowing the Automation prompt once); the same with a `goland://` link
-- [ ] 13.6 Restart the Mac; the app is in the menu bar and a link still opens with no other step; Open Logs Folder shows `requests.log` holding each click; Link History lists the clicks newest first and ▶ on a row opens its link again; Serve Links off makes a click fail to connect, on again makes it work
+- [ ] 13.6 Restart the Mac; the app is in the menu bar and a link still opens with no other step; Link History… shows the History tab of the Settings window with the clicks newest first and ▶ on a row opens its link again; Serve Links off (or the Serve links switch in Settings…) makes a click fail to connect, on again makes it work; after a click in the Claude app, Command-Tab from IntelliJ goes back to the Claude app

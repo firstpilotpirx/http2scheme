@@ -59,6 +59,30 @@ After a link opens, the server SHALL ask every running supported browser (Safari
 - **THEN** the browser shows the "Opened" page
 - **AND** the request log ends with the result "opened"
 
+### Requirement: The app the user left for the browser comes back behind the opened app
+
+Before an allowed link opens, when a supported browser is the front app, the server SHALL bring to the front the app that was in front before that browser, so that the app switcher (Command-Tab) lists the link's app first and the left app second, before the browser. When no supported browser is in front, or no other app is behind it, the server SHALL change no app's order. A failed reorder SHALL not change the answer or the log.
+
+#### Scenario: The left app comes back behind the opened app
+
+- **GIVEN** the user left the Claude app for the browser
+- **WHEN** the browser follows a keyed open link to an IntelliJ link
+- **THEN** the server brings the Claude app to the front
+- **AND** then the Mac opens that IntelliJ link
+
+#### Scenario: A refused request changes no app order
+
+- **GIVEN** the user left the Claude app for the browser
+- **WHEN** the browser follows an open link with a wrong key
+- **THEN** the server brings no app to the front
+
+#### Scenario: A failed reorder keeps the link opened
+
+- **GIVEN** the app order cannot be changed
+- **WHEN** the browser follows a keyed open link to an IntelliJ link
+- **THEN** the browser shows the "Opened" page
+- **AND** the request log ends with the result "opened"
+
 ### Requirement: A request without the right key opens nothing
 
 A request whose key is missing or differs from the secret key SHALL open nothing and get 403 with a short "Wrong key" page. The key comparison SHALL take the same time wherever the keys first differ.

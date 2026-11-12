@@ -103,7 +103,7 @@ The menu bar app is the component `components/menubar` beside `linkserver`; the 
 
 ### D15: unsafe code only in the AppKit adapters
 
-AppKit and ServiceManagement are reached through `objc2` 0.6.4, `objc2-foundation`, `objc2-app-kit` and `objc2-service-management` 0.3.2, the versions VoicePuncher runs; their calls are `unsafe`. ADR-001 (`docs/decisions/ADR-001-appkit-ffi.html`) allows `unsafe` in exactly three files, `status_menu_handler.rs`, `history_window_handler.rs` (D18) and `sm_app_service_login_item_gateway.rs`, each under `#![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]` with a `// SAFETY:` comment above every block and at most three such blocks a file (R-080): the menu item and its target are made in one block, and every ServiceManagement call goes through one block over a private operation enum. Every crate keeps `lints.workspace = true` (R-140); the workspace table sets `unsafe_code = "deny"` in place of `forbid`, and `linkserver` and the app keep `#![forbid(unsafe_code)]` at their crate roots, which `cargo geiger --forbid-only` checks. `just unsafe-count` keeps checking that `http2scheme` and `linkserver` forbid unsafe code and counts the `unsafe` uses per file of `menubar` against `metrics/unsafe.tsv` (R-144): a higher count fails, a lower one must be written back in the same commit. Rejected: `tray-icon` + `muda` — more dependencies and their own event loop for a four-item menu, and the login item would still need ServiceManagement; a Swift helper — a second language and toolchain.
+AppKit and ServiceManagement are reached through `objc2` 0.6.4, `objc2-foundation`, `objc2-app-kit` and `objc2-service-management` 0.3.2, the versions VoicePuncher runs; their calls are `unsafe`. ADR-001 (`docs/decisions/ADR-001-appkit-ffi.html`) allows `unsafe` in exactly four files, `status_menu_handler.rs`, `settings_window_handler.rs` and `history_tab_handler.rs` (D19) and `sm_app_service_login_item_gateway.rs`, each under `#![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]` with a `// SAFETY:` comment above every block and at most three such blocks a file (R-080): the menu item and its target are made in one block, and every ServiceManagement call goes through one block over a private operation enum. Every crate keeps `lints.workspace = true` (R-140); the workspace table sets `unsafe_code = "deny"` in place of `forbid`, and `linkserver` and the app keep `#![forbid(unsafe_code)]` at their crate roots, which `cargo geiger --forbid-only` checks. `just unsafe-count` keeps checking that `http2scheme` and `linkserver` forbid unsafe code and counts the `unsafe` uses per file of `menubar` against `metrics/unsafe.tsv` (R-144): a higher count fails, a lower one must be written back in the same commit. Rejected: `tray-icon` + `muda` — more dependencies and their own event loop for a four-item menu, and the login item would still need ServiceManagement; a Swift helper — a second language and toolchain.
 
 ### D16: the login item
 
@@ -120,6 +120,18 @@ The owner asked for both on 2026-11-12, after the menu was built, "the same tech
 Serve Links. `ServerStateEnum` gains `Off` (status line `Off`); `MenuCommandEnum` gains `ToggleServer`; `MenuViewValueObject` gains `serve_checked` (true unless `Off`). `OperateMenuUseCase` on `ToggleServer` calls the new port `ServerSwitchService` (`turn_off` when the state is not `Off`, else `turn_on`), which extends `ServerStateService`, so the use case takes one server port and stays at five arguments (clippy `too_many_arguments`). Its adapter is `ServeOutputServerStateGateway` itself, which already owns the state: it now also holds the app's server launcher, `ServeLauncher` (`Arc<dyn Fn(ServeShutdown, ServeOutput, ServeOutput) + Send + Sync>`, where `ServeShutdown` is a boxed `Future<Output = ()> + Send` and each `ServeOutput` a boxed `Write + Send`: the gateway's own `out()` and `err()` writers, so the launcher needs nothing of the gateway), and a `tokio::sync::oneshot` sender per run. `turn_on` sets `Starting`, makes a channel and hands its receiver to the launcher, which spawns `serve_command().run(shutdown, out, err)` on the app's runtime; `turn_off` sends on the channel and sets `Off`, and a line `serve` prints after that does not change `Off`. `MenubarConfig::start_server` turns it on at launch. The app passes the launcher in `MenubarHooks` (`serve`, `replay`) to `MenubarConfig::macos`; `menubar` still knows nothing of `linkserver` (R-027).
 
 Link History. New domain `LinkRecordValueObject` (time, result, link) in `menubar`; port `LinkHistoryRepository` (`find_latest(limit)`), adapter `linkhistory/filesystem/FilesystemLinkHistoryRepository` that reads `requests.log` in the logs folder — the line format of `link-opening` (`<RFC 3339 UTC>\t<result>\t<escaped link>`) is the contract; it keeps the last 100 well-formed lines, unescapes the link, and a missing file is an empty list; a log that cannot be read is a `MenuActionError::History`, which the window shows as `The link history could not be read: <reason>` with no row (`an_unreadable_log_says_why`). Port `LinkReplayService` (`replay(link) -> result`), adapter `linkreplay/inprocess/InProcessLinkReplayGateway` over the `replay` hook, `LinkReplayer` (`Arc<dyn Fn(&str) -> String + Send + Sync>`), which the app runs to its end on its own runtime (`Handle::block_on`), so the menu's no-op-waker `block_on` (D14) still finds the future ready at its first poll. Use case `BrowseHistory`/`BrowseHistoryUseCase`: `execute(HistoryCommandEnum)` with `Show` and `Replay(link)`, answering the fresh `HistoryViewValueObject` (rows newest first, or the note `No link has been opened yet.`). In `linkserver` the replay is the use case `ReplayLink`/`ReplayLinkUseCase` (settings through `PrepareSettingsUseCase`, the allow list check, the opener, the request log; no key, no tab closer) behind the primary adapter `linkreplay/inprocess/ReplayLinkHandler` (`replay(&str) -> String`, the result word), which `LinkserverConfig::replay_handler` builds and the app wraps as the `replay` hook. Primary adapter `statusmenu/appkit/HistoryWindowHandler` (beside the status menu: both share the `AppKit` application and its no-op-waker `ready`): one `NSWindow` titled `Link History`, 720 × 480, built on first use and brought to the front after, with an `NSScrollView` over rows laid out by frame (no table data source, so no delegate `unsafe`): Time (local time through `NSTimeZone`, `2026-11-12 19:42:05`), Result, Link (truncated in the middle, the whole link as tool tip), ▶. The button is made with its target in one `unsafe` block (R-080, ADR-001). The status menu gets `Link History…`, which calls a closure that shows the window, so the two primary adapters stay apart. No live refresh: the window reads the log again when it is shown and after a ▶ (VoicePuncher's once-a-second check is left out, a non-goal for a list the user reopens).
+
+### D19: one Settings window in place of the folder items
+
+The owner, 2026-11-12, after using the first build (translated): "the settings must be in the GUI, not an open-settings-folder item, and the log too, as a table with a run-again button on each row"; "allowed schemes and the port are not needed now". The approved mock is board 3 of the interface mock (below). This replaces the folder items of D14 and the separate Link History window of D18.
+
+Menu: title line, status line, separator, Serve Links, Start at Login, separator, Settings…, Link History…, separator, Quit. Removed with Open Settings Folder and Open Logs Folder: `AppFolderEnum`, `AppFoldersValueObject`, `MenuCommandEnum::OpenFolder`, `FolderOpenerService`, `LaunchServicesFolderOpenerGateway` and their tests; `OperateMenuUseCase` takes the version, the server switch and the login item. `MenuViewValueObject` gains `login_note()`: `The app starts when you log in to the Mac.` while the login item is on or off, `Approve the app in System Settings › Login Items.` while macOS waits, `Only the app installed in Applications can start at login.` outside a bundle.
+
+Window. Primary adapter `statusmenu/appkit/SettingsWindowHandler` (`settings_window_handler.rs`): one `NSWindow` titled `http2scheme Settings`, 720 × 480, built on first use and brought to the front after, its content an `NSTabView` with the items General and History. General: two rows laid out by frame, each a bold name (`Serve links`, `Start at login`), an `NSSwitch` at the right and a secondary-color line under the name (the status line; the login note). The switches call `toggleServer:` and `toggleLogin:` of the window's target, which runs the same `OperateMenu` use case as the menu (one `Arc`, so both read one state) with `ToggleServer` and `ToggleLoginItem`, then shows the fresh view; after turning the server on it reads the view again every 50 ms, at most 1 s, until the line leaves `Starting…`, so the line shows `Running on …` without a timer. History: `HistoryTabHandler` (`history_tab_handler.rs`, the former `HistoryWindowHandler` of D18) draws the same rows and ▶ buttons into its own `NSView`, which the History item holds; it owns no window. `show_general()` and `show_history()` select the item, read again, activate the app and bring the window to the front; the status menu's Settings… and Link History… call two closures that do so, so the menu and the window stay apart. The two switches are wired in one `unsafe` block (`setTarget` and `setAction`), so the window file has three (init, window, wiring), the tab file two (init, button); ADR-001 and `metrics/unsafe.tsv` name both files in place of `history_window_handler.rs`. New `objc2-app-kit` features: `NSSwitch`, `NSTabView`, `NSTabViewItem`, `NSColor`. Rejected: `NSTabViewController` with view controllers, as VoicePuncher's form — a controller per tab for two fixed tabs; check boxes — the owner asked for switches.
+
+### D20: the left app comes back before a link opens
+
+The owner, 2026-11-12 (translated): "it remembers the open was in the browser, Alt-Tab returns to the browser, not to the code". A click in the Claude app shows the browser, then the link's app: Command-Tab then lists the link's app, the browser, the Claude app. Before `OpenLinkUseCase` opens an admitted link, it calls the new port `AppOrderService::bring_back_left_app()`; its failure is ignored, as a failed tab close is. Activating the left app first and then opening the link makes the order: the link's app, the left app, the browser. Adapter `apporder/lsappinfo/LsAppInfoAppOrderGateway` (program `lsappinfo`, the macOS Launch Services tool, and the `open` program): `lsappinfo visibleProcessList` prints the apps front to back (`ASN:0x0-0x9ba9ba-"Claude": ASN:0x0-0xb40b4-"Safari": …`, a space in a name printed as `_`); the pure mapper `process_list_to_left_app_mapper` answers the second entry's ASN only when the first is one of the browsers of D13; `lsappinfo info -only bundleid <ASN>` gives `bundleID="<id>"`; `open -b <id>` activates that running app and the gateway waits for it, so the link's app comes after. Every failure (a program error, no browser in front, no app behind it, no bundle id) is `OpenLinkError::ReorderFailed`; the trait method writes it to the diagnostic log and answers `Ok`, as the tab closer does, and `bring_back_now` returns it for the tests. `LinkserverSetup` gains `lsappinfo_program` (`/usr/bin/lsappinfo` from `main.rs`); the tests replace it with a recording program that prints a fixed list (D8). The replay of a History row brings no app back: no browser is in front there. Rejected: tracking the front app through `NSWorkspace` notifications — it needs the AppKit loop, which the command line server has not; `osascript` `activate` — an Automation prompt for every app; hiding the browser — it stays second in Command-Tab.
 
 ## Test levels
 
@@ -143,6 +155,9 @@ Slice: `app/app/components/<component>/tests/features/slice/<capability>.feature
 | link-opening: The server cannot be reached from another computer | integration + E2E |
 | link-opening: The tab of an opened link closes | slice + E2E |
 | link-opening: A refused request keeps its tab | slice + E2E |
+| link-opening: The left app comes back behind the opened app | unit (use case order) + slice + integration (gateway) |
+| link-opening: A refused request changes no app order | slice |
+| link-opening: A failed reorder keeps the link opened | slice |
 | link-opening: Tab closing turned off in the settings | slice + E2E |
 | link-opening: A failed tab close keeps the link opened | slice + E2E |
 | link-opening: A request with a wrong key is refused | slice + E2E |
@@ -185,8 +200,10 @@ Slice: `app/app/components/<component>/tests/features/slice/<capability>.feature
 | menu-bar-app: The first launch from Applications | slice (menubar) |
 | menu-bar-app: A login item the user removed stays removed | slice (menubar) |
 | menu-bar-app: A launch from another folder | slice (menubar) |
-| menu-bar-app: Open the settings folder | slice (menubar) |
-| menu-bar-app: Open the logs folder before the first request | slice (menubar) |
+| menu-bar-app: Turning the server off in the Settings window | slice (menubar) + integration (window handler) |
+| menu-bar-app: Turning Start at login on in the Settings window | slice (menubar) + integration (window handler) |
+| menu-bar-app: Settings opens the General tab | slice (menubar) + integration (window handler) |
+| menu-bar-app: Link History opens the History tab | slice (menubar) + integration (window handler) |
 | menu-bar-app: A terminate signal ends the app | E2E (`@bundle`) |
 | app-distribution: The bundle's information | E2E (`@bundle`) |
 | app-distribution: A built bundle passes the signature check | E2E (`@bundle`) |
@@ -200,32 +217,30 @@ Slice: `app/app/components/<component>/tests/features/slice/<capability>.feature
 
 [http2scheme interface mock](https://claude.ai/artifact/DDotUxHvNFqK8Cbujs7GRh) — the browser pages and the command output, each in light and dark.
 
-The menu bar app's menu follows VoicePuncher's menu (title line, status line, actions, Quit), the owner's model for the app (2026-11-12):
+Board 3 of the mock, "Menu and Settings window — light and dark", is the approved menu and Settings window (D19); the owner, 2026-11-12: "now I like everything, approved".
 
 ```
 [link icon]
   http2scheme 0.1.0                       (disabled)
   Running on http://127.0.0.1:7777        (disabled; or "Starting…", "Stopped: port 7777 is taken", "Off")
-  ✓ Serve Links                           (no check mark while "Off")
-  Link History…
   ─────────────
+  ✓ Serve Links                           (no check mark while "Off")
   ✓ Start at Login                        (or "Start at Login (approve in System Settings)")
-  Open Settings Folder
-  Open Logs Folder
+  ─────────────
+  Settings…                               (the Settings window, General tab)
+  Link History…                           (the Settings window, History tab)
   ─────────────
   Quit http2scheme                  ⌘Q
-```
 
-The Link History window (D18), VoicePuncher's history window in its layout:
-
-```
-┌ Link History ─────────────────────────────────────────────────────────────┐
-│ Time                 Result               Link                         ▶  │
-│ 2026-11-12 19:42:05  opened               idea://open?file=/a/B.java&… [▶]│
-│ 2026-11-12 19:40:11  wrong key            goland://open?file=/c/D.go&… [▶]│
-│ 2026-11-12 19:38:57  scheme not allowed   slack://channel?team=T1&id…  [▶]│
+┌ http2scheme Settings ─────────────────────────────────────────────────────┐
+│                         [ General ] [ History ]                           │
+│  Serve links                                                    (●  ) on  │
+│  Running on http://127.0.0.1:7777                                         │
+│  Start at login                                                 (●  ) on  │
+│  The app starts when you log in to the Mac.                               │
 └───────────────────────────────────────────────────────────────────────────┘
-  (empty log: one line "No link has been opened yet.")
+  History tab: Time | Result | Link | [▶], newest first, as D18 lays out the rows;
+  an empty log: one line "No link has been opened yet."
 ```
 
 The disk image window: 600 × 400, the app icon at (150, 200), the Applications link at (450, 200), an arrow between them on the background. The LaunchAgent label is `io.github.firstpilotpirx.http2scheme`.
