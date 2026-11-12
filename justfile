@@ -214,7 +214,7 @@ app_release := shell("sed -n '/^\\[workspace.package\\]/,/^\\[/s/^version = \"\\
 # The self-signed code-signing certificate of README § Install; empty signs ad-hoc (no stable identity)
 signing_identity := env_var_or_default("HTTP2SCHEME_SIGNING_IDENTITY", "")
 
-# Build the signed dist/http2scheme.app (release build): the program, the icon and the information
+# Build the signed dist/http2scheme.app (release build): the program, the icon, the information and the license texts
 bundle: _require-signing-identity
     #!/usr/bin/env bash
     set -euo pipefail
@@ -224,6 +224,7 @@ bundle: _require-signing-identity
     cp {{app}}/target/release/http2scheme "$app/Contents/MacOS/http2scheme"
     iconutil -c icns {{quote(packaging_dir / "icons/http2scheme.iconset")}} -o "$app/Contents/Resources/http2scheme.icns"
     cp {{quote(packaging_dir / "Info.plist")}} "$app/Contents/Info.plist"
+    cp {{quote(justfile_directory() / "LICENSE-MIT")}} {{quote(justfile_directory() / "LICENSE-APACHE")}} "$app/Contents/Resources/"
     for key in CFBundleShortVersionString CFBundleVersion; do plutil -replace "$key" -string {{quote(app_release)}} "$app/Contents/Info.plist"; done
     {{just_executable()}} --justfile {{quote(justfile())}} _sign "$app"
     echo "✓ bundle $app"
