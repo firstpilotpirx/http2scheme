@@ -18,8 +18,8 @@ The link command SHALL take one scheme link, check it with the same rules the se
 #### Scenario: A path with spaces survives the round trip
 
 - **GIVEN** the settings hold the IntelliJ scheme on the allowed list
-- **WHEN** the user asks for the open link of an IntelliJ link whose file path holds spaces and non-Latin letters
-- **THEN** the printed link holds no raw space
+- **WHEN** the user asks for the open link of an IntelliJ link whose file path holds spaces written as `%20` and non-Latin letters
+- **THEN** the printed link holds only printable ASCII characters
 - **AND** following it opens the IntelliJ link with the same path
 
 #### Scenario: The first link command creates the key

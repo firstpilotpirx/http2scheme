@@ -111,6 +111,7 @@ fn says_installed(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^one agent definition exists, pointing at the current program$")]
 fn one_definition(world: &mut LinkserverWorld) {
+    assert_eq!(world.printed.code, Some(0), "{}", world.printed.err.text());
     let entries = fs::read_dir(agents_dir(world)).unwrap().count();
     assert_eq!(entries, 1);
     let text = fs::read_to_string(definition(world)).unwrap();
@@ -155,12 +156,12 @@ fn says_install_first(world: &mut LinkserverWorld) {
     regex = r"^the command shows (installed|not installed), (loaded|not loaded) and (answering|not answering)$"
 )]
 fn shows_status(world: &mut LinkserverWorld, installed: String, loaded: String, answering: String) {
+    let mark = |s: &str| ["[ok]", "[fail]"][usize::from(s.starts_with("not "))];
+    let line = |s: &str| format!("{} {s}", mark(s));
+    let expected = [line(&installed), line(&loaded), line(&answering)].join("\n");
     let text = world.printed.out.text();
-    let lines: Vec<&str> = text.lines().collect();
-    assert!(lines[0].ends_with(&format!(" {installed}")), "{text}");
-    assert!(lines[1].ends_with(&format!(" {loaded}")), "{text}");
     assert!(
-        lines[2].contains(&format!(" {answering} on 127.0.0.1:")),
+        text.starts_with(&format!("{expected} on 127.0.0.1:")),
         "{text}"
     );
 }

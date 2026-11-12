@@ -10,7 +10,7 @@ Feature: Server settings
       Given no settings exist yet
       When the server starts
       Then the settings hold port 7777, the allowed schemes IntelliJ and GoLand, and tab closing on
-      And a key of 64 hexadecimal characters exists that only the user can read
+      And a key of 64 lower-case hexadecimal characters exists that only the user can read
 
     @e2e @serial
     Scenario: Two first uses create two different keys

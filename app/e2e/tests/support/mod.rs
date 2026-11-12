@@ -120,6 +120,11 @@ impl Home {
         fs::write(self.bin(&format!("{name}.fail")), "").unwrap();
     }
 
+    /// Whether the recording program `name` was told to fail.
+    pub fn fails(&self, name: &str) -> bool {
+        self.bin(&format!("{name}.fail")).exists()
+    }
+
     /// Whether the recording `launchctl` holds the agent loaded.
     pub fn loaded(&self) -> bool {
         self.bin("loaded").exists()
@@ -215,4 +220,19 @@ pub async fn wait_until_answering(child: &mut Child, port: Option<u16>) -> bool 
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
     panic!("the server neither answered nor ended");
+}
+
+/// Fails unless the only socket listening on `port` is the loopback one.
+pub fn assert_loopback_only(port: u16) {
+    let listening = std::process::Command::new("/usr/sbin/lsof")
+        .args(["-nP", &format!("-iTCP:{port}"), "-sTCP:LISTEN", "-Fn"])
+        .output()
+        .unwrap();
+    let names = String::from_utf8_lossy(&listening.stdout).into_owned();
+    let loopback = format!("n127.0.0.1:{port}");
+    let sockets: Vec<&str> = names.lines().filter(|l| l.starts_with('n')).collect();
+    assert!(
+        !sockets.is_empty() && sockets.iter().all(|l| *l == loopback),
+        "{names}"
+    );
 }

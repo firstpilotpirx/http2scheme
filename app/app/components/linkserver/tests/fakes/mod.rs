@@ -129,6 +129,11 @@ impl AgentSupervisorService for FakeSupervisor {
         &self,
         _definition: &AgentDefinitionValueObject,
     ) -> Result<(), AgentControlError> {
+        if self.is_loaded_now() {
+            return Err(AgentControlError::Supervisor {
+                reason: "the agent is already loaded".to_owned(),
+            });
+        }
         self.set_loaded(true);
         Ok(())
     }

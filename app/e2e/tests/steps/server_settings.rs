@@ -125,11 +125,13 @@ fn default_settings(world: &mut E2eWorld) {
     assert!(text.contains("close_tab = true"), "{text}");
 }
 
-#[then(regex = r"^a key of 64 hexadecimal characters exists that only the user can read$")]
+#[then(
+    regex = r"^a key of 64 lower-case hexadecimal characters exists that only the user can read$"
+)]
 fn private_key(world: &mut E2eWorld) {
     let key = world.home.key();
     assert_eq!(key.len(), 64);
-    assert!(key.chars().all(|letter| letter.is_ascii_hexdigit()));
+    assert!(key.bytes().all(|b| b"0123456789abcdef".contains(&b)));
     let mode = fs::metadata(world.home.settings_dir().join("key"))
         .unwrap()
         .permissions()

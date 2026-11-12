@@ -15,8 +15,8 @@ Feature: Link sharing
     @slice
     Scenario: A path with spaces survives the round trip
       Given the settings hold port 7777 and the IntelliJ scheme on the allowed list
-      When the user asks for the open link of an IntelliJ link whose file path holds spaces and non-Latin letters
-      Then the printed link holds no raw space
+      When the user asks for the open link of an IntelliJ link whose file path holds spaces written as %20 and non-Latin letters
+      Then the printed link holds only printable ASCII characters
       And following that link opens exactly that IntelliJ link
 
     @slice

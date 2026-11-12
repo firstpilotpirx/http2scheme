@@ -15,7 +15,7 @@ Feature: Link opening
     @e2e
     Scenario: Special characters in the link reach the app unchanged
       Given the server runs with the IntelliJ scheme on the allowed list
-      When the browser follows an open link whose IntelliJ link names a file path with spaces, quotes and a semicolon
+      When the browser follows an open link whose IntelliJ link names a file path with spaces written as %20, quotes and a semicolon
       Then the Mac opens the IntelliJ link with exactly those characters, as one link
       And no command other than the link opener runs
 
@@ -141,7 +141,7 @@ Feature: Link opening
     Scenario: An opened link is logged
       Given the server runs with the IntelliJ scheme on the allowed list
       When the browser follows a keyed open link to an IntelliJ link
-      Then the request log ends with a line holding the time, that IntelliJ link and the result "opened"
+      Then the request log ends with a line holding the time, the result "opened" and that IntelliJ link
 
     @e2e
     Scenario: A refused request is logged without the key

@@ -160,7 +160,9 @@ async fn a_key_that_is_not_hex_is_refused() {
     fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
     let error = repository(&home).read_key().await.unwrap_err();
     assert!(
-        error.to_string().contains("64 hexadecimal characters"),
+        error
+            .to_string()
+            .contains("64 lower-case hexadecimal characters"),
         "{error}"
     );
 }
@@ -176,4 +178,12 @@ async fn settings_with_close_tab_off_read_back() {
     );
     repository.create_settings(&settings).await.unwrap();
     assert_eq!(repository.read_settings().await.unwrap(), Some(settings));
+}
+
+#[tokio::test]
+async fn a_settings_file_that_cannot_be_read_names_the_file() {
+    let home = TempDir::new().unwrap();
+    fs::create_dir_all(home.path().join("http2scheme/settings.toml")).unwrap();
+    let error = repository(&home).read_settings().await.unwrap_err();
+    assert!(error.to_string().contains("settings.toml"), "{error}");
 }

@@ -136,7 +136,7 @@ async fn follow_line_17(world: &mut LinkserverWorld) {
 }
 
 #[when(
-    regex = r"^the browser follows an open link whose IntelliJ link names a file path with spaces, quotes and a semicolon$"
+    regex = r"^the browser follows an open link whose IntelliJ link names a file path with spaces written as %20, quotes and a semicolon$"
 )]
 async fn follow_special(world: &mut LinkserverWorld) {
     follow(world, Some(KEY), Some(SPECIAL)).await;
@@ -309,7 +309,7 @@ fn log_ends_with_result(world: &mut LinkserverWorld, result: String) {
 }
 
 #[then(
-    regex = r#"^the request log ends with a line holding the time, that IntelliJ link and the result "(.+)"$"#
+    regex = r#"^the request log ends with a line holding the time, the result "(.+)" and that IntelliJ link$"#
 )]
 fn log_ends_with_line(world: &mut LinkserverWorld, result: String) {
     let events = world.fakes.log.events();

@@ -98,6 +98,18 @@ fn says_installed(world: &mut E2eWorld) {
 
 #[then(regex = r"^one agent definition exists, pointing at the current program$")]
 fn one_definition(world: &mut E2eWorld) {
+    assert_eq!(world.printed.code, Some(0), "{}", world.printed.err);
+    let verbs: Vec<String> = world
+        .home
+        .calls("launchctl")
+        .iter()
+        .filter_map(|call| call.first().cloned())
+        .filter(|verb| verb != "print")
+        .collect();
+    assert!(
+        verbs.ends_with(&["bootout".to_owned(), "bootstrap".to_owned()]),
+        "{verbs:?}"
+    );
     let folder = world.home.agent_file().parent().unwrap().to_path_buf();
     assert_eq!(fs::read_dir(folder).unwrap().count(), 1);
     let text = fs::read_to_string(world.home.agent_file()).unwrap();
@@ -144,21 +156,13 @@ fn says_install_first(world: &mut E2eWorld) {
     regex = r"^the command shows (installed|not installed), (loaded|not loaded) and (answering|not answering)$"
 )]
 fn shows_status(world: &mut E2eWorld, installed: String, loaded: String, answering: String) {
-    let lines: Vec<&str> = world.printed.out.lines().collect();
+    let mark = |s: &str| ["[ok]", "[fail]"][usize::from(s.starts_with("not "))];
+    let line = |s: &str| format!("{} {s}", mark(s));
+    let expected = [line(&installed), line(&loaded), line(&answering)].join("\n");
+    let text = &world.printed.out;
     assert!(
-        lines[0].ends_with(&format!(" {installed}")),
-        "{}",
-        world.printed.out
-    );
-    assert!(
-        lines[1].ends_with(&format!(" {loaded}")),
-        "{}",
-        world.printed.out
-    );
-    assert!(
-        lines[2].contains(&format!(" {answering} on 127.0.0.1:")),
-        "{}",
-        world.printed.out
+        text.starts_with(&format!("{expected} on 127.0.0.1:")),
+        "{text}"
     );
 }
 

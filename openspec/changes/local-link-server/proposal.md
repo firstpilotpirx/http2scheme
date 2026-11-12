@@ -6,8 +6,8 @@ Some apps, the Claude chat among them, make only `http://` and `https://` links 
 
 - New program `http2scheme`: a local HTTP server on `127.0.0.1` (port 7777 by default) that answers `GET /open?key=<key>&url=<scheme link>` by running macOS `open` on the scheme link, without a shell, and then closes the browser tab the click opened (Safari, Chrome, Arc, Brave, Edge; the user allows it once per browser), so tabs do not pile up.
 - A link opens only when its key matches the secret key (compared in constant time) and its scheme is on the allowed list (`idea` and `goland` by default); a wrong key, a malformed link, a scheme not on the list, any other path and a failed `open` each get their own answer.
-- First start creates the settings folder (`~/Library/Application Support/http2scheme/`) with a settings file (port, allowed schemes) and a key file of 256 random bits readable only by the user.
-- Every open request is written to a log file (`~/Library/Logs/http2scheme/requests.log`): time, scheme link, result; the key is never written.
+- First start creates the settings folder (`~/Library/Application Support/http2scheme/`) with a settings file (port, allowed schemes, tab closing switch) and a key file of 256 random bits readable only by the user.
+- Every open request is written to a log file (`~/Library/Logs/http2scheme/requests.log`): time, result, scheme link; the key is never written.
 - `http2scheme link <scheme link>` prints the `http://127.0.0.1` link for a scheme link, with the key filled in, so the agent (or the user) writes links without reading the key file by hand.
 - `http2scheme install | uninstall | start | stop | status` manage a macOS LaunchAgent that starts the server at login and restarts it after a crash; `status` says whether the agent is installed and loaded and whether the server answers.
 - `http2scheme serve` runs the server in the foreground (what the LaunchAgent runs).

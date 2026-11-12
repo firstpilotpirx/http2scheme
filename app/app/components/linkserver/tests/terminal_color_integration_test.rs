@@ -46,9 +46,13 @@ fn no_color_and_the_flag_win_over_force_color() {
     ));
 }
 
+/// A dumb terminal on a real terminal is plain: the unit test of `detect` proves it,
+/// since a pipe here is plain whatever `TERM` says.
 #[test]
-fn a_dumb_terminal_stays_plain_unless_forced() {
-    assert!(!colored(
-        fixture(&["status", "healthy"]).env("TERM", "dumb")
+fn force_color_wins_over_a_dumb_terminal() {
+    assert!(colored(
+        fixture(&["status", "healthy"])
+            .env("TERM", "dumb")
+            .env("FORCE_COLOR", "1")
     ));
 }

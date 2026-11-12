@@ -10,7 +10,7 @@ use cucumber::{given, then, when};
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 
 use crate::E2eWorld;
-use crate::support::{free_port, get, wait_until_answering};
+use crate::support::{assert_loopback_only, free_port, get, wait_until_answering};
 
 const WRONG_KEY: &str = "0000000000000000000000000000000000000000000000000000000000000000";
 const INTELLIJ_LINE_17: &str = "idea://open?file=/src/TokenController.java&line=17";
@@ -102,7 +102,7 @@ async fn follow_line_17(world: &mut E2eWorld) {
 }
 
 #[when(
-    regex = r"^the browser follows an open link whose IntelliJ link names a file path with spaces, quotes and a semicolon$"
+    regex = r"^the browser follows an open link whose IntelliJ link names a file path with spaces written as %20, quotes and a semicolon$"
 )]
 async fn follow_special(world: &mut E2eWorld) {
     follow(world, Some(true), Some(SPECIAL)).await;
@@ -175,12 +175,14 @@ async fn network_request(world: &mut E2eWorld) {
         .map(|local| local.ip())
         .ok()
         .filter(|ip| !ip.is_loopback() && !ip.is_unspecified());
-    let Some(ip) = address else {
-        world.answer.refused = true;
-        return;
+    assert_loopback_only(port);
+    world.answer.refused = match address {
+        Some(ip) => {
+            let target = format!("{ip}:{port}");
+            get(&target, &target, "/health").await.is_err()
+        }
+        None => true,
     };
-    let target = format!("{ip}:{port}");
-    world.answer.refused = get(&target, &target, "/health").await.is_err();
 }
 
 #[then(regex = r"^the connection is refused$")]
@@ -293,19 +295,37 @@ fn last_log_line(world: &E2eWorld) -> String {
 }
 
 #[then(regex = r#"^the request log ends with (?:a line holding )?the result "(.+)"$"#)]
-fn log_ends_with_result(world: &mut E2eWorld, result: String) {
+async fn log_ends_with_result(world: &mut E2eWorld, result: String) {
+    if world.home.fails("osascript") {
+        for _ in 0..200 {
+            if !world.home.calls("osascript").is_empty() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(
+            !world.home.calls("osascript").is_empty(),
+            "no tab close was tried"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
     let line = last_log_line(world);
     assert!(line.contains(&result), "{line}");
 }
 
 #[then(
-    regex = r#"^the request log ends with a line holding the time, that IntelliJ link and the result "(.+)"$"#
+    regex = r#"^the request log ends with a line holding the time, the result "(.+)" and that IntelliJ link$"#
 )]
 fn log_ends_with_line(world: &mut E2eWorld, result: String) {
     let line = last_log_line(world);
-    assert!(line.contains(&result), "{line}");
-    assert!(line.contains(world.link.as_deref().unwrap()), "{line}");
-    assert!(line.starts_with("20"), "{line}");
+    let fields: Vec<&str> = line.split('\t').collect();
+    assert_eq!(fields.len(), 3, "{line}");
+    assert!(
+        fields[0].starts_with("20") && fields[0].ends_with('Z'),
+        "{line}"
+    );
+    assert_eq!(fields[1], result, "{line}");
+    assert_eq!(fields[2], world.link.as_deref().unwrap(), "{line}");
 }
 
 #[then(regex = r"^neither the secret key nor the wrong key appears in the log$")]

@@ -42,7 +42,7 @@ fn no_settings(world: &mut E2eWorld) {
 }
 
 #[when(
-    regex = r"^the user asks for the open link of (an IntelliJ link to a file at line 42|an IntelliJ link whose file path holds spaces and non-Latin letters|a Slack link)$"
+    regex = r"^the user asks for the open link of (an IntelliJ link to a file at line 42|an IntelliJ link whose file path holds spaces written as %20 and non-Latin letters|a Slack link)$"
 )]
 async fn ask_for_link(world: &mut E2eWorld, which: String) {
     let link = match which.as_str() {
@@ -79,9 +79,10 @@ async fn follow_printed(world: &mut E2eWorld) {
     );
 }
 
-#[then(regex = r"^the printed link holds no raw space$")]
-fn no_raw_space(world: &mut E2eWorld) {
-    assert!(!printed(world).contains(' '));
+#[then(regex = r"^the printed link holds only printable ASCII characters$")]
+fn only_printable_ascii(world: &mut E2eWorld) {
+    let link = printed(world);
+    assert!(link.chars().all(|c| c.is_ascii_graphic()), "{link}");
 }
 
 #[then(regex = r"^the settings and a new key are created$")]

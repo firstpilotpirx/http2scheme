@@ -29,9 +29,11 @@ fn parse_hex_rejects_wrong_length_and_non_hex() {
 
 #[test]
 fn matches_only_the_same_key() {
-    let other = format!("{}ac", "ab".repeat(31));
+    let last_differs = format!("{}ac", "ab".repeat(31));
+    let first_differs = format!("ac{}", "ab".repeat(31));
     assert!(key().matches(&"ab".repeat(32)));
-    assert!(!key().matches(&other));
+    assert!(!key().matches(&last_differs));
+    assert!(!key().matches(&first_differs));
 }
 
 #[test]

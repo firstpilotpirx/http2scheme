@@ -33,7 +33,7 @@ One component: settings, key, link opening, link sharing and the agent share one
 
 `core/domain/` (flat): `SchemeLinkValueObject`, `SchemeNameValueObject`, `AccessKeyValueObject`, `PortValueObject`, `ServerSettingsValueObject`, `PreparedLinkValueObject`, `AgentDefinitionValueObject`, `AgentStatusValueObject`, `SchemeAllowlistPolicy`, `OpenOutcomeEnum`, `LinkOpenAttemptedDomainEvent`, `LinkRejectedError`, `SettingsInvalidError`.
 
-`core/application/` (subfolders): `use_cases/` — one input trait and one struct per use case: `OpenLink`/`OpenLinkUseCase`, `PrepareLink`/`PrepareLinkUseCase`, `PrepareSettings`/`PrepareSettingsUseCase`, `InstallAgent`/`InstallAgentUseCase`, `UninstallAgent`/`UninstallAgentUseCase`, `StartAgent`/`StartAgentUseCase`, `StopAgent`/`StopAgentUseCase`, `CheckAgentStatus`/`CheckAgentStatusUseCase`; `repositories/` — `SettingsRepository`, `OpenAttemptRepository`, `AgentDefinitionRepository`; `services/` — `SchemeLinkOpenerService`, `BrowserTabCloserService`, `SecretGeneratorService`, `AgentSupervisorService`, `ServerHealthService`; `OpenLinkCommand` sits in `use_cases/` next to `OpenLink` (R-015 allows only `use_cases/`, `repositories/`, `services/`, `exceptions/`); the trait and the struct of a use case sit in separate files (R-054); `exceptions/` — `OpenLinkError`, `SettingsError`, `AgentControlError`.
+`core/application/` (subfolders): `use_cases/` — one input trait and one struct per use case: `OpenLink`/`OpenLinkUseCase`, `PrepareLink`/`PrepareLinkUseCase`, `PrepareSettings`/`PrepareSettingsUseCase`, `InstallAgent`/`InstallAgentUseCase`, `UninstallAgent`/`UninstallAgentUseCase`, `StartAgent`/`StartAgentUseCase`, `StopAgent`/`StopAgentUseCase`, `CheckAgentStatus`/`CheckAgentStatusUseCase`; `repositories/` — `SettingsRepository`, `OpenAttemptRepository`, `AgentDefinitionRepository`; `services/` — `SchemeLinkOpenerService`, `BrowserTabCloserService`, `SecretGeneratorService`, `AgentSupervisorService`, `ServerHealthService`; `OpenLinkCommand` sits in `use_cases/` next to `OpenLink` (R-015 allows only `use_cases/`, `repositories/`, `services/`, `exceptions/`); the trait and the struct of a use case sit in separate files (R-054); `exceptions/` — `OpenLinkError`, `PrepareLinkError`, `SettingsError`, `AgentControlError`.
 
 Adapters (`<feature>/<tech>/`):
 
@@ -80,7 +80,7 @@ Port traits use `#[async_trait]` and are object-safe (`architecture-rust.md`); t
 
 ### D10: terminal output
 
-`owo-colors` with its `supports-colors` feature behind `TerminalStyleConfig`: no color when the stream is not a TTY, `NO_COLOR` is set, `--no-color` is passed or `TERM=dumb`; `FORCE_COLOR=1` forces it. Status lines use `✓ ✗ ●` (`[ok] [fail] [..]` without color). Diagnostic logging: `log` + `env_logger` to stderr (`RUST_LOG`), which launchd writes to `~/Library/Logs/http2scheme/agent.err.log`. `clap` and `env_logger` are built without their `color` features, so `owo-colors` is the one color library (R-112).
+`owo-colors` with its `supports-colors` feature behind `TerminalStyleConfig`: no color when the stream is not a TTY, `NO_COLOR` is set and not empty, `--no-color` is passed or `TERM=dumb`; `FORCE_COLOR=1` forces it, also with `TERM=dumb`; `NO_COLOR` and `--no-color` win over it. Status lines use `✓ ✗ ●` (`[ok] [fail] [..]` without color). Diagnostic logging: `log` + `env_logger` to stderr (`RUST_LOG`), which launchd writes to `~/Library/Logs/http2scheme/agent.err.log`. `clap` and `env_logger` are built without their `color` features, so `owo-colors` is the one color library (R-112).
 
 ### D11: the gate
 
@@ -129,17 +129,17 @@ Slice: `app/app/components/linkserver/tests/features/slice/<capability>.feature`
 | link-opening: A failed open is reported | slice + E2E |
 | link-opening: An opened link is logged | slice + E2E |
 | link-opening: A refused request is logged without the key | slice + E2E |
-| link-sharing: A scheme link becomes an open link | slice + component + E2E |
+| link-sharing: A scheme link becomes an open link | slice + E2E |
 | link-sharing: A path with spaces survives the round trip | slice + component + E2E |
-| link-sharing: The first link command creates the key | slice + component + E2E |
-| link-sharing: A scheme not on the list prints the reason | slice + component + E2E |
+| link-sharing: The first link command creates the key | slice + E2E |
+| link-sharing: A scheme not on the list prints the reason | slice + E2E |
 | server-settings: A fresh home gets default settings and a key | slice + E2E |
 | server-settings: Two first uses create two different keys | integration + E2E |
 | server-settings: Existing settings and key are kept | slice + E2E |
 | server-settings: An allowed scheme added by hand is honored | slice + E2E |
 | server-settings: A broken settings file stops the start with its reason | slice + E2E |
 | server-settings: A key file readable by others stops the start | slice + E2E |
-| key comparison timing (D5) | unit |
+| key comparison timing (D5) | not tested: a timing test is too noisy to pass or fail reliably; `AccessKey::matches` uses `subtle::ConstantTimeEq`, and its unit test checks equal keys and keys that differ in the first and in the last byte |
 | manual run | the user clicks printed IntelliJ and GoLand links in the Claude chat and the tab closes; after `install` and a Mac restart, a link still works |
 
 ## Interface mock

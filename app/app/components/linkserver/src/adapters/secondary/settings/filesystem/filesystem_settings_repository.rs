@@ -84,8 +84,12 @@ impl SettingsRepository for FilesystemSettingsRepository {
         AccessKeyValueObject::parse_hex(text.trim())
             .map(Some)
             .ok_or_else(|| {
-                SettingsInvalidError::new(&file, "key", "must hold 64 hexadecimal characters")
-                    .into()
+                SettingsInvalidError::new(
+                    &file,
+                    "key",
+                    "must hold 64 lower-case hexadecimal characters",
+                )
+                .into()
             })
     }
 

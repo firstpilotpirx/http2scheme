@@ -18,7 +18,7 @@ The server SHALL listen only on the loopback address. A GET request to the open 
 #### Scenario: Special characters in the link reach the app unchanged
 
 - **GIVEN** the server runs with the IntelliJ scheme on the allowed list
-- **WHEN** the browser follows an open link whose IntelliJ link names a file path with spaces, quotes and a semicolon
+- **WHEN** the browser follows an open link whose IntelliJ link names a file path with spaces written as `%20`, quotes and a semicolon
 - **THEN** the Mac opens the IntelliJ link with exactly those characters, as one link
 - **AND** no command other than the link opener runs
 
@@ -136,13 +136,13 @@ A request to any address other than the open address and the health address SHAL
 
 ### Requirement: Every open request is logged without the key
 
-Every request to the open address SHALL append one line to the request log: the time, the scheme link (or the reason it was unreadable) and the result. The key SHALL never appear in the log.
+Every request to the open address SHALL append one line to the request log: the time, the result and the scheme link (or the reason it was unreadable), in that order. The key SHALL never appear in the log.
 
 #### Scenario: An opened link is logged
 
 - **GIVEN** the server runs with the IntelliJ scheme on the allowed list
 - **WHEN** the browser follows a keyed open link to an IntelliJ link
-- **THEN** the request log ends with a line holding the time, that IntelliJ link and the result "opened"
+- **THEN** the request log ends with a line holding the time, the result "opened" and that IntelliJ link
 
 #### Scenario: A refused request is logged without the key
 
