@@ -21,6 +21,7 @@ use menubar::core::domain::server_state_enum::ServerStateEnum;
 
 #[derive(Default)]
 struct FakeMenu {
+    broken: bool,
     commands: Mutex<Vec<MenuCommandEnum>>,
 }
 
@@ -32,6 +33,9 @@ impl OperateMenu for FakeMenu {
     ) -> Result<MenuViewValueObject, MenuActionError> {
         let mut commands = self.commands.lock().unwrap();
         commands.push(command);
+        if self.broken {
+            return Err(MenuActionError::LoginItem("broken".to_owned()));
+        }
         let toggled = commands
             .iter()
             .filter(|c| **c == MenuCommandEnum::ToggleLoginItem)
@@ -108,8 +112,27 @@ fn choosing_an_item_runs_its_command() {
     );
 }
 
+fn a_failing_command_leaves_the_menu_as_it_was() {
+    let mtm = AppKitConfig::main_thread().unwrap();
+    let fake = Arc::new(FakeMenu {
+        broken: true,
+        ..FakeMenu::default()
+    });
+    let handler = StatusMenuHandler::install(mtm, fake.clone(), Box::new(|| ()), Box::new(|| ()));
+    let before = handler.items();
+    handler.choose("Serve Links");
+    assert_eq!(handler.items(), before);
+    assert!(
+        fake.commands
+            .lock()
+            .unwrap()
+            .contains(&MenuCommandEnum::ToggleServer)
+    );
+}
+
 fn main() {
     the_menu_reads_in_order();
     choosing_an_item_runs_its_command();
-    println!("test result: ok. 2 passed; 0 failed");
+    a_failing_command_leaves_the_menu_as_it_was();
+    println!("test result: ok. 3 passed; 0 failed");
 }

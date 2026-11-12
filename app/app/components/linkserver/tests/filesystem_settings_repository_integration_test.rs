@@ -187,3 +187,28 @@ async fn a_settings_file_that_cannot_be_read_names_the_file() {
     let error = repository(&home).read_settings().await.unwrap_err();
     assert!(error.to_string().contains("settings.toml"), "{error}");
 }
+
+#[tokio::test]
+async fn a_file_in_place_of_the_folder_is_an_io_error() {
+    let home = TempDir::new().unwrap();
+    fs::write(home.path().join("http2scheme"), b"").unwrap();
+    let error = repository(&home)
+        .create_settings(&ServerSettingsValueObject::defaults())
+        .await
+        .unwrap_err();
+    assert!(matches!(error, SettingsError::Io { .. }), "{error}");
+}
+
+#[tokio::test]
+async fn a_folder_without_write_permission_is_an_io_error() {
+    let home = TempDir::new().unwrap();
+    let folder = home.path().join("http2scheme");
+    fs::create_dir(&folder).unwrap();
+    fs::set_permissions(&folder, fs::Permissions::from_mode(0o500)).unwrap();
+    let result = repository(&home)
+        .create_settings(&ServerSettingsValueObject::defaults())
+        .await;
+    fs::set_permissions(&folder, fs::Permissions::from_mode(0o700)).unwrap();
+    let error = result.unwrap_err();
+    assert!(matches!(error, SettingsError::Io { .. }), "{error}");
+}

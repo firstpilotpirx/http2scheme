@@ -87,7 +87,7 @@ impl LinkserverConfig {
         )
     }
 
-    /// The ▶ of the menu bar app's Link History window.
+    /// The ▶ of the menu bar app's History tab.
     #[must_use]
     pub fn replay_handler(&self) -> ReplayLinkHandler {
         ReplayLinkHandler::new(Arc::new(ReplayLinkUseCase::new(

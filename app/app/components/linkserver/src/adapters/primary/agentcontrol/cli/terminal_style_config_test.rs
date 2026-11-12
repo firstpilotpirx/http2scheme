@@ -55,3 +55,11 @@ fn colored_output_uses_symbols_and_escapes() {
     assert!(colored.fail("c").contains('✗'));
     assert!(colored.title("d").contains('●'));
 }
+
+#[test]
+fn colored_lines_keep_their_text() {
+    let style = TerminalStyleConfig::new(true);
+    assert!(style.done("installed").contains("✓ installed"));
+    assert!(style.mark(false).contains('✗'));
+    assert!(style.detail("a detail").contains("a detail"));
+}

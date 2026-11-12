@@ -48,3 +48,16 @@ async fn a_missing_lsappinfo_is_a_reorder_failure_and_opens_nothing() {
     );
     assert_eq!(open.calls(), Vec::<Vec<String>>::new());
 }
+
+#[tokio::test]
+async fn a_failing_open_is_a_reorder_failure() {
+    let dir = TempDir::new().unwrap();
+    let open = RecordingProgram::new(dir.path(), "open", 1);
+    let gateway = LsAppInfoAppOrderGateway::new(PathBuf::from(LSAPPINFO), open.program.clone());
+    let error = gateway.bring_back_now().await.unwrap_err();
+    assert!(
+        matches!(error, OpenLinkError::ReorderFailed { .. }),
+        "{error}"
+    );
+    assert!(open.calls().len() <= 1, "{:?}", open.calls());
+}

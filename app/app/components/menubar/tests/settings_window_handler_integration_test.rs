@@ -12,7 +12,9 @@ use std::sync::Mutex;
 use async_trait::async_trait;
 use menubar::adapters::primary::statusmenu::appkit::app_kit_config::AppKitConfig;
 use menubar::adapters::primary::statusmenu::appkit::history_tab_handler::HistoryTabHandler;
-use menubar::adapters::primary::statusmenu::appkit::settings_window_handler::SettingsWindowHandler;
+use menubar::adapters::primary::statusmenu::appkit::settings_window_handler::{
+    SettingsWindowHandler, WINDOW_TITLE,
+};
 use menubar::core::application::exceptions::menu_action_error::MenuActionError;
 use menubar::core::application::use_cases::browse_history::BrowseHistory;
 use menubar::core::application::use_cases::operate_menu::OperateMenu;
@@ -38,9 +40,11 @@ impl BrowseHistory for EmptyHistory {
     }
 }
 
-/// A menu whose server turns on and off and whose login item turns on and off.
+/// A menu whose server turns on and off and whose login item turns on and off, unless the
+/// login item is stuck in one state.
 #[derive(Default)]
 struct FakeMenu {
+    stuck_login: Option<LoginItemStateEnum>,
     commands: Mutex<Vec<MenuCommandEnum>>,
 }
 
@@ -58,7 +62,9 @@ impl OperateMenu for FakeMenu {
         } else {
             ServerStateEnum::Running("http://127.0.0.1:7777".to_owned())
         };
-        let login = if turned(MenuCommandEnum::ToggleLoginItem) {
+        let login = if let Some(stuck) = &self.stuck_login {
+            *stuck
+        } else if turned(MenuCommandEnum::ToggleLoginItem) {
             LoginItemStateEnum::On
         } else {
             LoginItemStateEnum::Off
@@ -74,6 +80,7 @@ fn settings_shows_the_switches_and_their_lines() {
     let window = SettingsWindowHandler::install(mtm, menu.clone(), history);
     window.show_general();
     assert!(window.is_visible());
+    assert_eq!(window.title(), WINDOW_TITLE);
     assert_eq!(window.selected_tab(), "General");
     assert_eq!(window.switches(), [true, false]);
     assert!(window.login_enabled());
@@ -105,7 +112,114 @@ fn settings_shows_the_switches_and_their_lines() {
     );
 }
 
+fn settings_window(login: LoginItemStateEnum) -> (Arc<FakeMenu>, SettingsWindowHandler) {
+    let mtm = AppKitConfig::main_thread().unwrap();
+    let menu = Arc::new(FakeMenu {
+        stuck_login: Some(login),
+        ..FakeMenu::default()
+    });
+    let history = HistoryTabHandler::install(mtm, Arc::new(EmptyHistory));
+    let window = SettingsWindowHandler::install(mtm, menu.clone(), history);
+    window.show_general();
+    (menu, window)
+}
+
+fn a_copy_outside_applications_cannot_turn_login_on() {
+    let (menu, window) = settings_window(LoginItemStateEnum::Unavailable);
+    assert!(!window.login_enabled());
+    assert_eq!(
+        window.lines()[1],
+        "Only the app installed in Applications can start at login."
+    );
+    window.turn_login();
+    assert!(
+        !menu
+            .commands
+            .lock()
+            .unwrap()
+            .contains(&MenuCommandEnum::ToggleLoginItem)
+    );
+    assert!(!window.switches()[1]);
+}
+
+fn a_login_item_waiting_for_approval_says_where_to_approve() {
+    let (_menu, window) = settings_window(LoginItemStateEnum::NeedsApproval);
+    assert!(window.login_enabled());
+    assert_eq!(
+        window.lines()[1],
+        "Approve the app in System Settings › Login Items."
+    );
+}
+
+/// A menu whose server reports starting for its first answers, then running; or that always fails.
+struct StartingMenu {
+    starting: Mutex<usize>,
+    broken: bool,
+}
+
+#[async_trait]
+impl OperateMenu for StartingMenu {
+    async fn execute(
+        &self,
+        _command: MenuCommandEnum,
+    ) -> Result<MenuViewValueObject, MenuActionError> {
+        if self.broken {
+            return Err(MenuActionError::LoginItem("broken".to_owned()));
+        }
+        let mut starting = self.starting.lock().unwrap();
+        let server = if *starting > 0 {
+            *starting -= 1;
+            ServerStateEnum::Starting
+        } else {
+            ServerStateEnum::Running("http://127.0.0.1:7777".to_owned())
+        };
+        Ok(MenuViewValueObject::new(
+            "0.1.0",
+            &server,
+            LoginItemStateEnum::Off,
+        ))
+    }
+}
+
+fn starting_window(menu: StartingMenu) -> SettingsWindowHandler {
+    let mtm = AppKitConfig::main_thread().unwrap();
+    let history = HistoryTabHandler::install(mtm, Arc::new(EmptyHistory));
+    SettingsWindowHandler::install(mtm, Arc::new(menu), history)
+}
+
+fn turning_serve_links_on_waits_until_the_server_runs() {
+    let window = starting_window(StartingMenu {
+        starting: Mutex::new(0),
+        broken: false,
+    });
+    window.show_general();
+    window.turn_server();
+    assert_eq!(window.lines()[0], "Running on http://127.0.0.1:7777");
+    let window = starting_window(StartingMenu {
+        starting: Mutex::new(3),
+        broken: false,
+    });
+    window.turn_server();
+    assert_eq!(window.lines()[0], "Running on http://127.0.0.1:7777");
+    assert!(window.switches()[0]);
+}
+
+fn a_failing_menu_leaves_the_switches_as_they_were() {
+    let window = starting_window(StartingMenu {
+        starting: Mutex::new(0),
+        broken: true,
+    });
+    window.show_general();
+    assert_eq!(window.switches(), [false, false]);
+    window.turn_server();
+    assert_eq!(window.lines(), [String::new(), String::new()]);
+}
+
 fn main() {
     settings_shows_the_switches_and_their_lines();
-    println!("test result: ok. 1 passed; 0 failed");
+    a_copy_outside_applications_cannot_turn_login_on();
+    a_login_item_waiting_for_approval_says_where_to_approve();
+    turning_serve_links_on_waits_until_the_server_runs();
+    a_failing_menu_leaves_the_switches_as_they_were();
+    println!("test result: ok. 5 passed; 0 failed");
 }

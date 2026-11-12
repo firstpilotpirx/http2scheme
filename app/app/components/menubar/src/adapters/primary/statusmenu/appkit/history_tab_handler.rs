@@ -10,7 +10,8 @@ use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
 use objc2_app_kit::{
-    NSButton, NSFont, NSLineBreakMode, NSScrollView, NSTextAlignment, NSTextField, NSView,
+    NSButton, NSControl, NSFont, NSLineBreakMode, NSScrollView, NSTextAlignment, NSTextField,
+    NSView,
 };
 use objc2_foundation::{
     NSDate, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString, NSTimeZone,
@@ -44,6 +45,7 @@ struct HistoryIvars {
     content: RefCell<Option<Retained<NSView>>>,
     shown: RefCell<Vec<ShownRow>>,
     note: RefCell<Option<String>>,
+    buttons: RefCell<Vec<Retained<NSButton>>>,
 }
 
 define_class!(
@@ -74,6 +76,7 @@ impl HistoryTarget {
             content: RefCell::new(None),
             shown: RefCell::new(Vec::new()),
             note: RefCell::new(None),
+            buttons: RefCell::new(Vec::new()),
         });
         // SAFETY: `NSObject`'s `init` on a freshly allocated object.
         unsafe { msg_send![super(this), init] }
@@ -112,10 +115,18 @@ impl HistoryTarget {
         }
     }
 
+    fn click_row(&self, index: usize) {
+        let button = self.ivars().buttons.borrow().get(index).cloned();
+        if let Some(button) = button {
+            click(&button);
+        }
+    }
+
     fn redraw(&self) {
         let mtm = self.mtm();
         let content = NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, 0.0, WIDTH, HEIGHT));
         let font = NSFont::systemFontOfSize(FONT_SIZE);
+        self.ivars().buttons.borrow_mut().clear();
         if let Some(note) = self.ivars().note.borrow().as_deref() {
             let line = label(mtm, note, &font);
             line.setFrame(rect(MARGIN, HEIGHT / 2.0, WIDTH - 2.0 * MARGIN, HEADER));
@@ -165,6 +176,7 @@ impl HistoryTarget {
             button.setTag(tag);
             button.setFrame(rect(width - BUTTON_WIDTH, y, BUTTON_WIDTH, ROW_HEIGHT));
             document.addSubview(&button);
+            self.ivars().buttons.borrow_mut().push(button);
         }
         let scroll = NSScrollView::initWithFrame(
             mtm.alloc::<NSScrollView>(),
@@ -229,6 +241,15 @@ fn replay_button(mtm: MainThreadMarker, target: &HistoryTarget) -> Retained<NSBu
     }
 }
 
+/// Clicks `control` as the user does: an enabled control changes its state and sends its action;
+/// a disabled one ignores the click.
+pub(super) fn click(control: &NSControl) {
+    if control.isEnabled() {
+        // SAFETY: a click with no sender on a control whose action takes an optional sender.
+        unsafe { control.performClick(None) }
+    }
+}
+
 /// The History tab's view and its rows; the Settings window holds the view.
 pub struct HistoryTabHandler {
     target: Retained<HistoryTarget>,
@@ -266,9 +287,9 @@ impl HistoryTabHandler {
         self.target.ivars().note.borrow().clone()
     }
 
-    /// Chooses ▶ on row `index`, as a click does.
+    /// Clicks ▶ on row `index`.
     pub fn replay(&self, index: usize) {
-        self.target.replay(index);
+        self.target.click_row(index);
     }
 }
 

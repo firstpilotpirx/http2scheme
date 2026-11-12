@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::core::application::use_cases::replay_link::ReplayLink;
 
-/// The ▶ of the Link History window, called in the app's process.
+/// The ▶ of the History tab, called in the app's process.
 #[derive(Clone)]
 pub struct ReplayLinkHandler {
     use_case: Arc<dyn ReplayLink>,

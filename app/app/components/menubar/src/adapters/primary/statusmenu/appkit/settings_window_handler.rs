@@ -17,7 +17,7 @@ use objc2_app_kit::{
 use objc2_foundation::{NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString};
 
 use super::app_kit_config::ready;
-use super::history_tab_handler::HistoryTabHandler;
+use super::history_tab_handler::{HistoryTabHandler, click};
 use crate::core::application::use_cases::operate_menu::OperateMenu;
 use crate::core::domain::menu_command_enum::MenuCommandEnum;
 use crate::core::domain::menu_view_value_object::MenuViewValueObject;
@@ -304,14 +304,20 @@ impl SettingsWindowHandler {
             .map(|row| row.line.stringValue().to_string())
     }
 
-    /// Turns the Serve links switch, as a click does.
+    /// Clicks the Serve links switch.
     pub fn turn_server(&self) {
-        self.target.server_turned();
+        click(&self.target.parts().rows[0].switch);
     }
 
-    /// Turns the Start at login switch, as a click does.
+    /// Clicks the Start at login switch; a disabled switch does nothing.
     pub fn turn_login(&self) {
-        self.target.run(MenuCommandEnum::ToggleLoginItem);
+        click(&self.target.parts().rows[1].switch);
+    }
+
+    /// The window's title.
+    #[must_use]
+    pub fn title(&self) -> String {
+        self.target.parts().window.title().to_string()
     }
 
     /// The History tab.

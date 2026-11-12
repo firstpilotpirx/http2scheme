@@ -252,12 +252,14 @@ app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_ha
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTabHandler::show	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTabHandler::view	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::<anonymous>	1
+app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::click_row	2
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::mtm	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::new	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::redraw	4
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::replay	3
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::rows_view	3
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	HistoryTarget::run	3
+app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	click	2
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	columns	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	label	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/history_tab_handler.rs	rect	1
@@ -283,6 +285,7 @@ app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_windo
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SettingsWindowHandler::show_general	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SettingsWindowHandler::show_history	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SettingsWindowHandler::switches	2
+app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SettingsWindowHandler::title	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SettingsWindowHandler::turn_login	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SettingsWindowHandler::turn_server	1
 app/app/components/menubar/src/adapters/primary/statusmenu/appkit/settings_window_handler.rs	SwitchRow::show	1

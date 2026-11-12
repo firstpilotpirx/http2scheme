@@ -1,5 +1,5 @@
-//! Steps of the `menu-bar-app` capability that reach the server: ▶ on a Link History row runs
-//! the root's replay handler, whose newest logged attempt is the window's first row.
+//! Steps of the `menu-bar-app` capability that reach the server: ▶ on a History tab row runs
+//! the root's replay handler, whose newest logged attempt is the tab's first row.
 #![allow(
     clippy::needless_pass_by_value,
     reason = "cucumber hands captures over by value"
@@ -20,7 +20,7 @@ const INTELLIJ: &str = "idea://open?file=/src/Main.java&line=1";
 const SLACK: &str = "slack://channel?id=C1";
 
 #[given(
-    regex = r#"^the Link History window lists (an opened IntelliJ|a Slack) link(?: with the result "scheme not allowed")?$"#
+    regex = r#"^the History tab lists (an opened IntelliJ|a Slack) link(?: with the result "scheme not allowed")?$"#
 )]
 async fn window_lists(world: &mut LinkserverWorld, row: String) {
     write_settings(world, free_port(), &["idea"]);
