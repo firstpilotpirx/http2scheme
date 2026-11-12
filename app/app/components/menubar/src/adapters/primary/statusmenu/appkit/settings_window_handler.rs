@@ -11,30 +11,23 @@ use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
 use objc2_app_kit::{
-    NSApplication, NSBackingStoreType, NSColor, NSControlStateValueOff, NSControlStateValueOn,
-    NSFont, NSSwitch, NSTabView, NSTabViewItem, NSTextField, NSView, NSWindow, NSWindowStyleMask,
+    NSApplication, NSBackingStoreType, NSControlStateValueOff, NSControlStateValueOn,
+    NSSegmentedControl, NSSwitch, NSTabView, NSTextField, NSView, NSWindow, NSWindowStyleMask,
 };
-use objc2_foundation::{NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString};
+use objc2_foundation::{NSObject, NSObjectProtocol, NSString};
 
 use super::app_kit_config::ready;
 use super::history_tab_handler::{HistoryTabHandler, click};
+use super::history_table_config::rect;
+use super::settings_layout_config::{
+    BAR, GENERAL_HEIGHT, WIDTH, switch_row, tab_bar, tab_height, tab_view,
+};
 use crate::core::application::use_cases::operate_menu::OperateMenu;
 use crate::core::domain::menu_command_enum::MenuCommandEnum;
 use crate::core::domain::menu_view_value_object::MenuViewValueObject;
 
 /// The window's title, also how a test finds it.
 pub const WINDOW_TITLE: &str = "http2scheme Settings";
-const TABS: [&str; 2] = ["General", "History"];
-const NAMES: [&str; 2] = ["Serve links", "Start at login"];
-const WIDTH: f64 = 720.0;
-const HEIGHT: f64 = 480.0;
-const INSET: f64 = 12.0;
-const MARGIN: f64 = 20.0;
-const ROW_HEIGHT: f64 = 56.0;
-const LINE_HEIGHT: f64 = 18.0;
-const SWITCH_WIDTH: f64 = 44.0;
-const NAME_SIZE: f64 = 13.0;
-const NOTE_SIZE: f64 = 11.0;
 const STARTING: &str = "Starting";
 const POLL: Duration = Duration::from_millis(50);
 const POLL_LIMIT: Duration = Duration::from_secs(1);
@@ -57,11 +50,12 @@ impl SwitchRow {
 /// The window's views, built on first use.
 struct Parts {
     window: Retained<NSWindow>,
+    segments: Retained<NSSegmentedControl>,
     tabs: Retained<NSTabView>,
     rows: [SwitchRow; 2],
 }
 
-/// The ivars of the target of both switches.
+/// The ivars of the target of both switches and of the tab bar.
 struct SettingsIvars {
     menu: Arc<dyn OperateMenu>,
     history: HistoryTabHandler,
@@ -87,6 +81,11 @@ define_class!(
         fn toggle_login(&self, _sender: Option<&AnyObject>) {
             self.run(MenuCommandEnum::ToggleLoginItem);
         }
+
+        #[unsafe(method(chooseTab:))]
+        fn choose_tab(&self, _sender: Option<&AnyObject>) {
+            self.tab_chosen();
+        }
     }
 );
 
@@ -98,6 +97,11 @@ impl SettingsTarget {
             std::thread::sleep(POLL);
             view = self.run(MenuCommandEnum::Show);
         }
+    }
+
+    fn tab_chosen(&self) {
+        let chosen = self.parts().segments.selectedSegment();
+        self.select(usize::try_from(chosen).unwrap_or_default());
     }
 
     fn new(
@@ -125,31 +129,34 @@ impl SettingsTarget {
     fn build(&self) -> Parts {
         let mtm = self.mtm();
         let window = titled_window(mtm);
-        window.center();
-        let frame = rect(INSET, INSET, WIDTH - 2.0 * INSET, HEIGHT - 2.0 * INSET);
-        let tabs = NSTabView::initWithFrame(mtm.alloc::<NSTabView>(), frame);
-        let area = tabs.contentRect().size;
-        let general = NSView::initWithFrame(
-            mtm.alloc::<NSView>(),
-            rect(0.0, 0.0, area.width, area.height),
-        );
-        let rows = [0, 1].map(|index| switch_row(mtm, &general, NAMES[index], index));
-        // SAFETY: both actions are sender-taking methods of `self`, which outlives the window.
+        let height = BAR + GENERAL_HEIGHT;
+        let content = NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, 0.0, WIDTH, height));
+        let segments = tab_bar(mtm, &content);
+        let general =
+            NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, 0.0, WIDTH, GENERAL_HEIGHT));
+        let rows = [0, 1].map(|index| {
+            let (switch, line) = switch_row(mtm, &general, index);
+            SwitchRow { switch, line }
+        });
+        // SAFETY: every action is a sender-taking method of `self`, which outlives the window.
         unsafe {
             rows[0].switch.setTarget(Some(self as &AnyObject));
             rows[0].switch.setAction(Some(sel!(toggleServer:)));
             rows[1].switch.setTarget(Some(self as &AnyObject));
             rows[1].switch.setAction(Some(sel!(toggleLogin:)));
+            segments.setTarget(Some(self as &AnyObject));
+            segments.setAction(Some(sel!(chooseTab:)));
         }
-        let history = self.ivars().history.view();
-        for (label, view) in TABS.iter().zip([&general, &history]) {
-            let item = NSTabViewItem::new();
-            item.setLabel(&NSString::from_str(label));
-            item.setView(Some(view));
-            tabs.addTabViewItem(&item);
+        let tabs = tab_view(mtm, &general, &self.ivars().history.view());
+        content.addSubview(&tabs);
+        window.setContentView(Some(&content));
+        window.center();
+        Parts {
+            window,
+            segments,
+            tabs,
+            rows,
         }
-        window.setContentView(Some(&tabs));
-        Parts { window, tabs, rows }
     }
 
     fn run(&self, command: MenuCommandEnum) -> Option<MenuViewValueObject> {
@@ -171,15 +178,27 @@ impl SettingsTarget {
         }
     }
 
-    fn present(&self, tab: usize) {
+    /// Shows tab `tab` and fits the window to it, keeping its top edge in place.
+    fn select(&self, tab: usize) {
         let parts = self.parts();
-        parts
-            .tabs
-            .selectTabViewItemAtIndex(isize::try_from(tab).unwrap_or_default());
+        let index = isize::try_from(tab).unwrap_or_default();
+        parts.tabs.selectTabViewItemAtIndex(index);
+        parts.segments.setSelectedSegment(index);
+        let height = tab_height(tab);
+        let window = &parts.window;
+        let old = window.contentRectForFrameRect(window.frame());
+        let top = old.origin.y + old.size.height;
+        let fitted = rect(old.origin.x, top - height, old.size.width, height);
+        let frame = window.frameRectForContentRect(fitted);
+        window.setFrame_display_animate(frame, true, window.isVisible());
+    }
+
+    fn present(&self, tab: usize) {
+        self.select(tab);
         self.run(MenuCommandEnum::Show);
         self.ivars().history.show();
         NSApplication::sharedApplication(self.mtm()).activate();
-        parts.window.makeKeyAndOrderFront(None);
+        self.parts().window.makeKeyAndOrderFront(None);
     }
 }
 
@@ -188,45 +207,12 @@ fn still_starting(view: Option<&MenuViewValueObject>) -> bool {
     view.is_some_and(|view| view.status_line().starts_with(STARTING))
 }
 
-fn switch_row(mtm: MainThreadMarker, general: &NSView, name: &str, index: usize) -> SwitchRow {
-    let place = f64::from(u32::try_from(index).unwrap_or_default());
-    let top = general.frame().size.height - MARGIN - place * ROW_HEIGHT;
-    let width = general.frame().size.width - 3.0 * MARGIN - SWITCH_WIDTH;
-    let title = label(mtm, name, &NSFont::boldSystemFontOfSize(NAME_SIZE));
-    title.setFrame(rect(MARGIN, top - LINE_HEIGHT, width, LINE_HEIGHT));
-    let line = label(mtm, "", &NSFont::systemFontOfSize(NOTE_SIZE));
-    line.setTextColor(Some(&NSColor::secondaryLabelColor()));
-    line.setFrame(rect(MARGIN, top - 2.0 * LINE_HEIGHT, width, LINE_HEIGHT));
-    let switch = NSSwitch::new(mtm);
-    let switch_x = general.frame().size.width - MARGIN - SWITCH_WIDTH;
-    switch.setFrame(rect(
-        switch_x,
-        top - 1.5 * LINE_HEIGHT - 4.0,
-        SWITCH_WIDTH,
-        24.0,
-    ));
-    general.addSubview(&title);
-    general.addSubview(&line);
-    general.addSubview(&switch);
-    SwitchRow { switch, line }
-}
-
-const fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
-    NSRect::new(NSPoint::new(x, y), NSSize::new(width, height))
-}
-
-fn label(mtm: MainThreadMarker, text: &str, font: &NSFont) -> Retained<NSTextField> {
-    let field = NSTextField::labelWithString(&NSString::from_str(text), mtm);
-    field.setFont(Some(font));
-    field
-}
-
 fn titled_window(mtm: MainThreadMarker) -> Retained<NSWindow> {
     // SAFETY: a new titled window, kept by the target, so it must not release itself on close.
     let window = unsafe {
         let window = NSWindow::initWithContentRect_styleMask_backing_defer(
             mtm.alloc::<NSWindow>(),
-            rect(0.0, 0.0, WIDTH, HEIGHT),
+            rect(0.0, 0.0, WIDTH, BAR + GENERAL_HEIGHT),
             NSWindowStyleMask::Titled | NSWindowStyleMask::Closable,
             NSBackingStoreType::Buffered,
             false,
@@ -318,6 +304,20 @@ impl SettingsWindowHandler {
     #[must_use]
     pub fn title(&self) -> String {
         self.target.parts().window.title().to_string()
+    }
+
+    /// Clicks segment `index` of the tab bar: 0 General, 1 History.
+    pub fn choose_tab(&self, index: usize) {
+        let segments = &self.target.parts().segments;
+        segments.setSelectedSegment(isize::try_from(index).unwrap_or_default());
+        click(segments);
+    }
+
+    /// The height of the window's content: the tab bar and the shown tab.
+    #[must_use]
+    pub fn content_height(&self) -> f64 {
+        let window = &self.target.parts().window;
+        window.contentRectForFrameRect(window.frame()).size.height
     }
 
     /// The History tab.

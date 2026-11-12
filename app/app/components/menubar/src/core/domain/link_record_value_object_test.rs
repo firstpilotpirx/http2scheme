@@ -22,7 +22,7 @@ fn holds_its_parts() {
 fn shows_the_time_east_of_utc() {
     assert_eq!(
         record(1_763_000_000).local_time(3 * 3600),
-        "2025-11-13 05:13:20"
+        "13.11.2025 05:13"
     );
 }
 
@@ -30,11 +30,11 @@ fn shows_the_time_east_of_utc() {
 fn shows_the_time_west_of_utc_on_the_day_before() {
     assert_eq!(
         record(1_763_000_000).local_time(-5 * 3600),
-        "2025-11-12 21:13:20"
+        "12.11.2025 21:13"
     );
 }
 
 #[test]
 fn shows_a_leap_day() {
-    assert_eq!(record(951_782_401).local_time(0), "2000-02-29 00:00:01");
+    assert_eq!(record(951_782_401).local_time(0), "29.02.2000 00:00");
 }

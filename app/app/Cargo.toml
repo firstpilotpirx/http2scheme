@@ -23,8 +23,8 @@ getrandom = "=0.4.3"
 log = "=0.4.35"
 mockall = "=0.15.0"
 objc2 = "=0.6.4"
-objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "NSApplication", "NSButton", "NSCell", "NSClipView", "NSColor", "NSControl", "NSFont", "NSGraphics", "NSImage", "NSMenu", "NSMenuItem", "NSParagraphStyle", "NSResponder", "NSRunningApplication", "NSScrollView", "NSStatusBar", "NSStatusBarButton", "NSStatusItem", "NSSwitch", "NSTabView", "NSTabViewItem", "NSText", "NSTextField", "NSView", "NSWindow"] }
-objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "NSDate", "NSError", "NSGeometry", "NSObject", "NSString", "NSTimeZone"] }
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "NSApplication", "NSBox", "NSButton", "NSCell", "NSClipView", "NSColor", "NSControl", "NSFont", "NSGraphics", "NSImage", "NSMenu", "NSMenuItem", "NSParagraphStyle", "NSResponder", "NSRunningApplication", "NSScrollView", "NSSegmentedControl", "NSStatusBar", "NSStatusBarButton", "NSStatusItem", "NSSwitch", "NSTabView", "NSTabViewItem", "NSText", "NSTextField", "NSView", "NSWindow"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "NSArray", "NSDate", "NSError", "NSGeometry", "NSObject", "NSString", "NSTimeZone"] }
 objc2-service-management = { version = "=0.3.2", default-features = false, features = ["std", "SMAppService", "objc2", "objc2-foundation"] }
 owo-colors = { version = "=4.4.0", features = ["supports-colors"] }
 percent-encoding = "=2.3.2"

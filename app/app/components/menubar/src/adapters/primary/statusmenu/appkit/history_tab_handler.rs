@@ -9,30 +9,23 @@ use std::sync::Arc;
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
-use objc2_app_kit::{
-    NSButton, NSControl, NSFont, NSLineBreakMode, NSScrollView, NSTextAlignment, NSTextField,
-    NSView,
-};
-use objc2_foundation::{
-    NSDate, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString, NSTimeZone,
-};
+use objc2_app_kit::{NSButton, NSControl, NSFont, NSScrollView, NSTextAlignment, NSView};
+use objc2_foundation::{NSDate, NSObject, NSObjectProtocol, NSPoint, NSString, NSTimeZone};
 
 use super::app_kit_config::ready;
+use super::history_table_config::{
+    FONT_SIZE, ROW_HEIGHT, button_frame, framed, header, label, pin_to_top, rect, row,
+};
 use crate::core::application::use_cases::browse_history::BrowseHistory;
 use crate::core::domain::history_command_enum::HistoryCommandEnum;
 use crate::core::domain::history_view_value_object::HistoryViewValueObject;
+use crate::core::domain::link_record_value_object::OPENED;
 
-const WIDTH: f64 = 680.0;
-const HEIGHT: f64 = 400.0;
-const MARGIN: f64 = 16.0;
-const HEADER: f64 = 22.0;
-const ROW_HEIGHT: f64 = 26.0;
-const SCROLLER: f64 = 16.0;
-const TIME_WIDTH: f64 = 150.0;
-const RESULT_WIDTH: f64 = 130.0;
-const BUTTON_WIDTH: f64 = 40.0;
-const GAP: f64 = 8.0;
-const FONT_SIZE: f64 = 13.0;
+const WIDTH: f64 = 720.0;
+/// The height of the History tab.
+pub(super) const HEIGHT: f64 = 400.0;
+const MARGIN: f64 = 14.0;
+const NOTE_HEIGHT: f64 = 22.0;
 const REPLAY: &str = "▶";
 
 /// One row as the window shows it: time, result, link.
@@ -122,81 +115,63 @@ impl HistoryTarget {
         }
     }
 
+    /// Draws the note or the table at the top of the tab, which the tab view may hold shorter.
     fn redraw(&self) {
         let mtm = self.mtm();
-        let content = NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, 0.0, WIDTH, HEIGHT));
-        let font = NSFont::systemFontOfSize(FONT_SIZE);
+        let bottom = self.ivars().view.frame().size.height - HEIGHT;
+        let content =
+            NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, bottom, WIDTH, HEIGHT));
         self.ivars().buttons.borrow_mut().clear();
         if let Some(note) = self.ivars().note.borrow().as_deref() {
-            let line = label(mtm, note, &font);
-            line.setFrame(rect(MARGIN, HEIGHT / 2.0, WIDTH - 2.0 * MARGIN, HEADER));
+            let line = label(mtm, note, &NSFont::systemFontOfSize(FONT_SIZE));
+            line.setFrame(rect(
+                MARGIN,
+                HEIGHT / 2.0,
+                WIDTH - 2.0 * MARGIN,
+                NOTE_HEIGHT,
+            ));
             line.setAlignment(NSTextAlignment::Center);
             content.addSubview(&line);
         } else {
-            let bold = NSFont::boldSystemFontOfSize(FONT_SIZE);
-            let width = WIDTH - 2.0 * MARGIN - SCROLLER;
-            for (column, (x, column_width)) in ["Time", "Result", "Link"].iter().zip(columns(width))
-            {
-                let header = label(mtm, column, &bold);
-                header.setFrame(rect(
-                    MARGIN + x,
-                    HEIGHT - MARGIN - HEADER,
-                    column_width,
-                    HEADER,
-                ));
-                content.addSubview(&header);
-            }
-            content.addSubview(&self.rows_view(&font, width));
+            let frame = rect(MARGIN, MARGIN, WIDTH - 2.0 * MARGIN, HEIGHT - 2.0 * MARGIN);
+            let (table, inside) = framed(mtm, frame);
+            let width = inside.frame().size.width;
+            let left = header(mtm, &inside, width);
+            inside.addSubview(&self.rows_view(width, left));
+            content.addSubview(&table);
         }
+        pin_to_top(&content);
         if let Some(old) = self.ivars().content.replace(Some(content.clone())) {
             old.removeFromSuperview();
         }
         self.ivars().view.addSubview(&content);
     }
 
-    fn rows_view(&self, font: &NSFont, width: f64) -> Retained<NSScrollView> {
+    fn rows_view(&self, width: f64, visible: f64) -> Retained<NSScrollView> {
         let mtm = self.mtm();
         let shown = self.ivars().shown.borrow();
-        let visible = HEIGHT - 2.0 * MARGIN - HEADER - GAP;
         let rows = f64::from(u32::try_from(shown.len()).unwrap_or(u32::MAX));
         let height = (rows * ROW_HEIGHT).max(visible);
         let document = NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, 0.0, width, height));
-        for (index, row) in shown.iter().enumerate() {
-            let tag = isize::try_from(index).unwrap_or(isize::MAX);
-            let place = f64::from(u32::try_from(index).unwrap_or(u32::MAX));
-            let y = height - (place + 1.0) * ROW_HEIGHT;
-            for (text, (x, column_width)) in row.iter().zip(columns(width)) {
-                let cell = label(mtm, text, font);
-                cell.setLineBreakMode(NSLineBreakMode::ByTruncatingMiddle);
-                cell.setToolTip(Some(&NSString::from_str(text)));
-                cell.setFrame(rect(x, y + 4.0, column_width, ROW_HEIGHT - 6.0));
-                document.addSubview(&cell);
-            }
+        for (index, shown_row) in shown.iter().enumerate() {
+            row(mtm, &document, shown_row, shown_row[1] == OPENED, index);
             let button = replay_button(mtm, self);
-            button.setTag(tag);
-            button.setFrame(rect(width - BUTTON_WIDTH, y, BUTTON_WIDTH, ROW_HEIGHT));
+            button.setTag(isize::try_from(index).unwrap_or(isize::MAX));
+            button.setFrame(button_frame(width, height, index));
             document.addSubview(&button);
             self.ivars().buttons.borrow_mut().push(button);
         }
         let scroll = NSScrollView::initWithFrame(
             mtm.alloc::<NSScrollView>(),
-            rect(MARGIN, MARGIN, width + SCROLLER, visible),
+            rect(0.0, 0.0, width, visible),
         );
         scroll.setHasVerticalScroller(true);
+        scroll.setAutohidesScrollers(true);
+        scroll.setDrawsBackground(false);
         scroll.setDocumentView(Some(&document));
         document.scrollPoint(NSPoint::new(0.0, height));
         scroll
     }
-}
-
-/// The x and the width of the time, result and link columns in a row `width` wide.
-fn columns(width: f64) -> [(f64, f64); 3] {
-    let link_x = TIME_WIDTH + RESULT_WIDTH + 2.0 * GAP;
-    [
-        (0.0, TIME_WIDTH),
-        (TIME_WIDTH + GAP, RESULT_WIDTH),
-        (link_x, width - link_x - BUTTON_WIDTH - GAP),
-    ]
 }
 
 fn shown_rows(view: &HistoryViewValueObject) -> Vec<ShownRow> {
@@ -216,17 +191,6 @@ fn shown_rows(view: &HistoryViewValueObject) -> Vec<ShownRow> {
             ]
         })
         .collect()
-}
-
-const fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
-    NSRect::new(NSPoint::new(x, y), NSSize::new(width, height))
-}
-
-fn label(mtm: MainThreadMarker, text: &str, font: &NSFont) -> Retained<NSTextField> {
-    let field = NSTextField::labelWithString(&NSString::from_str(text), mtm);
-    field.setFont(Some(font));
-    field.setAlignment(NSTextAlignment::Left);
-    field
 }
 
 fn replay_button(mtm: MainThreadMarker, target: &HistoryTarget) -> Retained<NSButton> {

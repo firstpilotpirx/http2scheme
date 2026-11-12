@@ -112,6 +112,21 @@ fn settings_shows_the_switches_and_their_lines() {
     );
 }
 
+fn the_window_fits_the_chosen_tab() {
+    let (_, window) = settings_window(LoginItemStateEnum::Off);
+    let general = window.content_height();
+    window.choose_tab(1);
+    assert_eq!(window.selected_tab(), "History");
+    assert!(
+        window.content_height() > general + 200.0,
+        "{general} {}",
+        window.content_height()
+    );
+    window.choose_tab(0);
+    assert_eq!(window.selected_tab(), "General");
+    assert_eq!(window.content_height(), general);
+}
+
 fn settings_window(login: LoginItemStateEnum) -> (Arc<FakeMenu>, SettingsWindowHandler) {
     let mtm = AppKitConfig::main_thread().unwrap();
     let menu = Arc::new(FakeMenu {
@@ -217,9 +232,10 @@ fn a_failing_menu_leaves_the_switches_as_they_were() {
 
 fn main() {
     settings_shows_the_switches_and_their_lines();
+    the_window_fits_the_chosen_tab();
     a_copy_outside_applications_cannot_turn_login_on();
     a_login_item_waiting_for_approval_says_where_to_approve();
     turning_serve_links_on_waits_until_the_server_runs();
     a_failing_menu_leaves_the_switches_as_they_were();
-    println!("test result: ok. 5 passed; 0 failed");
+    println!("test result: ok. 6 passed; 0 failed");
 }

@@ -4,6 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const SECONDS_PER_DAY: i64 = 86_400;
 
+/// The result word of a request whose link opened.
+pub const OPENED: &str = "opened";
+
 /// When a link was requested, what came of it and the link.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LinkRecordValueObject {
@@ -37,7 +40,7 @@ impl LinkRecordValueObject {
         &self.link
     }
 
-    /// `2026-11-12 19:42:05`: the time in the zone `utc_offset` seconds from UTC.
+    /// `12.11.2026 19:42`: the time in the zone `utc_offset` seconds from UTC, as the mock shows it.
     #[must_use]
     pub fn local_time(&self, utc_offset: i64) -> String {
         let seconds = self
@@ -51,10 +54,9 @@ impl LinkRecordValueObject {
         let (year, month, day) = civil_from_days(seconds / SECONDS_PER_DAY);
         let rest = seconds % SECONDS_PER_DAY;
         format!(
-            "{year:04}-{month:02}-{day:02} {:02}:{:02}:{:02}",
+            "{day:02}.{month:02}.{year:04} {:02}:{:02}",
             rest / 3600,
-            rest % 3600 / 60,
-            rest % 60
+            rest % 3600 / 60
         )
     }
 }
