@@ -45,3 +45,7 @@ impl OpenAttemptRepository for FilesystemOpenAttemptRepository {
             })
     }
 }
+
+#[cfg(test)]
+#[path = "filesystem_open_attempt_repository_test.rs"]
+mod filesystem_open_attempt_repository_test;

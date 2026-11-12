@@ -16,3 +16,7 @@ pub trait AgentSupervisorService: Send + Sync {
     /// Whether the agent with this label is loaded.
     async fn is_loaded(&self, label: &str) -> Result<bool, AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "agent_supervisor_service_test.rs"]
+mod agent_supervisor_service_test;

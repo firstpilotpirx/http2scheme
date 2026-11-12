@@ -42,3 +42,7 @@ impl SchemeLinkOpenerService for LaunchServicesSchemeLinkOpenerGateway {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "launch_services_scheme_link_opener_gateway_test.rs"]
+mod launch_services_scheme_link_opener_gateway_test;

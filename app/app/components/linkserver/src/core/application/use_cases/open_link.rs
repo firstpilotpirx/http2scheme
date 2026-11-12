@@ -12,3 +12,7 @@ pub trait OpenLink: Send + Sync {
     /// Runs the use case.
     async fn execute(&self, command: OpenLinkCommand) -> OpenOutcomeEnum;
 }
+
+#[cfg(test)]
+#[path = "open_link_test.rs"]
+mod open_link_test;

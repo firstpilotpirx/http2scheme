@@ -83,3 +83,7 @@ impl AgentSupervisorService for LaunchdAgentSupervisorGateway {
         Ok(output.status.success())
     }
 }
+
+#[cfg(test)]
+#[path = "launchd_agent_supervisor_gateway_test.rs"]
+mod launchd_agent_supervisor_gateway_test;

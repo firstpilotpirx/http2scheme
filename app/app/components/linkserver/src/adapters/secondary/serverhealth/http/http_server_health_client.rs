@@ -44,3 +44,7 @@ impl ServerHealthService for HttpServerHealthClient {
             .unwrap_or(false)
     }
 }
+
+#[cfg(test)]
+#[path = "http_server_health_client_test.rs"]
+mod http_server_health_client_test;

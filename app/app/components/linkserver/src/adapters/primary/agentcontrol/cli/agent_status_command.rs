@@ -72,3 +72,7 @@ impl AgentStatusCommand {
         ]
     }
 }
+
+#[cfg(test)]
+#[path = "agent_status_command_test.rs"]
+mod agent_status_command_test;

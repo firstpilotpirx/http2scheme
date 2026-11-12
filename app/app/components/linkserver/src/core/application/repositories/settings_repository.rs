@@ -22,3 +22,7 @@ pub trait SettingsRepository: Send + Sync {
     /// Creates the key file readable only by its owner; an existing file is kept.
     async fn create_key(&self, key: &AccessKeyValueObject) -> Result<(), SettingsError>;
 }
+
+#[cfg(test)]
+#[path = "settings_repository_test.rs"]
+mod settings_repository_test;

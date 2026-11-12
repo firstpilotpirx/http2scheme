@@ -11,3 +11,7 @@ pub trait InstallAgent: Send + Sync {
     /// Runs the use case.
     async fn execute(&self) -> Result<(), AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "install_agent_test.rs"]
+mod install_agent_test;

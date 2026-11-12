@@ -11,3 +11,7 @@ pub trait StopAgent: Send + Sync {
     /// Runs the use case.
     async fn execute(&self) -> Result<(), AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "stop_agent_test.rs"]
+mod stop_agent_test;

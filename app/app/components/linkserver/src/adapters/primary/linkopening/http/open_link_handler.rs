@@ -50,3 +50,7 @@ impl OpenLinkHandler {
         ready(OpenLinkResponse::method_not_allowed())
     }
 }
+
+#[cfg(test)]
+#[path = "open_link_handler_test.rs"]
+mod open_link_handler_test;

@@ -38,3 +38,7 @@ impl StopAgentCommand {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "stop_agent_command_test.rs"]
+mod stop_agent_command_test;

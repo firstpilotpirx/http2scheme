@@ -15,3 +15,7 @@ pub trait PrepareSettings: Send + Sync {
         &self,
     ) -> Result<(ServerSettingsValueObject, AccessKeyValueObject), SettingsError>;
 }
+
+#[cfg(test)]
+#[path = "prepare_settings_test.rs"]
+mod prepare_settings_test;

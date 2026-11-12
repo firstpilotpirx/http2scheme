@@ -12,3 +12,7 @@ pub trait PrepareLink: Send + Sync {
     /// Runs the use case.
     async fn execute(&self, link: &str) -> Result<PreparedLinkValueObject, PrepareLinkError>;
 }
+
+#[cfg(test)]
+#[path = "prepare_link_test.rs"]
+mod prepare_link_test;

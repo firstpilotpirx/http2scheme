@@ -11,3 +11,7 @@ pub trait UninstallAgent: Send + Sync {
     /// Runs the use case; `true` when an agent definition was removed.
     async fn execute(&self) -> Result<bool, AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "uninstall_agent_test.rs"]
+mod uninstall_agent_test;

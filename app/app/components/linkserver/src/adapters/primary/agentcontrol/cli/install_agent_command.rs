@@ -61,3 +61,7 @@ impl InstallAgentCommand {
         0
     }
 }
+
+#[cfg(test)]
+#[path = "install_agent_command_test.rs"]
+mod install_agent_command_test;

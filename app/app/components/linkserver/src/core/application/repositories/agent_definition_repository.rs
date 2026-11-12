@@ -16,3 +16,7 @@ pub trait AgentDefinitionRepository: Send + Sync {
     /// Deletes the definition with this label.
     async fn delete(&self, label: &str) -> Result<(), AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "agent_definition_repository_test.rs"]
+mod agent_definition_repository_test;

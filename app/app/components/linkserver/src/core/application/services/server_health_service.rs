@@ -11,3 +11,7 @@ pub trait ServerHealthService: Send + Sync {
     /// Whether the server on this port answers.
     async fn is_answering(&self, port: PortValueObject) -> bool;
 }
+
+#[cfg(test)]
+#[path = "server_health_service_test.rs"]
+mod server_health_service_test;

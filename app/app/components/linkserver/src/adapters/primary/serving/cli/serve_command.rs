@@ -100,3 +100,7 @@ impl ServeCommand {
         1
     }
 }
+
+#[cfg(test)]
+#[path = "serve_command_test.rs"]
+mod serve_command_test;

@@ -33,3 +33,7 @@ impl StartAgentCommand {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "start_agent_command_test.rs"]
+mod start_agent_command_test;

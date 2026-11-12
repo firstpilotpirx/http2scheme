@@ -12,3 +12,7 @@ pub trait OpenAttemptRepository: Send + Sync {
     /// Appends the event.
     async fn record(&self, event: &LinkOpenAttemptedDomainEvent) -> Result<(), OpenLinkError>;
 }
+
+#[cfg(test)]
+#[path = "open_attempt_repository_test.rs"]
+mod open_attempt_repository_test;

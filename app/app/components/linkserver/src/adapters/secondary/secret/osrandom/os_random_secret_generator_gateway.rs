@@ -21,3 +21,7 @@ impl SecretGeneratorService for OsRandomSecretGeneratorGateway {
         Ok(AccessKeyValueObject::from_bytes(bytes))
     }
 }
+
+#[cfg(test)]
+#[path = "os_random_secret_generator_gateway_test.rs"]
+mod os_random_secret_generator_gateway_test;

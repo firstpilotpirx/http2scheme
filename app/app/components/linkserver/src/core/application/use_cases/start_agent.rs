@@ -11,3 +11,7 @@ pub trait StartAgent: Send + Sync {
     /// Runs the use case.
     async fn execute(&self) -> Result<(), AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "start_agent_test.rs"]
+mod start_agent_test;

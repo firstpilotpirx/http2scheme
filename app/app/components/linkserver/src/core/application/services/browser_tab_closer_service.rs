@@ -12,3 +12,7 @@ pub trait BrowserTabCloserService: Send + Sync {
     /// Starts closing the open-address tabs of the server on this port.
     async fn close_open_tabs(&self, port: PortValueObject) -> Result<(), OpenLinkError>;
 }
+
+#[cfg(test)]
+#[path = "browser_tab_closer_service_test.rs"]
+mod browser_tab_closer_service_test;

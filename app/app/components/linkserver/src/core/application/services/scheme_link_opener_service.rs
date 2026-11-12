@@ -12,3 +12,7 @@ pub trait SchemeLinkOpenerService: Send + Sync {
     /// Opens the link.
     async fn open(&self, link: &SchemeLinkValueObject) -> Result<(), OpenLinkError>;
 }
+
+#[cfg(test)]
+#[path = "scheme_link_opener_service_test.rs"]
+mod scheme_link_opener_service_test;

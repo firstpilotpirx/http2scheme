@@ -12,3 +12,7 @@ pub trait SecretGeneratorService: Send + Sync {
     /// A key of 256 random bits.
     async fn generate_key(&self) -> Result<AccessKeyValueObject, SettingsError>;
 }
+
+#[cfg(test)]
+#[path = "secret_generator_service_test.rs"]
+mod secret_generator_service_test;

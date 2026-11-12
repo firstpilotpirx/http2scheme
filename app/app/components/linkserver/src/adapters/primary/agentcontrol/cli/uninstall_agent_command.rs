@@ -42,3 +42,7 @@ impl UninstallAgentCommand {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "uninstall_agent_command_test.rs"]
+mod uninstall_agent_command_test;

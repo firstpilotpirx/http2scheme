@@ -75,3 +75,7 @@ impl BrowserTabCloserService for AppleScriptBrowserTabCloserGateway {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "apple_script_browser_tab_closer_gateway_test.rs"]
+mod apple_script_browser_tab_closer_gateway_test;

@@ -12,3 +12,7 @@ pub trait CheckAgentStatus: Send + Sync {
     /// Runs the use case.
     async fn execute(&self) -> Result<AgentStatusValueObject, AgentControlError>;
 }
+
+#[cfg(test)]
+#[path = "check_agent_status_test.rs"]
+mod check_agent_status_test;

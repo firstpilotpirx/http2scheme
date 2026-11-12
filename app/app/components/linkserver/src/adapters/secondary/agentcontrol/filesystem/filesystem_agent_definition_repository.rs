@@ -52,3 +52,7 @@ impl AgentDefinitionRepository for FilesystemAgentDefinitionRepository {
         fs::remove_file(&path).map_err(|error| io_error(&path, &error))
     }
 }
+
+#[cfg(test)]
+#[path = "filesystem_agent_definition_repository_test.rs"]
+mod filesystem_agent_definition_repository_test;
