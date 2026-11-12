@@ -38,8 +38,8 @@ impl BrowseHistory for BrowseHistoryUseCase {
         command: HistoryCommandEnum,
     ) -> Result<HistoryViewValueObject, MenuActionError> {
         if let HistoryCommandEnum::Replay(link) = command {
-            let result = self.replay.replay(&link).await;
-            log::info!("history: replayed a link: {result}");
+            // WHY: the server logs the attempt with its result; the reread rows show it.
+            self.replay.replay(&link).await;
         }
         let rows = self.history.find_latest(HISTORY_LIMIT).await?;
         Ok(HistoryViewValueObject::new(rows))

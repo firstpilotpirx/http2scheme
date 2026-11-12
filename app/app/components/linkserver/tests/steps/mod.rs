@@ -4,4 +4,5 @@ pub mod background_service;
 pub mod home;
 pub mod link_opening;
 pub mod link_sharing;
+pub mod menu_bar_app;
 pub mod server_settings;
