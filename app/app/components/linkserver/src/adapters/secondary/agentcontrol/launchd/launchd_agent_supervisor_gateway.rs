@@ -2,13 +2,20 @@
 
 use std::path::PathBuf;
 use std::process::Output;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use tokio::process::Command;
+use tokio::time::{Instant, sleep};
 
 use crate::core::application::exceptions::agent_control_error::AgentControlError;
 use crate::core::application::services::agent_supervisor_service::AgentSupervisorService;
 use crate::core::domain::agent_definition_value_object::AgentDefinitionValueObject;
+
+/// How long `unload` waits for launchd to finish the bootout, which it may still do after
+/// `launchctl bootout` returns.
+const UNLOAD_WAIT: Duration = Duration::from_secs(3);
+const UNLOAD_POLL: Duration = Duration::from_millis(50);
 
 /// Loads, unloads and inspects agents in the user's `gui/<uid>` domain.
 #[derive(Debug, Clone)]
@@ -16,6 +23,7 @@ pub struct LaunchdAgentSupervisorGateway {
     program: PathBuf,
     uid: u32,
     agents_dir: PathBuf,
+    unload_wait: Duration,
 }
 
 impl LaunchdAgentSupervisorGateway {
@@ -26,7 +34,15 @@ impl LaunchdAgentSupervisorGateway {
             program,
             uid,
             agents_dir,
+            unload_wait: UNLOAD_WAIT,
         }
+    }
+
+    /// The same supervisor, waiting at most `wait` for an unloaded agent to leave launchd.
+    #[must_use]
+    pub const fn with_unload_wait(mut self, wait: Duration) -> Self {
+        self.unload_wait = wait;
+        self
     }
 
     fn domain(&self) -> String {
@@ -75,7 +91,12 @@ impl AgentSupervisorService for LaunchdAgentSupervisorGateway {
 
     async fn unload(&self, label: &str) -> Result<(), AgentControlError> {
         self.run_checked(&["bootout".to_owned(), self.service(label)])
-            .await
+            .await?;
+        let deadline = Instant::now() + self.unload_wait;
+        while self.is_loaded(label).await? && Instant::now() < deadline {
+            sleep(UNLOAD_POLL).await;
+        }
+        Ok(())
     }
 
     async fn is_loaded(&self, label: &str) -> Result<bool, AgentControlError> {

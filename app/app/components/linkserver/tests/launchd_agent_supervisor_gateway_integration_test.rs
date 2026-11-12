@@ -10,6 +10,7 @@ mod support;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use linkserver::adapters::secondary::agentcontrol::filesystem::filesystem_agent_definition_repository::FilesystemAgentDefinitionRepository;
 use linkserver::adapters::secondary::agentcontrol::launchd::launchd_agent_supervisor_gateway::LaunchdAgentSupervisorGateway;
@@ -51,16 +52,23 @@ async fn load_bootstraps_the_definition_file_in_the_user_domain() {
 }
 
 #[tokio::test]
-async fn unload_boots_out_the_label() {
+async fn unload_boots_out_the_label_and_checks_it_left() {
     let dir = TempDir::new().unwrap();
     let launchctl = RecordingProgram::new(dir.path(), "launchctl", 0);
     let gateway = LaunchdAgentSupervisorGateway::new(
         launchctl.program.clone(),
         501,
         dir.path().to_path_buf(),
-    );
+    )
+    .with_unload_wait(Duration::ZERO);
     gateway.unload(LABEL).await.unwrap();
-    assert_eq!(launchctl.calls(), [["bootout", "gui/501/io.example.agent"]]);
+    assert_eq!(
+        launchctl.calls(),
+        [
+            ["bootout", "gui/501/io.example.agent"],
+            ["print", "gui/501/io.example.agent"]
+        ]
+    );
 }
 
 #[tokio::test]
