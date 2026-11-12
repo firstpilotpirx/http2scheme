@@ -19,8 +19,16 @@ pub struct StopAgentUseCase {
 impl StopAgentUseCase {
     /// A use case stopping the agent with `label`.
     #[must_use]
-    pub fn new(label: String, repository: Arc<dyn AgentDefinitionRepository>, supervisor: Arc<dyn AgentSupervisorService>) -> Self {
-        Self { label, repository, supervisor }
+    pub fn new(
+        label: String,
+        repository: Arc<dyn AgentDefinitionRepository>,
+        supervisor: Arc<dyn AgentSupervisorService>,
+    ) -> Self {
+        Self {
+            label,
+            repository,
+            supervisor,
+        }
     }
 }
 

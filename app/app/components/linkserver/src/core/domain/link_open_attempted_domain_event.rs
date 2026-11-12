@@ -16,7 +16,11 @@ impl LinkOpenAttemptedDomainEvent {
     /// The event's parts.
     #[must_use]
     pub const fn new(at: SystemTime, link_text: String, outcome: OpenOutcomeEnum) -> Self {
-        Self { at, link_text, outcome }
+        Self {
+            at,
+            link_text,
+            outcome,
+        }
     }
 
     /// When the request came.

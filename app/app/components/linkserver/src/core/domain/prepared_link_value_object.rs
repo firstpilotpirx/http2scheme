@@ -15,7 +15,11 @@ pub struct PreparedLinkValueObject {
 impl PreparedLinkValueObject {
     /// The parts of an open link.
     #[must_use]
-    pub const fn new(port: PortValueObject, key: AccessKeyValueObject, link: SchemeLinkValueObject) -> Self {
+    pub const fn new(
+        port: PortValueObject,
+        key: AccessKeyValueObject,
+        link: SchemeLinkValueObject,
+    ) -> Self {
         Self { port, key, link }
     }
 

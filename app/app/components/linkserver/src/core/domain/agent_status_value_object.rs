@@ -2,7 +2,10 @@
 
 /// Whether the agent is installed, loaded, and the server answers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[expect(clippy::struct_excessive_bools, reason = "three independent facts the status command prints")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "three independent facts the status command prints"
+)]
 pub struct AgentStatusValueObject {
     installed: bool,
     loaded: bool,
@@ -13,7 +16,11 @@ impl AgentStatusValueObject {
     /// The three facts.
     #[must_use]
     pub const fn new(installed: bool, loaded: bool, answering: bool) -> Self {
-        Self { installed, loaded, answering }
+        Self {
+            installed,
+            loaded,
+            answering,
+        }
     }
 
     /// The agent definition exists.

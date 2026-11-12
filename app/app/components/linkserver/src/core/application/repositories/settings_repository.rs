@@ -13,7 +13,10 @@ pub trait SettingsRepository: Send + Sync {
     /// The settings, or `None` when the file does not exist.
     async fn read_settings(&self) -> Result<Option<ServerSettingsValueObject>, SettingsError>;
     /// Creates the settings file; an existing file is kept.
-    async fn create_settings(&self, settings: &ServerSettingsValueObject) -> Result<(), SettingsError>;
+    async fn create_settings(
+        &self,
+        settings: &ServerSettingsValueObject,
+    ) -> Result<(), SettingsError>;
     /// The key, or `None` when the file does not exist.
     async fn read_key(&self) -> Result<Option<AccessKeyValueObject>, SettingsError>;
     /// Creates the key file readable only by its owner; an existing file is kept.

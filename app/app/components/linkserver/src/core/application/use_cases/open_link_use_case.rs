@@ -36,17 +36,30 @@ impl OpenLinkUseCase {
         closer: Arc<dyn BrowserTabCloserService>,
         attempts: Arc<dyn OpenAttemptRepository>,
     ) -> Self {
-        Self { settings, key, opener, closer, attempts }
+        Self {
+            settings,
+            key,
+            opener,
+            closer,
+            attempts,
+        }
     }
 
     fn admit(&self, command: &OpenLinkCommand) -> Result<SchemeLinkValueObject, OpenOutcomeEnum> {
-        let key_ok = command.key().is_some_and(|candidate| self.key.matches(candidate));
+        let key_ok = command
+            .key()
+            .is_some_and(|candidate| self.key.matches(candidate));
         if !key_ok {
             return Err(OpenOutcomeEnum::WrongKey);
         }
-        let text = command.link().ok_or(OpenOutcomeEnum::Rejected(LinkRejectedError::Missing))?;
+        let text = command
+            .link()
+            .ok_or(OpenOutcomeEnum::Rejected(LinkRejectedError::Missing))?;
         let link = SchemeLinkValueObject::parse(text).map_err(OpenOutcomeEnum::Rejected)?;
-        self.settings.allowlist().check(&link).map_err(OpenOutcomeEnum::Rejected)?;
+        self.settings
+            .allowlist()
+            .check(&link)
+            .map_err(OpenOutcomeEnum::Rejected)?;
         Ok(link)
     }
 

@@ -11,5 +11,7 @@ use crate::core::domain::server_settings_value_object::ServerSettingsValueObject
 #[async_trait]
 pub trait PrepareSettings: Send + Sync {
     /// Runs the use case.
-    async fn execute(&self) -> Result<(ServerSettingsValueObject, AccessKeyValueObject), SettingsError>;
+    async fn execute(
+        &self,
+    ) -> Result<(ServerSettingsValueObject, AccessKeyValueObject), SettingsError>;
 }

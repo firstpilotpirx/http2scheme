@@ -21,7 +21,12 @@ impl SchemeAllowlistPolicy {
     /// `idea` and `goland`.
     #[must_use]
     pub fn defaults() -> Self {
-        Self(DEFAULT_SCHEMES.iter().filter_map(|n| SchemeNameValueObject::parse(n).ok()).collect())
+        Self(
+            DEFAULT_SCHEMES
+                .iter()
+                .filter_map(|n| SchemeNameValueObject::parse(n).ok())
+                .collect(),
+        )
     }
 
     /// The listed schemes.
@@ -41,7 +46,9 @@ impl SchemeAllowlistPolicy {
         if !never && self.0.contains(scheme) {
             Ok(())
         } else {
-            Err(LinkRejectedError::SchemeNotAllowed { scheme: scheme.to_string() })
+            Err(LinkRejectedError::SchemeNotAllowed {
+                scheme: scheme.to_string(),
+            })
         }
     }
 }

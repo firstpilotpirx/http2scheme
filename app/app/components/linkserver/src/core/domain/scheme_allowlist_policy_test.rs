@@ -5,7 +5,10 @@ use crate::core::domain::scheme_name_value_object::SchemeNameValueObject;
 
 fn policy(names: &[&str]) -> SchemeAllowlistPolicy {
     SchemeAllowlistPolicy::new(
-        names.iter().map(|n| SchemeNameValueObject::parse(n).unwrap()).collect(),
+        names
+            .iter()
+            .map(|n| SchemeNameValueObject::parse(n).unwrap())
+            .collect(),
     )
 }
 
@@ -22,7 +25,9 @@ fn check_permits_a_listed_scheme_in_any_case() {
 fn check_refuses_an_unlisted_scheme_naming_it() {
     assert_eq!(
         policy(&["idea"]).check(&link("slack://channel")),
-        Err(LinkRejectedError::SchemeNotAllowed { scheme: "slack".to_owned() })
+        Err(LinkRejectedError::SchemeNotAllowed {
+            scheme: "slack".to_owned()
+        })
     );
 }
 

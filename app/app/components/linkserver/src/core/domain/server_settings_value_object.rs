@@ -14,14 +14,26 @@ pub struct ServerSettingsValueObject {
 impl ServerSettingsValueObject {
     /// Settings from their parts.
     #[must_use]
-    pub const fn new(port: PortValueObject, allowlist: SchemeAllowlistPolicy, close_tab: bool) -> Self {
-        Self { port, allowlist, close_tab }
+    pub const fn new(
+        port: PortValueObject,
+        allowlist: SchemeAllowlistPolicy,
+        close_tab: bool,
+    ) -> Self {
+        Self {
+            port,
+            allowlist,
+            close_tab,
+        }
     }
 
     /// Port 7777, `idea` and `goland`, tab closing on.
     #[must_use]
     pub fn defaults() -> Self {
-        Self::new(PortValueObject::default(), SchemeAllowlistPolicy::defaults(), true)
+        Self::new(
+            PortValueObject::default(),
+            SchemeAllowlistPolicy::defaults(),
+            true,
+        )
     }
 
     /// The port.

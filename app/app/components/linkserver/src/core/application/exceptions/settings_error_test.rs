@@ -9,6 +9,9 @@ fn invalid_shows_the_settings_message() {
 
 #[test]
 fn io_names_the_path() {
-    let error = SettingsError::Io { path: "/k".to_owned(), reason: "denied".to_owned() };
+    let error = SettingsError::Io {
+        path: "/k".to_owned(),
+        reason: "denied".to_owned(),
+    };
     assert_eq!(error.to_string(), "/k: denied");
 }

@@ -19,8 +19,16 @@ pub struct UninstallAgentUseCase {
 impl UninstallAgentUseCase {
     /// A use case removing the agent with `label`.
     #[must_use]
-    pub fn new(label: String, repository: Arc<dyn AgentDefinitionRepository>, supervisor: Arc<dyn AgentSupervisorService>) -> Self {
-        Self { label, repository, supervisor }
+    pub fn new(
+        label: String,
+        repository: Arc<dyn AgentDefinitionRepository>,
+        supervisor: Arc<dyn AgentSupervisorService>,
+    ) -> Self {
+        Self {
+            label,
+            repository,
+            supervisor,
+        }
     }
 }
 

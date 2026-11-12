@@ -9,17 +9,26 @@ fn parse_accepts_rfc3986_scheme_and_lowers_it() {
 
 #[test]
 fn parse_rejects_empty_name() {
-    assert_eq!(SchemeNameValueObject::parse(""), Err(LinkRejectedError::NoScheme));
+    assert_eq!(
+        SchemeNameValueObject::parse(""),
+        Err(LinkRejectedError::NoScheme)
+    );
 }
 
 #[test]
 fn parse_rejects_name_starting_with_digit() {
-    assert_eq!(SchemeNameValueObject::parse("1idea"), Err(LinkRejectedError::NoScheme));
+    assert_eq!(
+        SchemeNameValueObject::parse("1idea"),
+        Err(LinkRejectedError::NoScheme)
+    );
 }
 
 #[test]
 fn parse_rejects_name_with_forbidden_character() {
-    assert_eq!(SchemeNameValueObject::parse("id_ea"), Err(LinkRejectedError::NoScheme));
+    assert_eq!(
+        SchemeNameValueObject::parse("id_ea"),
+        Err(LinkRejectedError::NoScheme)
+    );
 }
 
 #[test]

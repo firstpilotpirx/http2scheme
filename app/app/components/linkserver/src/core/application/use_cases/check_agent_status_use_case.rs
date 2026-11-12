@@ -31,7 +31,13 @@ impl CheckAgentStatusUseCase {
         supervisor: Arc<dyn AgentSupervisorService>,
         health: Arc<dyn ServerHealthService>,
     ) -> Self {
-        Self { label, port, repository, supervisor, health }
+        Self {
+            label,
+            port,
+            repository,
+            supervisor,
+            health,
+        }
     }
 }
 

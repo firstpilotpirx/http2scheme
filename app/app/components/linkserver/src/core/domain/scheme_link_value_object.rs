@@ -30,7 +30,10 @@ impl SchemeLinkValueObject {
             return Err(LinkRejectedError::ForbiddenCharacter);
         }
         let (scheme, _) = text.split_once(':').ok_or(LinkRejectedError::NoScheme)?;
-        Ok(Self { text: text.to_owned(), scheme: SchemeNameValueObject::parse(scheme)? })
+        Ok(Self {
+            text: text.to_owned(),
+            scheme: SchemeNameValueObject::parse(scheme)?,
+        })
     }
 
     /// The exact link text.

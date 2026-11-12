@@ -14,7 +14,11 @@ impl AgentDefinitionValueObject {
     /// An agent running `<program> serve`, logging into `log_dir`.
     #[must_use]
     pub const fn new(label: String, program: PathBuf, log_dir: PathBuf) -> Self {
-        Self { label, program, log_dir }
+        Self {
+            label,
+            program,
+            log_dir,
+        }
     }
 
     /// The agent label.

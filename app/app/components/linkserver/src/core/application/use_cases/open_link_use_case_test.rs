@@ -24,17 +24,31 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Self {
-        Self { opener: MockSchemeLinkOpenerService::new(), closer: MockBrowserTabCloserService::new(), events: Arc::default(), close_tab: true }
+        Self {
+            opener: MockSchemeLinkOpenerService::new(),
+            closer: MockBrowserTabCloserService::new(),
+            events: Arc::default(),
+            close_tab: true,
+        }
     }
 
-    fn build(self) -> (OpenLinkUseCase, Arc<Mutex<Vec<LinkOpenAttemptedDomainEvent>>>) {
+    fn build(
+        self,
+    ) -> (
+        OpenLinkUseCase,
+        Arc<Mutex<Vec<LinkOpenAttemptedDomainEvent>>>,
+    ) {
         let mut attempts = MockOpenAttemptRepository::new();
         let sink = Arc::clone(&self.events);
         attempts.expect_record().returning(move |event| {
             sink.lock().unwrap().push(event.clone());
             Ok(())
         });
-        let settings = ServerSettingsValueObject::new(PortValueObject::default(), SchemeAllowlistPolicy::defaults(), self.close_tab);
+        let settings = ServerSettingsValueObject::new(
+            PortValueObject::default(),
+            SchemeAllowlistPolicy::defaults(),
+            self.close_tab,
+        );
         let use_case = OpenLinkUseCase::new(
             settings,
             AccessKeyValueObject::from_bytes([7; 32]),
@@ -46,8 +60,8 @@ impl Fixture {
     }
 }
 
-fn right_key() -> Option<String> {
-    Some("07".repeat(32))
+fn right_key() -> String {
+    "07".repeat(32)
 }
 
 fn command(key: Option<String>, link: &str) -> OpenLinkCommand {
@@ -57,10 +71,22 @@ fn command(key: Option<String>, link: &str) -> OpenLinkCommand {
 #[tokio::test]
 async fn opens_an_allowed_link_closes_the_tab_and_records_it() {
     let mut fixture = Fixture::new();
-    fixture.opener.expect_open().withf(|link| link.as_str() == "idea://open?line=17").times(1).returning(|_| Ok(()));
-    fixture.closer.expect_close_open_tabs().withf(|port| port.value() == 7777).times(1).returning(|_| Ok(()));
+    fixture
+        .opener
+        .expect_open()
+        .withf(|link| link.as_str() == "idea://open?line=17")
+        .times(1)
+        .returning(|_| Ok(()));
+    fixture
+        .closer
+        .expect_close_open_tabs()
+        .withf(|port| port.value() == 7777)
+        .times(1)
+        .returning(|_| Ok(()));
     let (use_case, events) = fixture.build();
-    let outcome = use_case.execute(command(right_key(), "idea://open?line=17")).await;
+    let outcome = use_case
+        .execute(command(Some(right_key()), "idea://open?line=17"))
+        .await;
     assert_eq!(outcome, OpenOutcomeEnum::Opened);
     let recorded = events.lock().unwrap();
     assert_eq!(recorded.len(), 1);
@@ -83,23 +109,37 @@ async fn a_wrong_or_missing_key_opens_nothing() {
 #[tokio::test]
 async fn a_missing_link_is_rejected() {
     let (use_case, events) = Fixture::new().build();
-    let outcome = use_case.execute(OpenLinkCommand::new(right_key(), None)).await;
-    assert_eq!(outcome, OpenOutcomeEnum::Rejected(LinkRejectedError::Missing));
+    let outcome = use_case
+        .execute(OpenLinkCommand::new(Some(right_key()), None))
+        .await;
+    assert_eq!(
+        outcome,
+        OpenOutcomeEnum::Rejected(LinkRejectedError::Missing)
+    );
     assert_eq!(events.lock().unwrap()[0].link_text(), "");
 }
 
 #[tokio::test]
 async fn a_malformed_link_is_rejected() {
     let (use_case, _) = Fixture::new().build();
-    let outcome = use_case.execute(command(right_key(), "idea://a b")).await;
-    assert_eq!(outcome, OpenOutcomeEnum::Rejected(LinkRejectedError::ForbiddenCharacter));
+    let outcome = use_case
+        .execute(command(Some(right_key()), "idea://a b"))
+        .await;
+    assert_eq!(
+        outcome,
+        OpenOutcomeEnum::Rejected(LinkRejectedError::ForbiddenCharacter)
+    );
 }
 
 #[tokio::test]
 async fn a_scheme_not_allowed_is_rejected() {
     let (use_case, events) = Fixture::new().build();
-    let outcome = use_case.execute(command(right_key(), "slack://channel")).await;
-    let expected = OpenOutcomeEnum::Rejected(LinkRejectedError::SchemeNotAllowed { scheme: "slack".to_owned() });
+    let outcome = use_case
+        .execute(command(Some(right_key()), "slack://channel"))
+        .await;
+    let expected = OpenOutcomeEnum::Rejected(LinkRejectedError::SchemeNotAllowed {
+        scheme: "slack".to_owned(),
+    });
     assert_eq!(outcome, expected);
     assert_eq!(events.lock().unwrap()[0].link_text(), "slack://channel");
 }
@@ -107,11 +147,23 @@ async fn a_scheme_not_allowed_is_rejected() {
 #[tokio::test]
 async fn an_opener_failure_is_open_failed_and_keeps_the_tab() {
     let mut fixture = Fixture::new();
-    fixture.opener.expect_open().returning(|_| Err(OpenLinkError::OpenFailed { reason: "exit 1".to_owned() }));
+    fixture.opener.expect_open().returning(|_| {
+        Err(OpenLinkError::OpenFailed {
+            reason: "exit 1".to_owned(),
+        })
+    });
     fixture.closer.expect_close_open_tabs().never();
     let (use_case, events) = fixture.build();
-    assert_eq!(use_case.execute(command(right_key(), "idea://x")).await, OpenOutcomeEnum::OpenFailed);
-    assert_eq!(events.lock().unwrap()[0].outcome(), &OpenOutcomeEnum::OpenFailed);
+    assert_eq!(
+        use_case
+            .execute(command(Some(right_key()), "idea://x"))
+            .await,
+        OpenOutcomeEnum::OpenFailed
+    );
+    assert_eq!(
+        events.lock().unwrap()[0].outcome(),
+        &OpenOutcomeEnum::OpenFailed
+    );
 }
 
 #[tokio::test]
@@ -121,17 +173,34 @@ async fn tab_closing_off_closes_no_tab() {
     fixture.opener.expect_open().returning(|_| Ok(()));
     fixture.closer.expect_close_open_tabs().never();
     let (use_case, _) = fixture.build();
-    assert_eq!(use_case.execute(command(right_key(), "idea://x")).await, OpenOutcomeEnum::Opened);
+    assert_eq!(
+        use_case
+            .execute(command(Some(right_key()), "idea://x"))
+            .await,
+        OpenOutcomeEnum::Opened
+    );
 }
 
 #[tokio::test]
 async fn a_failed_tab_close_keeps_the_link_opened() {
     let mut fixture = Fixture::new();
     fixture.opener.expect_open().returning(|_| Ok(()));
-    fixture.closer.expect_close_open_tabs().returning(|_| Err(OpenLinkError::TabCloseFailed { reason: "denied".to_owned() }));
+    fixture.closer.expect_close_open_tabs().returning(|_| {
+        Err(OpenLinkError::TabCloseFailed {
+            reason: "denied".to_owned(),
+        })
+    });
     let (use_case, events) = fixture.build();
-    assert_eq!(use_case.execute(command(right_key(), "idea://x")).await, OpenOutcomeEnum::Opened);
-    assert_eq!(events.lock().unwrap()[0].outcome(), &OpenOutcomeEnum::Opened);
+    assert_eq!(
+        use_case
+            .execute(command(Some(right_key()), "idea://x"))
+            .await,
+        OpenOutcomeEnum::Opened
+    );
+    assert_eq!(
+        events.lock().unwrap()[0].outcome(),
+        &OpenOutcomeEnum::Opened
+    );
 }
 
 #[tokio::test]
@@ -141,7 +210,11 @@ async fn a_failed_record_keeps_the_outcome() {
     let mut closer = MockBrowserTabCloserService::new();
     closer.expect_close_open_tabs().returning(|_| Ok(()));
     let mut attempts = MockOpenAttemptRepository::new();
-    attempts.expect_record().returning(|_| Err(OpenLinkError::RecordFailed { reason: "full".to_owned() }));
+    attempts.expect_record().returning(|_| {
+        Err(OpenLinkError::RecordFailed {
+            reason: "full".to_owned(),
+        })
+    });
     let use_case = OpenLinkUseCase::new(
         ServerSettingsValueObject::defaults(),
         AccessKeyValueObject::from_bytes([7; 32]),
@@ -149,5 +222,10 @@ async fn a_failed_record_keeps_the_outcome() {
         Arc::new(closer),
         Arc::new(attempts),
     );
-    assert_eq!(use_case.execute(command(right_key(), "idea://x")).await, OpenOutcomeEnum::Opened);
+    assert_eq!(
+        use_case
+            .execute(command(Some(right_key()), "idea://x"))
+            .await,
+        OpenOutcomeEnum::Opened
+    );
 }

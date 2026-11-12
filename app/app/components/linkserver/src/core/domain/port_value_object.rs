@@ -11,7 +11,11 @@ impl PortValueObject {
     /// Accepts 1024–65535.
     #[must_use]
     pub const fn new(value: u16) -> Option<Self> {
-        if value >= LOWEST { Some(Self(value)) } else { None }
+        if value >= LOWEST {
+            Some(Self(value))
+        } else {
+            None
+        }
     }
 
     /// The port number.

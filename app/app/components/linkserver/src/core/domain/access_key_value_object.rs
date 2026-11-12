@@ -28,7 +28,9 @@ impl AccessKeyValueObject {
     pub fn parse_hex(text: &str) -> Option<Self> {
         let hex = text.strip_suffix('\n').unwrap_or(text);
         let valid = hex.len() == HEX_LENGTH
-            && hex.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
+            && hex
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
         valid.then(|| Self(hex.to_owned()))
     }
 
@@ -45,7 +47,11 @@ impl AccessKeyValueObject {
         let expected = self.0.as_bytes();
         let same_length = candidate.len() == expected.len();
         let dummy = [0u8; HEX_LENGTH];
-        let compared = if same_length { candidate.as_bytes() } else { &dummy[..] };
+        let compared = if same_length {
+            candidate.as_bytes()
+        } else {
+            &dummy[..]
+        };
         bool::from(expected.ct_eq(compared)) && same_length
     }
 }

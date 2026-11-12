@@ -31,7 +31,10 @@ impl OpenLinkCommand {
 
 impl fmt::Debug for OpenLinkCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("OpenLinkCommand").field("key", &"****").field("link", &self.link).finish()
+        f.debug_struct("OpenLinkCommand")
+            .field("key", &"****")
+            .field("link", &self.link)
+            .finish()
     }
 }
 

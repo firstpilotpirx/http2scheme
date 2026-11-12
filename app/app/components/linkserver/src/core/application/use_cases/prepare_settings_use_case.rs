@@ -20,8 +20,14 @@ pub struct PrepareSettingsUseCase {
 impl PrepareSettingsUseCase {
     /// A use case over the settings repository and the key source.
     #[must_use]
-    pub fn new(settings: Arc<dyn SettingsRepository>, generator: Arc<dyn SecretGeneratorService>) -> Self {
-        Self { settings, generator }
+    pub fn new(
+        settings: Arc<dyn SettingsRepository>,
+        generator: Arc<dyn SecretGeneratorService>,
+    ) -> Self {
+        Self {
+            settings,
+            generator,
+        }
     }
 
     async fn settings(&self) -> Result<ServerSettingsValueObject, SettingsError> {
@@ -45,7 +51,9 @@ impl PrepareSettingsUseCase {
 
 #[async_trait]
 impl PrepareSettings for PrepareSettingsUseCase {
-    async fn execute(&self) -> Result<(ServerSettingsValueObject, AccessKeyValueObject), SettingsError> {
+    async fn execute(
+        &self,
+    ) -> Result<(ServerSettingsValueObject, AccessKeyValueObject), SettingsError> {
         let settings = self.settings().await?;
         let key = self.key().await?;
         Ok((settings, key))

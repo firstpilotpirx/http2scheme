@@ -13,7 +13,11 @@ impl SettingsInvalidError {
     /// An error naming the file, field and reason.
     #[must_use]
     pub fn new(file: &str, field: &str, reason: &str) -> Self {
-        Self { file: file.to_owned(), field: field.to_owned(), reason: reason.to_owned() }
+        Self {
+            file: file.to_owned(),
+            field: field.to_owned(),
+            reason: reason.to_owned(),
+        }
     }
 
     /// The field at fault.

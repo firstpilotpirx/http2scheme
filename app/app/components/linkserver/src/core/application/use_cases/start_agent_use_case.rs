@@ -25,7 +25,11 @@ impl StartAgentUseCase {
         repository: Arc<dyn AgentDefinitionRepository>,
         supervisor: Arc<dyn AgentSupervisorService>,
     ) -> Self {
-        Self { definition, repository, supervisor }
+        Self {
+            definition,
+            repository,
+            supervisor,
+        }
     }
 }
 

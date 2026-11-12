@@ -7,5 +7,9 @@ use crate::core::domain::agent_definition_value_object::AgentDefinitionValueObje
 pub const LABEL: &str = "io.example.agent";
 
 pub fn definition() -> AgentDefinitionValueObject {
-    AgentDefinitionValueObject::new(LABEL.to_owned(), PathBuf::from("/bin/tool"), PathBuf::from("/logs"))
+    AgentDefinitionValueObject::new(
+        LABEL.to_owned(),
+        PathBuf::from("/bin/tool"),
+        PathBuf::from("/logs"),
+    )
 }

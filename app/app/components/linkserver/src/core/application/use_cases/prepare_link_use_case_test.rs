@@ -11,7 +11,12 @@ use crate::core::domain::server_settings_value_object::ServerSettingsValueObject
 
 fn use_case() -> PrepareLinkUseCase {
     let mut settings = MockPrepareSettings::new();
-    settings.expect_execute().returning(|| Ok((ServerSettingsValueObject::defaults(), AccessKeyValueObject::from_bytes([3; 32]))));
+    settings.expect_execute().returning(|| {
+        Ok((
+            ServerSettingsValueObject::defaults(),
+            AccessKeyValueObject::from_bytes([3; 32]),
+        ))
+    });
     PrepareLinkUseCase::new(Arc::new(settings))
 }
 
@@ -26,19 +31,35 @@ async fn returns_port_key_and_link_for_an_allowed_link() {
 #[tokio::test]
 async fn refuses_a_malformed_link() {
     let error = use_case().execute("no-scheme").await.unwrap_err();
-    assert_eq!(error, PrepareLinkError::Rejected(LinkRejectedError::NoScheme));
+    assert_eq!(
+        error,
+        PrepareLinkError::Rejected(LinkRejectedError::NoScheme)
+    );
 }
 
 #[tokio::test]
 async fn refuses_a_scheme_not_allowed() {
     let error = use_case().execute("slack://x").await.unwrap_err();
-    assert_eq!(error, PrepareLinkError::Rejected(LinkRejectedError::SchemeNotAllowed { scheme: "slack".to_owned() }));
+    assert_eq!(
+        error,
+        PrepareLinkError::Rejected(LinkRejectedError::SchemeNotAllowed {
+            scheme: "slack".to_owned()
+        })
+    );
 }
 
 #[tokio::test]
 async fn passes_settings_errors_on() {
     let mut settings = MockPrepareSettings::new();
-    settings.expect_execute().returning(|| Err(SettingsError::Io { path: "/k".to_owned(), reason: "x".to_owned() }));
-    let error = PrepareLinkUseCase::new(Arc::new(settings)).execute("idea://x").await.unwrap_err();
+    settings.expect_execute().returning(|| {
+        Err(SettingsError::Io {
+            path: "/k".to_owned(),
+            reason: "x".to_owned(),
+        })
+    });
+    let error = PrepareLinkUseCase::new(Arc::new(settings))
+        .execute("idea://x")
+        .await
+        .unwrap_err();
     assert!(matches!(error, PrepareLinkError::Settings(_)));
 }
