@@ -83,9 +83,16 @@ fn list_resources(world: &mut E2eWorld) {
 fn holds_licenses(world: &mut E2eWorld, first: String, second: String) {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     for name in [first, second] {
-        assert!(world.printed.out.lines().any(|line| line == name), "{name} missing");
+        assert!(
+            world.printed.out.lines().any(|line| line == name),
+            "{name} missing"
+        );
         let bundled = std::fs::read(bundle_app().join("Contents/Resources").join(&name)).unwrap();
-        assert_eq!(bundled, std::fs::read(root.join(&name)).unwrap(), "{name} differs");
+        assert_eq!(
+            bundled,
+            std::fs::read(root.join(&name)).unwrap(),
+            "{name} differs"
+        );
     }
 }
 
