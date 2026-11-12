@@ -104,7 +104,8 @@ Slice: `app/app/components/linkserver/tests/features/slice/<capability>.feature`
 | background-service: A second install replaces the first | slice + E2E |
 | background-service: Uninstall stops and removes the agent | slice + E2E |
 | background-service: Uninstall with nothing installed is harmless | slice + E2E |
-| background-service: Stop then start | slice + E2E |
+| background-service: Stop keeps the definition | slice + E2E |
+| background-service: Start loads a stopped agent | slice + E2E |
 | background-service: Start without install gives a hint | slice + E2E |
 | background-service: A healthy setup | slice + E2E |
 | background-service: A stopped server | slice + E2E |

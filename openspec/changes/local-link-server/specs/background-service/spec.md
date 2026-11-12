@@ -44,11 +44,17 @@ The uninstall command SHALL unload the agent when it is loaded and delete its de
 
 The start command SHALL load an installed agent that is not loaded; the stop command SHALL unload a loaded agent until the next start or login. Both SHALL refuse with a hint to install when the agent is not installed.
 
-#### Scenario: Stop then start
+#### Scenario: Stop keeps the definition
 
 - **GIVEN** the agent is installed and loaded
 - **WHEN** the user stops the agent
 - **THEN** the agent is unloaded and its definition remains
+
+#### Scenario: Start loads a stopped agent
+
+- **GIVEN** the agent is installed but not loaded and the server does not answer
+- **WHEN** the user starts the agent
+- **THEN** the agent is loaded
 
 #### Scenario: Start without install gives a hint
 

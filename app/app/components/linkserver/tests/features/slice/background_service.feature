@@ -38,10 +38,14 @@ Feature: Background service
   Rule: Start and stop control an installed agent
 
     @slice
-    Scenario: Stop then start
+    Scenario: Stop keeps the definition
       Given the agent is installed and loaded
       When the user stops the agent
       Then the agent is unloaded and its definition remains
+
+    @slice
+    Scenario: Start loads a stopped agent
+      Given the agent is installed but not loaded and the server does not answer
       When the user starts the agent
       Then the agent is loaded
 
