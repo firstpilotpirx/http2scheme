@@ -56,10 +56,10 @@
 
 ## 7. App and E2E
 
-- [ ] 7.1 Red: `app/e2e/tests/features/{link_opening,link_sharing,server_settings,background_service}.feature` (every spec scenario, the capability tag, `@e2e`, `@serial` where a port is fixed), steps spawn `SUT_BIN` with a temp `HOME`, recording `open`, `launchctl` and `osascript` scripts and a free port written to the settings, and kill it in an `after` hook; against the stub `main` they fail
-- [ ] 7.2 Green: `apps/http2scheme/src/main.rs` — clap entry (`serve`, `link`, `install`, `uninstall`, `start`, `stop`, `status`, `--no-color`), reads `HOME`, `HTTP2SCHEME_OPEN_PROGRAM`, `HTTP2SCHEME_LAUNCHCTL_PROGRAM`, `HTTP2SCHEME_OSASCRIPT_PROGRAM` (every environment literal lives here, R-083), builds `LinkserverConfig`, serves with graceful stop on SIGTERM; `cargo run -- --help` lists the commands
-- [ ] 7.3 Run the E2E on the built binary (`just e2e`); every E2E scenario passes
-- [ ] 7.4 Commit (`kit ship`)
+- [x] 7.1 Red: `app/e2e/tests/features/{link_opening,link_sharing,server_settings,background_service}.feature` (every spec scenario, the capability tag, `@e2e`, `@serial` where a port is fixed), steps spawn `SUT_BIN` with a temp `HOME`, recording `open`, `launchctl` and `osascript` scripts and a free port written to the settings, and kill it in an `after` hook; against the stub `main` they fail
+- [x] 7.2 Green: `apps/http2scheme/src/main.rs` — clap entry (`serve`, `link`, `install`, `uninstall`, `start`, `stop`, `status`, `--no-color`), reads `HOME`, `HTTP2SCHEME_OPEN_PROGRAM`, `HTTP2SCHEME_LAUNCHCTL_PROGRAM`, `HTTP2SCHEME_OSASCRIPT_PROGRAM` (every environment literal lives here, R-083), builds `LinkserverConfig`, serves with graceful stop on SIGTERM; `cargo run -- --help` lists the commands
+- [x] 7.3 Run the E2E on the built binary (`just e2e`); every E2E scenario passes
+- [x] 7.4 Commit (`kit ship`)
 
 ## 8. The gate
 

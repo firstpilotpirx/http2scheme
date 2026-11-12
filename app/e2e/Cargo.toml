@@ -16,7 +16,9 @@ workspace = true
 
 [dev-dependencies]
 cucumber = { version = "=0.23.0", features = ["output-junit"] }
-tokio = { version = "=1.54.1", features = ["rt-multi-thread", "macros", "process", "time", "fs"] }
+percent-encoding = "=2.3.2"
+tempfile = "=3.27.0"
+tokio = { version = "=1.54.1", features = ["rt-multi-thread", "macros", "process", "time", "fs", "net", "io-util"] }
 
 [[test]]
 name = "cucumber_e2e"

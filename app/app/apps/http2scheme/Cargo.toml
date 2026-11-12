@@ -10,3 +10,6 @@ workspace = true
 
 [dependencies]
 linkserver.workspace = true
+clap.workspace = true
+env_logger.workspace = true
+tokio.workspace = true
