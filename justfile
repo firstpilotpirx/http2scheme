@@ -89,10 +89,18 @@ machete: _require-cargo-machete
 unsafe-count: _require-cargo-geiger
     #!/usr/bin/env bash
     set -euo pipefail
-    report="$(cargo geiger --forbid-only --manifest-path "$PWD/{{app}}/apps/http2scheme/Cargo.toml" 2>/dev/null)"
-    for name in http2scheme linkserver; do
-      grep -qE "^:\) [│├└─ ]*$name " <<<"$report" || { echo "$name does not forbid unsafe code in every entry point"; exit 1; }
-    done
+    # The geiger verdict depends only on the lock file and the entry point files: reuse it while
+    # they are unchanged (it scans every dependency's sources, about two minutes).
+    stamp="$(cat {{app}}/Cargo.lock {{app}}/apps/http2scheme/src/main.rs {{app}}/components/linkserver/src/lib.rs \
+      {{app}}/components/linkserver/tests/cli_fixture/main.rs | shasum -a 256 | cut -d' ' -f1) {{geiger_version}}"
+    cache="{{app}}/target/unsafe-count.geiger"
+    if [ "$(cat "$cache" 2>/dev/null)" != "$stamp" ]; then
+      report="$(cargo geiger --forbid-only --manifest-path "$PWD/{{app}}/apps/http2scheme/Cargo.toml" 2>/dev/null)"
+      for name in http2scheme linkserver; do
+        grep -qE "^:\) [│├└─ ]*$name " <<<"$report" || { echo "$name does not forbid unsafe code in every entry point"; exit 1; }
+      done
+      mkdir -p "$(dirname "$cache")" && echo "$stamp" >"$cache"
+    fi
     actual="$(grep -rlE 'unsafe (\{|impl)' {{app}}/components/menubar/src | sort | while IFS= read -r file; do
       printf '%s\t%s\n' "$file" "$(grep -oE 'unsafe (\{|impl)' "$file" | wc -l | tr -d ' ')"
     done)"
