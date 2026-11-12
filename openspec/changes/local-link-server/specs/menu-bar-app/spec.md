@@ -58,7 +58,7 @@ Serve Links SHALL show a check mark exactly while the server is not turned off. 
 
 ### Requirement: The Link History window lists the latest requests
 
-Link History… SHALL open the Link History window, or bring it to the front. The window SHALL list the latest 100 lines of the request log, newest first, each row showing the local time, the result and the scheme link, and SHALL read the log again each time it comes to the front. A log line it cannot read SHALL have no row. With no line in the log it SHALL say `No link has been opened yet.`; with a log it cannot read it SHALL list no row and say `The link history could not be read: <reason>`.
+Link History… SHALL open the Link History window, or bring it to the front when it is open. The window SHALL list the latest 100 lines of the request log, newest first, one row per line, each row showing the time of the request in local time, its result and its scheme link. It SHALL read the request log again each time it is brought to the front. A log line it cannot read SHALL have no row. When the log holds no line, the window SHALL say `No link has been opened yet.` instead of an empty table. When the log exists but cannot be read, the window SHALL list no row and say `The link history could not be read: <reason>`.
 
 #### Scenario: Requests are listed newest first
 
