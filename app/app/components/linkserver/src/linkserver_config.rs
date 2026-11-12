@@ -13,6 +13,7 @@ use crate::adapters::primary::agentcontrol::cli::uninstall_agent_command::Uninst
 use crate::adapters::primary::linkopening::http::axum_config::AxumConfig;
 use crate::adapters::primary::linkopening::http::open_link_handler::OpenLinkHandler;
 use crate::adapters::primary::linkopening::http::open_link_response::OpenLinkResponse;
+use crate::adapters::primary::linkreplay::inprocess::replay_link_handler::ReplayLinkHandler;
 use crate::adapters::primary::linksharing::cli::prepare_link_command::PrepareLinkCommand;
 use crate::adapters::primary::serving::cli::serve_command::{ServeCommand, ServerFactory};
 use crate::core::application::use_cases::check_agent_status_use_case::CheckAgentStatusUseCase;
@@ -20,6 +21,7 @@ use crate::core::application::use_cases::install_agent_use_case::InstallAgentUse
 use crate::core::application::use_cases::open_link_use_case::OpenLinkUseCase;
 use crate::core::application::use_cases::prepare_link_use_case::PrepareLinkUseCase;
 use crate::core::application::use_cases::prepare_settings_use_case::PrepareSettingsUseCase;
+use crate::core::application::use_cases::replay_link_use_case::ReplayLinkUseCase;
 use crate::core::application::use_cases::start_agent_use_case::StartAgentUseCase;
 use crate::core::application::use_cases::stop_agent_use_case::StopAgentUseCase;
 use crate::core::application::use_cases::uninstall_agent_use_case::UninstallAgentUseCase;
@@ -82,6 +84,16 @@ impl LinkserverConfig {
             self.setup.settings_file(),
             self.style,
         )
+    }
+
+    /// The ▶ of the menu bar app's Link History window.
+    #[must_use]
+    pub fn replay_handler(&self) -> ReplayLinkHandler {
+        ReplayLinkHandler::new(Arc::new(ReplayLinkUseCase::new(
+            self.prepare_settings(),
+            self.ports.opener.clone(),
+            self.ports.attempts.clone(),
+        )))
     }
 
     /// `serve`.

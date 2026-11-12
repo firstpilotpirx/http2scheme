@@ -4,15 +4,18 @@ use std::sync::Arc;
 
 use objc2::MainThreadMarker;
 
-use crate::adapters::primary::statusmenu::appkit::app_kit_config::AppKitConfig;
+use crate::adapters::primary::statusmenu::appkit::app_kit_config::{AppKitConfig, ready};
+use crate::adapters::primary::statusmenu::appkit::history_window_handler::HistoryWindowHandler;
 use crate::adapters::primary::statusmenu::appkit::status_menu_handler::StatusMenuHandler;
 use crate::adapters::secondary::loginitem::smappservice::sm_app_service_login_item_gateway::SmAppServiceLoginItemGateway;
 use crate::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
 use crate::core::application::exceptions::menu_action_error::MenuActionError;
+use crate::core::application::use_cases::browse_history_use_case::BrowseHistoryUseCase;
 use crate::core::application::use_cases::offer_login_item::OfferLoginItem as _;
 use crate::core::application::use_cases::offer_login_item_use_case::OfferLoginItemUseCase;
 use crate::core::application::use_cases::operate_menu_use_case::OperateMenuUseCase;
 use crate::core::domain::app_folders_value_object::AppFoldersValueObject;
+use crate::menubar_hooks::MenubarHooks;
 use crate::menubar_ports::MenubarPorts;
 use crate::menubar_setup::MenubarSetup;
 
@@ -34,11 +37,11 @@ impl MenubarConfig {
         }
     }
 
-    /// A root over the macOS adapters, whose menu reads the server's state from [`Self::server_output`].
+    /// A root over the macOS adapters that starts the server and opens links through `hooks`.
     #[must_use]
-    pub fn macos(setup: MenubarSetup) -> Self {
-        let output = ServeOutputServerStateGateway::new();
-        let ports = MenubarPorts::macos(&setup, &output);
+    pub fn macos(setup: MenubarSetup, hooks: MenubarHooks) -> Self {
+        let output = ServeOutputServerStateGateway::with_launcher(hooks.serve);
+        let ports = MenubarPorts::macos(&setup, &output, hooks.replay);
         Self {
             setup,
             ports,
@@ -50,6 +53,11 @@ impl MenubarConfig {
     #[must_use]
     pub fn server_output(&self) -> ServeOutputServerStateGateway {
         self.output.clone()
+    }
+
+    /// Starts the server through the app's launcher, as every launch does.
+    pub fn start_server(&self) {
+        ready(self.ports.switch.turn_on());
     }
 
     /// Whether `program` runs from inside an app bundle.
@@ -79,24 +87,38 @@ impl MenubarConfig {
         .await
     }
 
-    /// Puts the status item with its menu in the menu bar.
+    /// Prepares the Link History window; it shows at [`HistoryWindowHandler::show`].
     #[must_use]
-    pub fn status_menu(&self, mtm: MainThreadMarker) -> StatusMenuHandler {
+    pub fn history_window(&self, mtm: MainThreadMarker) -> HistoryWindowHandler {
+        let use_case =
+            BrowseHistoryUseCase::new(self.ports.history.clone(), self.ports.replay.clone());
+        HistoryWindowHandler::install(mtm, Arc::new(use_case))
+    }
+
+    /// Puts the status item with its menu in the menu bar; Link History… calls `show_history`.
+    #[must_use]
+    pub fn status_menu(
+        &self,
+        mtm: MainThreadMarker,
+        show_history: Box<dyn Fn()>,
+    ) -> StatusMenuHandler {
         let folders =
             AppFoldersValueObject::new(self.setup.settings_dir.clone(), self.setup.log_dir.clone());
         let use_case = OperateMenuUseCase::new(
             self.setup.version.clone(),
             folders,
-            self.ports.server.clone(),
+            self.ports.switch.clone(),
             self.ports.login_item.clone(),
             self.ports.opener.clone(),
         );
-        StatusMenuHandler::install(mtm, Arc::new(use_case))
+        StatusMenuHandler::install(mtm, Arc::new(use_case), show_history)
     }
 
     /// Shows the menu and runs the application loop until the app quits.
     pub fn run(&self, mtm: MainThreadMarker) {
-        let _menu = self.status_menu(mtm);
+        let history = std::rc::Rc::new(self.history_window(mtm));
+        let shown = std::rc::Rc::clone(&history);
+        let _menu = self.status_menu(mtm, Box::new(move || shown.show()));
         AppKitConfig::run(mtm);
     }
 }

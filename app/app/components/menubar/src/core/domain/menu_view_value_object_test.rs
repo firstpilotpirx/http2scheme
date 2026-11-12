@@ -11,6 +11,14 @@ fn the_view_holds_the_title_the_status_and_the_login_item() {
     assert_eq!(view.login_title(), "Start at Login");
     assert!(view.login_checked());
     assert!(view.login_enabled());
+    assert!(view.serve_checked());
+}
+
+#[test]
+fn a_server_turned_off_has_no_serve_check_mark() {
+    let view = MenuViewValueObject::new("0.1.0", &ServerStateEnum::Off, LoginItemStateEnum::On);
+    assert_eq!(view.status_line(), "Off");
+    assert!(!view.serve_checked());
 }
 
 #[test]

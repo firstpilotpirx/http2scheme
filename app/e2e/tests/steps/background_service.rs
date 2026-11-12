@@ -53,8 +53,18 @@ async fn stopped(world: &mut E2eWorld) {
     world.home.unload();
 }
 
-#[when(regex = r"^the user (installs|uninstalls|starts|stops) the agent(?: again)?$")]
-async fn user_controls(world: &mut E2eWorld, verb: String) {
+/// The program an earlier version installed from, which a second install replaces.
+const OLD_PROGRAM: &str = "/old/http2scheme";
+
+#[when(regex = r"^the user (installs|uninstalls|starts|stops) the agent( again)?$")]
+async fn user_controls(world: &mut E2eWorld, verb: String, again: String) {
+    if !again.is_empty() {
+        let text = fs::read_to_string(world.home.agent_file()).unwrap();
+        let program = fs::canonicalize(sut_bin()).unwrap();
+        let old = text.replace(&program.display().to_string(), OLD_PROGRAM);
+        assert_ne!(old, text, "the first install names the current program");
+        fs::write(world.home.agent_file(), old).unwrap();
+    }
     let command = match verb.as_str() {
         "installs" => "install",
         "uninstalls" => "uninstall",
@@ -118,6 +128,7 @@ fn one_definition(world: &mut E2eWorld) {
         text.contains(&format!("<string>{}</string>", program.display())),
         "{text}"
     );
+    assert!(!text.contains(OLD_PROGRAM), "{text}");
 }
 
 #[then(regex = r"^the agent is unloaded and its definition (is gone|remains)$")]

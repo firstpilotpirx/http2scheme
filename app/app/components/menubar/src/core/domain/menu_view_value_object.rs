@@ -8,6 +8,7 @@ use super::server_state_enum::ServerStateEnum;
 pub struct MenuViewValueObject {
     title: String,
     status_line: String,
+    serving: bool,
     login: LoginItemStateEnum,
 }
 
@@ -18,6 +19,7 @@ impl MenuViewValueObject {
         Self {
             title: format!("http2scheme {version}"),
             status_line: server.status_line(),
+            serving: server.is_serving(),
             login,
         }
     }
@@ -32,6 +34,12 @@ impl MenuViewValueObject {
     #[must_use]
     pub fn status_line(&self) -> &str {
         &self.status_line
+    }
+
+    /// Whether Serve Links shows a check mark.
+    #[must_use]
+    pub const fn serve_checked(&self) -> bool {
+        self.serving
     }
 
     /// The words of Start at Login.

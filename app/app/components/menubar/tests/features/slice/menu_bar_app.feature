@@ -18,6 +18,66 @@ Feature: Menu bar app
       When the user opens the menu
       Then the status line reads "Stopped: port 7777 is taken"
 
+  Rule: Serve Links turns the server off and on
+
+    @slice
+    Scenario: Turning the server off
+      Given the app runs and its server answers
+      When the user chooses Serve Links
+      Then the server no longer answers
+      And the status line reads "Off"
+      And Serve Links shows no check mark
+
+    @slice
+    Scenario: Turning the server on again
+      Given the user turned the server off
+      When the user chooses Serve Links
+      Then the server answers again
+      And Serve Links shows a check mark
+
+  Rule: The Link History window lists the latest requests
+
+    @slice
+    Scenario: Requests are listed newest first
+      Given the request log holds an opened IntelliJ link and, after it, a GoLand link with the wrong key
+      When the user opens the Link History window
+      Then the first row shows the GoLand link with the result "wrong key"
+      And the second row shows the IntelliJ link with the result "opened"
+
+    @slice
+    Scenario: Only the latest 100 requests are listed
+      Given the request log holds 105 requests
+      When the user opens the Link History window
+      Then it lists 100 rows, the latest 100
+
+    @slice
+    Scenario: An unreadable log line has no row
+      Given the request log holds two requests and a damaged line between them
+      When the user opens the Link History window
+      Then it lists the two requests
+
+    @slice
+    Scenario: No request yet
+      Given the request log does not exist
+      When the user opens the Link History window
+      Then the window says no link has been opened yet
+
+  Rule: A row's link opens again
+
+    @slice
+    Scenario: Opening an IntelliJ link again
+      Given the Link History window lists an opened IntelliJ link
+      When the user chooses ▶ on its row
+      Then the Mac opens that IntelliJ link
+      And the first row shows that IntelliJ link with the result "opened"
+
+    @slice
+    Scenario: A link whose scheme is not allowed stays closed
+      Given the Link History window lists a Slack link with the result "scheme not allowed"
+      When the user chooses ▶ on its row
+      Then the Mac opens nothing
+      And the first row shows that Slack link with the result "scheme not allowed"
+
   Rule: Start at Login follows the system's login items
 
     @slice

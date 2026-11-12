@@ -9,6 +9,8 @@ pub enum ServerStateEnum {
     Running(String),
     /// Failed to start or stopped, with the reason `serve` printed.
     Stopped(String),
+    /// Turned off by the user with Serve Links.
+    Off,
 }
 
 impl ServerStateEnum {
@@ -19,7 +21,14 @@ impl ServerStateEnum {
             Self::Starting => "Starting…".to_owned(),
             Self::Running(address) => format!("Running on {address}"),
             Self::Stopped(reason) => format!("Stopped: {reason}"),
+            Self::Off => "Off".to_owned(),
         }
+    }
+
+    /// Whether Serve Links shows a check mark: the user has not turned the server off.
+    #[must_use]
+    pub const fn is_serving(&self) -> bool {
+        !matches!(self, Self::Off)
     }
 }
 

@@ -11,6 +11,8 @@ pub mod prepare_link;
 pub mod prepare_link_use_case;
 pub mod prepare_settings;
 pub mod prepare_settings_use_case;
+pub mod replay_link;
+pub mod replay_link_use_case;
 pub mod start_agent;
 pub mod start_agent_use_case;
 pub mod stop_agent;

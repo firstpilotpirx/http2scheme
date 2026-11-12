@@ -18,10 +18,13 @@ fn setup() -> MenubarSetup {
 
 #[tokio::test]
 async fn the_macos_ports_read_the_server_output_and_no_bundle() {
-    let ports = MenubarPorts::macos(&setup(), &ServeOutputServerStateGateway::new());
+    let replay = std::sync::Arc::new(|link: &str| format!("opened {link}"));
+    let ports = MenubarPorts::macos(&setup(), &ServeOutputServerStateGateway::new(), replay);
     assert_eq!(ports.server.current().await, ServerStateEnum::Starting);
     assert_eq!(
         ports.login_item.status().await,
         LoginItemStateEnum::Unavailable
     );
+    assert_eq!(ports.history.latest(100).await, Ok(Vec::new()));
+    assert_eq!(ports.replay.replay("idea://x").await, "opened idea://x");
 }

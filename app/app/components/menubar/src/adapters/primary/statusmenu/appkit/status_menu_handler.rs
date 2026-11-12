@@ -1,13 +1,10 @@
-//! The status item in the menu bar and its menu: the title line, the status line, Start at
-//! Login, Open Settings Folder, Open Logs Folder and Quit (design D14).
+//! The status item in the menu bar and its menu: the title line, the status line, Serve Links,
+//! Link History…, Start at Login, Open Settings Folder, Open Logs Folder and Quit (design D14, D18).
 
 #![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]
 
 use std::cell::OnceCell;
-use std::future::Future;
-use std::pin::pin;
 use std::sync::Arc;
-use std::task::{Context, Poll, Waker};
 
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject, Sel};
@@ -18,6 +15,7 @@ use objc2_app_kit::{
 };
 use objc2_foundation::{NSObject, NSObjectProtocol, NSString};
 
+use super::app_kit_config::ready;
 use crate::core::application::use_cases::operate_menu::OperateMenu;
 use crate::core::domain::app_folder_enum::AppFolderEnum;
 use crate::core::domain::menu_command_enum::MenuCommandEnum;
@@ -27,23 +25,13 @@ const SYMBOL: &str = "link";
 const QUIT: &str = "Quit http2scheme";
 const TITLE: isize = 0;
 const STATUS: isize = 1;
-const LOGIN: isize = 3;
-
-/// Drives a future whose ports never wait: the menu runs outside any tokio runtime.
-fn ready<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(output) = future.as_mut().poll(&mut context) {
-            return output;
-        }
-        std::thread::yield_now();
-    }
-}
+const SERVE: isize = 2;
+const LOGIN: isize = 5;
 
 /// The ivars of the target of every menu item.
 struct TargetIvars {
     use_case: Arc<dyn OperateMenu>,
+    show_history: Box<dyn Fn()>,
     menu: OnceCell<Retained<NSMenu>>,
 }
 
@@ -64,6 +52,16 @@ define_class!(
     }
 
     impl MenuTarget {
+        #[unsafe(method(toggleServer:))]
+        fn toggle_server(&self, _sender: Option<&AnyObject>) {
+            self.chosen(MenuCommandEnum::ToggleServer);
+        }
+
+        #[unsafe(method(showHistory:))]
+        fn show_history(&self, _sender: Option<&AnyObject>) {
+            (self.ivars().show_history)();
+        }
+
         #[unsafe(method(toggleLogin:))]
         fn toggle_login(&self, _sender: Option<&AnyObject>) {
             self.chosen(MenuCommandEnum::ToggleLoginItem);
@@ -87,9 +85,14 @@ define_class!(
 );
 
 impl MenuTarget {
-    fn new(mtm: MainThreadMarker, use_case: Arc<dyn OperateMenu>) -> Retained<Self> {
+    fn new(
+        mtm: MainThreadMarker,
+        use_case: Arc<dyn OperateMenu>,
+        show_history: Box<dyn Fn()>,
+    ) -> Retained<Self> {
         let this = Self::alloc(mtm).set_ivars(TargetIvars {
             use_case,
+            show_history,
             menu: OnceCell::new(),
         });
         // SAFETY: `NSObject`'s `init` on a freshly allocated object.
@@ -123,13 +126,18 @@ fn show(menu: &NSMenu, view: &MenuViewValueObject) {
     title(TITLE, view.title());
     title(STATUS, view.status_line());
     title(LOGIN, view.login_title());
+    let check = |index, checked: bool| {
+        if let Some(item) = menu.itemAtIndex(index) {
+            item.setState(if checked {
+                NSControlStateValueOn
+            } else {
+                NSControlStateValueOff
+            });
+        }
+    };
+    check(SERVE, view.serve_checked());
+    check(LOGIN, view.login_checked());
     if let Some(item) = menu.itemAtIndex(LOGIN) {
-        let state = if view.login_checked() {
-            NSControlStateValueOn
-        } else {
-            NSControlStateValueOff
-        };
-        item.setState(state);
         item.setEnabled(view.login_enabled());
     }
 }
@@ -179,16 +187,23 @@ pub struct StatusMenuHandler {
 }
 
 impl StatusMenuHandler {
-    /// Puts the link icon with its menu in the menu bar; the menu reads `use_case` each time it opens.
+    /// Puts the link icon with its menu in the menu bar; the menu reads `use_case` each time it
+    /// opens, and Link History… calls `show_history`.
     #[must_use]
-    pub fn install(mtm: MainThreadMarker, use_case: Arc<dyn OperateMenu>) -> Self {
-        let target = MenuTarget::new(mtm, use_case);
+    pub fn install(
+        mtm: MainThreadMarker,
+        use_case: Arc<dyn OperateMenu>,
+        show_history: Box<dyn Fn()>,
+    ) -> Self {
+        let target = MenuTarget::new(mtm, use_case, show_history);
         let menu = NSMenu::new(mtm);
         menu.setAutoenablesItems(false);
         menu.setDelegate(Some(ProtocolObject::from_ref(&*target)));
         let entries = [
             item(mtm, &target, "http2scheme", None, ""),
             item(mtm, &target, "", None, ""),
+            item(mtm, &target, "Serve Links", Some(sel!(toggleServer:)), ""),
+            item(mtm, &target, "Link History…", Some(sel!(showHistory:)), ""),
             NSMenuItem::separatorItem(mtm),
             item(mtm, &target, "Start at Login", Some(sel!(toggleLogin:)), ""),
             item(

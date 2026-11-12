@@ -1,6 +1,10 @@
+use std::io::Write as _;
 use std::path::PathBuf;
 
+use std::sync::Arc;
+
 use super::MenubarConfig;
+use crate::menubar_hooks::MenubarHooks;
 use crate::menubar_setup::MenubarSetup;
 
 fn config(program: &str, settings: PathBuf) -> MenubarConfig {
@@ -11,7 +15,14 @@ fn config(program: &str, settings: PathBuf) -> MenubarConfig {
         program: PathBuf::from(program),
         open_program: PathBuf::from("open"),
     };
-    MenubarConfig::macos(setup)
+    let hooks = MenubarHooks {
+        serve: Arc::new(|_, mut out, _| {
+            out.write_all(b"listening on http://127.0.0.1:7777\n")
+                .unwrap();
+        }),
+        replay: Arc::new(|_| "opened".to_owned()),
+    };
+    MenubarConfig::macos(setup, hooks)
 }
 
 #[tokio::test]
@@ -42,13 +53,20 @@ fn only_a_program_inside_an_app_bundle_is_a_bundle_program() {
 
 #[tokio::test]
 async fn the_macos_menu_reads_the_server_output() {
-    use std::io::Write as _;
     let config = config("/usr/local/bin/http2scheme", PathBuf::from("settings"));
     config
         .server_output()
         .out()
         .write_all(b"listening on http://127.0.0.1:7777\n")
         .unwrap();
+    let state = config.ports.server.current().await;
+    assert_eq!(state.status_line(), "Running on http://127.0.0.1:7777");
+}
+
+#[tokio::test]
+async fn starting_the_server_runs_the_app_launcher() {
+    let config = config("/usr/local/bin/http2scheme", PathBuf::from("settings"));
+    config.start_server();
     let state = config.ports.server.current().await;
     assert_eq!(state.status_line(), "Running on http://127.0.0.1:7777");
 }

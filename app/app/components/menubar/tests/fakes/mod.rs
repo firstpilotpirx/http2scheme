@@ -2,6 +2,12 @@
 
 use std::sync::Mutex;
 
+mod fake_replayer;
+mod fake_server;
+
+pub use fake_replayer::FakeReplayer;
+pub use fake_server::FakeServer;
+
 use async_trait::async_trait;
 use menubar::core::application::exceptions::menu_action_error::MenuActionError;
 use menubar::core::application::services::login_item_service::LoginItemService;

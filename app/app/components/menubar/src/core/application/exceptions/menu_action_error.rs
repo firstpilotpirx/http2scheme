@@ -14,6 +14,14 @@ pub enum MenuActionError {
         /// What went wrong.
         reason: String,
     },
+    /// The request log cannot be read.
+    #[error("{path}: {reason}")]
+    History {
+        /// The request log.
+        path: String,
+        /// What went wrong.
+        reason: String,
+    },
     /// The first-launch record cannot be read or written.
     #[error("{path}: {reason}")]
     FirstLaunch {

@@ -51,8 +51,15 @@ async fn stopped(world: &mut LinkserverWorld) {
     world.fakes.health.set_answering(false);
 }
 
-#[when(regex = r"^the user installs the agent(?: again)?$")]
-async fn user_installs(world: &mut LinkserverWorld) {
+/// The program an earlier version installed from, which a second install replaces.
+const OLD_PROGRAM: &str = "/old/http2scheme";
+
+#[when(regex = r"^the user installs the agent( again)?$")]
+async fn user_installs(world: &mut LinkserverWorld, again: String) {
+    if !again.is_empty() {
+        let text = fs::read_to_string(definition(world)).unwrap();
+        fs::write(definition(world), text.replace(PROGRAM, OLD_PROGRAM)).unwrap();
+    }
     install(world).await;
 }
 
@@ -119,6 +126,7 @@ fn one_definition(world: &mut LinkserverWorld) {
         text.contains(&format!("<string>{PROGRAM}</string>")),
         "{text}"
     );
+    assert!(!text.contains(OLD_PROGRAM), "{text}");
 }
 
 #[then(regex = r"^the agent is unloaded and its definition is gone$")]

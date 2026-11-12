@@ -8,4 +8,8 @@ fn an_open_folder_command_names_its_folder() {
         MenuCommandEnum::OpenFolder(AppFolderEnum::Logs)
     );
     assert_ne!(MenuCommandEnum::Show, MenuCommandEnum::ToggleLoginItem);
+    assert_ne!(
+        MenuCommandEnum::ToggleServer,
+        MenuCommandEnum::ToggleLoginItem
+    );
 }

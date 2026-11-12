@@ -7,6 +7,7 @@ use std::io::IsTerminal as _;
 use std::os::unix::fs::MetadataExt as _;
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::sync::Arc;
 
 use clap::{CommandFactory as _, Parser, Subcommand};
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
@@ -14,6 +15,7 @@ use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
 use linkserver::linkserver_setup::LinkserverSetup;
 use menubar::menubar_config::MenubarConfig;
+use menubar::menubar_hooks::MenubarHooks;
 use menubar::menubar_setup::MenubarSetup;
 use tokio::runtime::Runtime;
 
@@ -112,35 +114,44 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     }
 }
 
-fn menubar(setup: &LinkserverSetup) -> MenubarConfig {
-    MenubarConfig::macos(MenubarSetup {
-        version: setup.version.clone(),
-        settings_dir: setup.settings_dir.clone(),
-        log_dir: setup.log_dir.clone(),
-        program: setup.program.clone(),
-        open_program: setup.open_program.clone(),
-    })
+fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -> MenubarConfig {
+    let root = Arc::new(root);
+    let replayer = root.replay_handler();
+    let handle = runtime.handle().clone();
+    let replay_handle = handle.clone();
+    let hooks = MenubarHooks {
+        serve: Arc::new(move |shutdown, mut out, mut err| {
+            let root = Arc::clone(&root);
+            handle
+                .spawn(async move { root.serve_command().run(shutdown, &mut out, &mut err).await });
+        }),
+        replay: Arc::new(move |link| replay_handle.block_on(replayer.replay(link))),
+    };
+    MenubarConfig::macos(
+        MenubarSetup {
+            version: setup.version.clone(),
+            settings_dir: setup.settings_dir.clone(),
+            log_dir: setup.log_dir.clone(),
+            program: setup.program.clone(),
+            open_program: setup.open_program.clone(),
+        },
+        hooks,
+    )
 }
 
-fn app(runtime: &Runtime, setup: LinkserverSetup) -> ExitCode {
+fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
     let Some(mtm) = MenubarConfig::main_thread() else {
         eprintln!("the menu bar app runs only on the main thread");
         return ExitCode::from(1);
     };
-    let menubar = menubar(&setup);
-    let output = menubar.server_output();
-    let ports = LinkserverPorts::macos(&setup);
+    let ports = LinkserverPorts::macos(setup);
     let root = LinkserverConfig::new(
-        setup,
+        setup.clone(),
         ports,
         TerminalStyleConfig::detect(true, false, |_| None),
     );
-    runtime.spawn(async move {
-        let (mut out, mut err) = (output.out(), output.err());
-        root.serve_command()
-            .run(std::future::pending(), &mut out, &mut err)
-            .await
-    });
+    let menubar = menubar(runtime, setup, root);
+    menubar.start_server();
     runtime.spawn(async {
         stopped().await;
         std::process::exit(0);
@@ -179,7 +190,7 @@ fn main() -> ExitCode {
             let root = LinkserverConfig::new(setup, ports, style);
             ExitCode::from(runtime.block_on(run(command, root)))
         }
-        None if MenubarConfig::is_bundle_program(&setup.program) => app(&runtime, setup),
+        None if MenubarConfig::is_bundle_program(&setup.program) => app(&runtime, &setup),
         None => {
             let _ = Cli::command().print_help();
             ExitCode::from(2)

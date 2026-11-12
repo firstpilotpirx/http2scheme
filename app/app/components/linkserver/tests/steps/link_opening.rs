@@ -110,7 +110,9 @@ fn server_runs(world: &mut LinkserverWorld) {
 
 #[given(regex = r"^the server runs with tab closing on and the browser refuses to close tabs$")]
 fn closer_refuses(world: &mut LinkserverWorld) {
+    world.close_tab = true;
     world.fakes.closer = Arc::new(FakeCloser::failing());
+    world.close_must_be_tried = true;
 }
 
 #[given(regex = r"^the settings turn tab closing off$")]
@@ -232,6 +234,9 @@ fn shows_page(world: &mut LinkserverWorld, title: String) {
     };
     assert_eq!(world.answer.status, status, "{}", world.answer.body);
     assert!(world.answer.body.contains(&title), "{}", world.answer.body);
+    if world.close_must_be_tried {
+        assert_eq!(world.fakes.closer.ports(), [world.port.unwrap()]);
+    }
 }
 
 #[then(regex = r"^the server asks the browsers to close the tabs that show its open address$")]

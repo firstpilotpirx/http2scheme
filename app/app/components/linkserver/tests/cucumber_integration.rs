@@ -22,6 +22,8 @@ pub struct LinkserverWorld {
     pub allowed: Vec<String>,
     /// Whether the settings close the tab.
     pub close_tab: bool,
+    /// Whether the scenario must see one tab close tried.
+    pub close_must_be_tried: bool,
     /// The fake secondary adapters.
     pub fakes: Fakes,
     /// The port of the running server.
@@ -47,6 +49,7 @@ impl LinkserverWorld {
         Self {
             allowed: vec!["idea".to_owned(), "goland".to_owned()],
             close_tab: true,
+            close_must_be_tried: false,
             fakes: Fakes::default(),
             port: None,
             link: None,

@@ -14,4 +14,9 @@ async fn each_error_names_what_failed() {
         reason: "denied".to_owned(),
     };
     assert_eq!(record.to_string(), "/x/login-item-offered: denied");
+    let history = MenuActionError::History {
+        path: "/x/requests.log".to_owned(),
+        reason: "denied".to_owned(),
+    };
+    assert_eq!(history.to_string(), "/x/requests.log: denied");
 }

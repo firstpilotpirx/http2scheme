@@ -3,5 +3,6 @@
 pub mod adapters;
 pub mod core;
 pub mod menubar_config;
+pub mod menubar_hooks;
 pub mod menubar_ports;
 pub mod menubar_setup;

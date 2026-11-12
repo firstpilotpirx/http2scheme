@@ -7,6 +7,8 @@ use super::app_folder_enum::AppFolderEnum;
 pub enum MenuCommandEnum {
     /// The menu opens: show the current state.
     Show,
+    /// Serve Links was chosen.
+    ToggleServer,
     /// Start at Login was chosen.
     ToggleLoginItem,
     /// An Open … Folder item was chosen.

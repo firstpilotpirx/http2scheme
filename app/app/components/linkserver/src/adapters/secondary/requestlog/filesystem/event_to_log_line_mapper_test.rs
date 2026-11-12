@@ -42,3 +42,16 @@ fn a_line_has_time_result_and_link() {
         "1970-01-01T00:00:00Z\tscheme not allowed\tslack://x"
     );
 }
+
+#[test]
+fn an_unreadable_link_line_holds_its_reason() {
+    let event = LinkOpenAttemptedDomainEvent::new(
+        UNIX_EPOCH,
+        LinkRejectedError::Missing.to_string(),
+        OpenOutcomeEnum::Rejected(LinkRejectedError::Missing),
+    );
+    assert_eq!(
+        to_line(&event),
+        "1970-01-01T00:00:00Z\tmalformed link\tthe link is missing"
+    );
+}

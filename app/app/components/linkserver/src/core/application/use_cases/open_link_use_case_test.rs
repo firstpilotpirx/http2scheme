@@ -116,7 +116,15 @@ async fn a_missing_link_is_rejected() {
         outcome,
         OpenOutcomeEnum::Rejected(LinkRejectedError::Missing)
     );
-    assert_eq!(events.lock().unwrap()[0].link_text(), "");
+    assert_eq!(events.lock().unwrap()[0].link_text(), "the link is missing");
+}
+
+#[tokio::test]
+async fn an_empty_link_logs_its_reason() {
+    let (use_case, events) = Fixture::new().build();
+    let outcome = use_case.execute(command(Some(right_key()), "")).await;
+    assert_eq!(outcome, OpenOutcomeEnum::Rejected(LinkRejectedError::Empty));
+    assert_eq!(events.lock().unwrap()[0].link_text(), "the link is empty");
 }
 
 #[tokio::test]

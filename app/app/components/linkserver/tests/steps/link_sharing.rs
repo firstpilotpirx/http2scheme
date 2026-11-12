@@ -74,12 +74,17 @@ fn prints_open_link(world: &mut LinkserverWorld) {
 }
 
 #[then(regex = r"^following that link opens exactly that IntelliJ link$")]
-fn link_carries_scheme_link(world: &mut LinkserverWorld) {
-    assert_eq!(
-        parameter(&printed(world), "url"),
-        world.link.clone().unwrap()
-    );
-    assert_eq!(parameter(&printed(world), "key"), key(world));
+async fn link_carries_scheme_link(world: &mut LinkserverWorld) {
+    let link = printed(world);
+    let path = &link["http://127.0.0.1:7777".len()..];
+    let port = free_port();
+    write_settings(world, port, &["idea"]);
+    serve_in_background(world, port).await;
+    let response = reqwest::get(format!("http://127.0.0.1:{port}{path}"))
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), 200);
+    assert_eq!(world.fakes.opener.links(), [world.link.clone().unwrap()]);
 }
 
 #[then(regex = r"^the printed link holds only printable ASCII characters$")]

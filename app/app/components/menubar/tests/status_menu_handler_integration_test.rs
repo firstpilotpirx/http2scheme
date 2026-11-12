@@ -5,6 +5,8 @@
     reason = "test helpers fail loudly, like the tests"
 )]
 
+use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -50,12 +52,14 @@ fn row(title: &str, enabled: bool, checked: bool) -> (String, bool, bool) {
 
 fn the_menu_reads_in_order() {
     let mtm = AppKitConfig::main_thread().unwrap();
-    let handler = StatusMenuHandler::install(mtm, Arc::new(FakeMenu::default()));
+    let handler = StatusMenuHandler::install(mtm, Arc::new(FakeMenu::default()), Box::new(|| {}));
     assert_eq!(
         handler.items(),
         [
             row("http2scheme 0.1.0", false, false),
             row("Running on http://127.0.0.1:7777", false, false),
+            row("Serve Links", true, true),
+            row("Link History…", true, false),
             row("-", false, false),
             row("Start at Login", true, false),
             row("Open Settings Folder", true, false),
@@ -69,8 +73,16 @@ fn the_menu_reads_in_order() {
 fn choosing_an_item_runs_its_command() {
     let mtm = AppKitConfig::main_thread().unwrap();
     let fake = Arc::new(FakeMenu::default());
-    let handler = StatusMenuHandler::install(mtm, fake.clone());
+    let shown = Rc::new(Cell::new(0));
+    let count = Rc::clone(&shown);
+    let handler = StatusMenuHandler::install(
+        mtm,
+        fake.clone(),
+        Box::new(move || count.set(count.get() + 1)),
+    );
     handler.choose("Start at Login");
+    handler.choose("Serve Links");
+    handler.choose("Link History…");
     handler.choose("Open Logs Folder");
     let commands = fake.commands.lock().unwrap().clone();
     assert!(
@@ -84,7 +96,12 @@ fn choosing_an_item_runs_its_command() {
         "{commands:?}"
     );
     assert!(
-        handler.items()[3].2,
+        commands.contains(&MenuCommandEnum::ToggleServer),
+        "{commands:?}"
+    );
+    assert_eq!(shown.get(), 1, "Link History… shows the window");
+    assert!(
+        handler.items()[5].2,
         "Start at Login is checked after one toggle"
     );
 }

@@ -12,7 +12,8 @@ mod support;
 use std::sync::Arc;
 
 use cucumber::World as _;
-use fakes::FakeLoginItem;
+use fakes::{FakeLoginItem, FakeReplayer, FakeServer};
+use menubar::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
 use menubar::core::domain::login_item_state_enum::LoginItemStateEnum;
 use support::RecordingProgram;
 
@@ -25,11 +26,19 @@ pub struct MenubarWorld {
     /// The recording `open` program.
     pub open: RecordingProgram,
     /// What the server printed.
-    pub output: menubar::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway,
+    pub output: ServeOutputServerStateGateway,
+    /// The server the app's launcher starts.
+    pub server: FakeServer,
+    /// The app's replayer.
+    pub replayer: FakeReplayer,
     /// The fake system login item.
     pub login_item: Arc<FakeLoginItem>,
     /// The running program.
     pub program: String,
+    /// The Link History window as it read last: `[time, result, link]`.
+    pub rows: Vec<[String; 3]>,
+    /// The line the Link History window showed in place of rows.
+    pub note: Option<String>,
     /// The menu as it read last: `(title, enabled, checked)`.
     pub items: Vec<(String, bool, bool)>,
 }
@@ -38,10 +47,16 @@ impl MenubarWorld {
     fn new() -> Self {
         let home = tempfile::tempdir().unwrap();
         let open = RecordingProgram::new(home.path(), "open", 0);
+        let server = FakeServer::default();
+        let replayer = FakeReplayer::new(home.path().join("logs/requests.log"));
         Self {
+            output: ServeOutputServerStateGateway::with_launcher(server.launcher(7777)),
+            server,
+            replayer,
+            rows: Vec::new(),
+            note: None,
             home,
             open,
-            output: menubar::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway::new(),
             login_item: Arc::new(FakeLoginItem::new(LoginItemStateEnum::Off)),
             program: "/Applications/http2scheme.app/Contents/MacOS/http2scheme".to_owned(),
             items: Vec::new(),
