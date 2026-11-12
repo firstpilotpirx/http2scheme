@@ -6,6 +6,7 @@ use objc2::MainThreadMarker;
 
 use crate::adapters::primary::statusmenu::appkit::app_kit_config::AppKitConfig;
 use crate::adapters::primary::statusmenu::appkit::status_menu_handler::StatusMenuHandler;
+use crate::adapters::secondary::loginitem::smappservice::sm_app_service_login_item_gateway::SmAppServiceLoginItemGateway;
 use crate::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
 use crate::core::application::exceptions::menu_action_error::MenuActionError;
 use crate::core::application::use_cases::offer_login_item::OfferLoginItem as _;
@@ -19,19 +20,42 @@ use crate::menubar_setup::MenubarSetup;
 pub struct MenubarConfig {
     setup: MenubarSetup,
     ports: MenubarPorts,
+    output: ServeOutputServerStateGateway,
 }
 
 impl MenubarConfig {
     /// A root over the setup and the ports.
     #[must_use]
-    pub const fn new(setup: MenubarSetup, ports: MenubarPorts) -> Self {
-        Self { setup, ports }
+    pub fn new(setup: MenubarSetup, ports: MenubarPorts) -> Self {
+        Self {
+            setup,
+            ports,
+            output: ServeOutputServerStateGateway::new(),
+        }
     }
 
-    /// The writers the server prints to; the menu reads the server's state from them.
+    /// A root over the macOS adapters, whose menu reads the server's state from [`Self::server_output`].
     #[must_use]
-    pub fn server_output() -> ServeOutputServerStateGateway {
-        ServeOutputServerStateGateway::new()
+    pub fn macos(setup: MenubarSetup) -> Self {
+        let output = ServeOutputServerStateGateway::new();
+        let ports = MenubarPorts::macos(&setup, &output);
+        Self {
+            setup,
+            ports,
+            output,
+        }
+    }
+
+    /// The writers the server prints to: `out()` for its output and `err()` for its errors.
+    #[must_use]
+    pub fn server_output(&self) -> ServeOutputServerStateGateway {
+        self.output.clone()
+    }
+
+    /// Whether `program` runs from inside an app bundle.
+    #[must_use]
+    pub fn is_bundle_program(program: &std::path::Path) -> bool {
+        SmAppServiceLoginItemGateway::is_bundle_program(program)
     }
 
     /// The main-thread marker, when called on the main thread.

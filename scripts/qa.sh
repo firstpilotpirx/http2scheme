@@ -2,7 +2,7 @@
 # The gate: every check of the repository, in the R-091 order, across both workspaces.
 set -uo pipefail
 
-STAGES="fmt lint check complexity machete unsafe-count modules typos recipes dup deny arch unit integration arch-tests e2e build coverage"
+STAGES="fmt lint check complexity machete unsafe-count modules typos recipes dup deny arch unit integration arch-tests e2e build bundle coverage"
 
 usage() {
   cat <<'USAGE'
@@ -21,7 +21,7 @@ Options:
   --help           show this help
 
 Stages: fmt lint check complexity machete unsafe-count modules typos recipes
-        dup deny arch unit integration arch-tests e2e build coverage
+        dup deny arch unit integration arch-tests e2e build bundle coverage
 USAGE
 }
 
@@ -53,6 +53,7 @@ cd "$(dirname "$0")/.." || exit 2
 recipe() {
   case "$1" in
     check) echo typecheck ;;
+    bundle) echo bundle-check ;;
     *) echo "$1" ;;
   esac
 }

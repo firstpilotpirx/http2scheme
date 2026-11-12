@@ -33,7 +33,7 @@ for verdict in OK FAIL WARN; do
   fi
 done
 
-order="fmt lint check complexity machete unsafe-count modules typos recipes dup deny arch unit integration arch-tests e2e build coverage"
+order="fmt lint check complexity machete unsafe-count modules typos recipes dup deny arch unit integration arch-tests e2e build bundle coverage"
 stages="$(sed -n 's/^STAGES="\(.*\)"$/\1/p' "$QA" 2>/dev/null)"
 [ "$stages" = "$order" ] || fail R-091 "scripts/qa.sh runs \"$stages\", not \"$order\""
 # R-121: one runner, one stage at a time; E2E runs alone after every test stage.

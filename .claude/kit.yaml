@@ -1,7 +1,7 @@
 # kit config (agent-kit README § Project config).
 version_file: app/app/Cargo.toml
 checks:
-  build_inputs: ["app/**", "scripts/**", "tests/gate_fixtures/**", "metrics/**", "justfile", "clippy.toml", "deny.toml", "rust-toolchain.toml", ".jscpd.json", "_typos.toml"]
+  build_inputs: ["app/**", "scripts/**", "tests/gate_fixtures/**", "metrics/**", "docs/**", "justfile", "clippy.toml", "deny.toml", "rust-toolchain.toml", ".jscpd.json", "_typos.toml"]
   after_edit: just test
   after_group: just test
   before_merge: just check
@@ -9,6 +9,7 @@ manual_run:
   link-opening: ["app/app/components/linkserver/src/adapters/secondary/linkopening/**"]
   browser-tabs: ["app/app/components/linkserver/src/adapters/secondary/browsertabs/**"]
   agent-control: ["app/app/components/linkserver/src/adapters/secondary/agentcontrol/**"]
+  menu-bar-app: ["app/app/components/menubar/src/adapters/**", "app/app/apps/http2scheme/src/**", "app/packaging/**"]
 release:
   command: just release
 run:

@@ -55,7 +55,7 @@ R-063	check	tests
 R-064	check	features
 R-065	check	features
 R-066	n/a	not applicable: no documentation set until the documentation change (docs/ holds only ADRs)
-R-067	check	layers,e2e
+R-067	check	layers,e2e,bundle
 R-068	check	tests
 R-069	n/a	not applicable: the project runs on no database or other production engine
 R-070	n/a	not applicable: a Java-only rule; the Rust architecture rules are scripts in their own arch stage

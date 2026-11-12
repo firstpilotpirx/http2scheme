@@ -53,7 +53,7 @@ integration:
 # Build the release binary and run the E2E scenarios against it.
 e2e:
     cargo build --release --manifest-path {{app}}/Cargo.toml -p http2scheme
-    SUT_BIN="$PWD/{{app}}/target/release/http2scheme" cargo test --manifest-path {{e2e}}/Cargo.toml --test cucumber_e2e -- --tags "@e2e and not @wip"
+    SUT_BIN="$PWD/{{app}}/target/release/http2scheme" cargo test --manifest-path {{e2e}}/Cargo.toml --test cucumber_e2e -- --tags "@e2e and not @wip and not @bundle"
 
 # The release build.
 build:
@@ -85,7 +85,7 @@ machete: _require-cargo-machete
 
 # The binary and linkserver forbid unsafe code in every entry point; menubar keeps its unsafe
 # blocks and impls per file at the counts in metrics/unsafe.tsv (R-144, ADR-001).
-# The E2E crate has only test targets, which cargo-geiger does not scan; its [lints] forbid unsafe code.
+# The E2E crate has only test targets, which cargo-geiger does not scan; its crate root forbids unsafe code.
 unsafe-count: _require-cargo-geiger
     #!/usr/bin/env bash
     set -euo pipefail
@@ -180,23 +180,147 @@ _require-typos: (_require "typos" typos_version "cargo install typos-cli --versi
 _require-shellcheck: (_require "shellcheck" shellcheck_version "brew install shellcheck (pinned " + shellcheck_version + ")")
 _require-jscpd: (_require "jscpd" jscpd_version "npm install --global jscpd@" + jscpd_version)
 
-# Release the version in app/app/Cargo.toml from a clean origin/main: the gate, a release build,
-# the tarball with its checksum, the tag and the GitHub release (design D12).
-release:
+# Release the version in app/app/Cargo.toml from a clean origin/main, signed with the certificate: the gate
+# (which builds the disk image), the tag and the GitHub release with the image and its .sha256 (design D12).
+release: _require-release-identity
     #!/usr/bin/env bash
     set -euo pipefail
     git fetch origin main
     [ -z "$(git status --porcelain)" ] || { echo "release: the checkout has uncommitted changes"; exit 1; }
     [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "release: HEAD is not origin/main"; exit 1; }
-    version="$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' {{app}}/Cargo.toml)"
-    tag="v$version"
+    tag="v{{app_release}}"
     git rev-parse -q --verify "refs/tags/$tag" > /dev/null && { echo "release: $tag exists"; exit 1; }
     scripts/qa.sh
-    cargo build --release --manifest-path {{app}}/Cargo.toml -p http2scheme
-    dist="$(mktemp -d)"
-    archive="http2scheme-$tag-aarch64-apple-darwin.tar.gz"
-    tar -czf "$dist/$archive" -C {{app}}/target/release http2scheme
-    (cd "$dist" && shasum -a 256 "$archive" > "$archive.sha256")
+    dmg={{quote(dist_dir)}}/http2scheme-$tag.dmg
+    [ -f "$dmg" ] && [ -f "$dmg.sha256" ] || { echo "release: the gate built no $dmg"; exit 1; }
     git tag -a "$tag" -m "http2scheme $tag"
     git push origin "$tag"
-    gh release create "$tag" "$dist/$archive" "$dist/$archive.sha256" --title "http2scheme $tag" --generate-notes
+    gh release create "$tag" "$dmg" "$dmg.sha256" --title "http2scheme $tag" --generate-notes
+
+# ── App bundle and disk image (design D17) ──
+
+dist_dir := justfile_directory() / "dist"
+app_bundle := dist_dir / "http2scheme.app"
+packaging_dir := justfile_directory() / "app/packaging"
+app_release := shell("sed -n '/^\\[workspace.package\\]/,/^\\[/s/^version = \"\\(.*\\)\"/\\1/p' \"$1\"", justfile_directory() / "app/app/Cargo.toml")
+# The self-signed code-signing certificate of README § Install; empty signs ad-hoc (no stable identity)
+signing_identity := env_var_or_default("HTTP2SCHEME_SIGNING_IDENTITY", "")
+
+# Build the signed dist/http2scheme.app (release build): the program, the icon and the information
+bundle: _require-signing-identity
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo build --release --manifest-path {{app}}/Cargo.toml -p http2scheme
+    app={{quote(app_bundle)}}
+    rm -rf "$app" && mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+    cp {{app}}/target/release/http2scheme "$app/Contents/MacOS/http2scheme"
+    iconutil -c icns {{quote(packaging_dir / "icons/http2scheme.iconset")}} -o "$app/Contents/Resources/http2scheme.icns"
+    cp {{quote(packaging_dir / "Info.plist")}} "$app/Contents/Info.plist"
+    for key in CFBundleShortVersionString CFBundleVersion; do plutil -replace "$key" -string {{quote(app_release)}} "$app/Contents/Info.plist"; done
+    {{just_executable()}} --justfile {{quote(justfile())}} _sign "$app"
+    echo "✓ bundle $app"
+
+# Build the disk image dist/http2scheme-vX.Y.Z.dmg (the bundle, an Applications link, the background picture)
+# and its .sha256; create-dmg lays the window out through the Finder
+dmg: _require-create-dmg bundle
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dist={{quote(dist_dir)}}
+    name="http2scheme-v{{app_release}}"
+    stage="$dist/stage"
+    rm -rf "$stage" "$dist/$name.dmg" "$dist/$name.dmg.sha256" && mkdir -p "$stage"
+    cp -R {{quote(app_bundle)}} "$stage/"
+    create-dmg --volname "http2scheme {{app_release}}" --background {{quote(packaging_dir / "dmg-background.png")}} \
+        --window-pos 200 120 --window-size 600 400 --icon-size 128 --icon http2scheme.app 150 200 \
+        --hide-extension http2scheme.app --app-drop-link 450 200 --no-internet-enable \
+        "$dist/$name.dmg" "$stage"
+    (cd "$dist" && shasum -a 256 "$name.dmg" > "$name.dmg.sha256")
+    rm -rf "$stage"
+    echo "✓ dmg $dist/$name.dmg"
+
+# Redraw the app icon and the disk image background, then scale the icon into the ten iconset sizes
+icons:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{quote(packaging_dir)}}
+    swift draw-artwork.swift
+    sips -s dpiWidth 144 -s dpiHeight 144 dmg-background.png > /dev/null
+    for size in 16 32 128 256 512; do
+      sips -z "$size" "$size" icons/icon-1024.png --out "icons/http2scheme.iconset/icon_${size}x${size}.png" > /dev/null
+      sips -z "$((size * 2))" "$((size * 2))" icons/icon-1024.png --out "icons/http2scheme.iconset/icon_${size}x${size}@2x.png" > /dev/null
+    done
+
+# The `bundle` stage of the gate: the disk image built (ad-hoc signed when no certificate is named), then the
+# @bundle scenarios on the bundle and the image
+bundle-check: dmg
+    BUNDLE_APP={{quote(app_bundle)}} BUNDLE_DMG={{quote(dist_dir)}}/http2scheme-v{{app_release}}.dmg cargo test --manifest-path {{e2e}}/Cargo.toml --test cucumber_e2e -- --tags "@bundle and not @wip"
+
+# Sign a bundle with the signing identity, or ad-hoc with a notice when none is named, then verify it strictly.
+# No hardened runtime: it needs a Developer ID and entitlements
+_sign path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if identity={{quote(signing_identity)}}; [[ -z "$identity" ]]; then
+        echo "● HTTP2SCHEME_SIGNING_IDENTITY is unset: signing ad-hoc — the bundle has no stable identity, so macOS asks again after each build (README § Install)" >&2
+        identity="-"
+    fi
+    codesign --force --sign "$identity" --timestamp=none {{quote(path)}}
+    codesign --verify --deep --strict --verbose=2 {{quote(path)}}
+
+# A named signing identity must be in the keychain; none named is allowed (ad-hoc)
+_require-signing-identity:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    identity={{quote(signing_identity)}}
+    [[ -n "$identity" ]] || exit 0
+    if ! security find-identity -v -p codesigning 2>/dev/null | grep -q "\"$identity\""; then
+        echo "✗ signing identity '$identity' (HTTP2SCHEME_SIGNING_IDENTITY) is not in the keychain" >&2
+        {{just_executable()}} --justfile {{quote(justfile())}} _signing-identity-steps >&2
+        exit 1
+    fi
+
+# A release is always signed with the certificate: the identity must be named and in the keychain
+_require-release-identity:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if identity={{quote(signing_identity)}}; [[ -z "$identity" ]]; then
+        echo "✗ HTTP2SCHEME_SIGNING_IDENTITY is unset — a release is signed with the self-signed certificate, so that updates keep the browser permission" >&2
+        {{just_executable()}} --justfile {{quote(justfile())}} _signing-identity-steps >&2
+        exit 1
+    fi
+    {{just_executable()}} --justfile {{quote(justfile())}} _require-signing-identity
+
+_signing-identity-steps:
+    @echo "  Create the certificate once: 'just signing-identity' (macOS asks for your password to trust it),"
+    @echo "  then set HTTP2SCHEME_SIGNING_IDENTITY=http2scheme (README § Install)"
+
+# Creates the self-signed code-signing certificate `http2scheme` (10 years) in the login keychain, once per
+# machine, and trusts it for code signing; macOS asks for the user's password. Does nothing when it exists
+signing-identity name="http2scheme":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if security find-identity -v -p codesigning | grep -q "\"{{name}}\""; then
+        echo "✓ code-signing identity \"{{name}}\" already in the keychain"; exit 0
+    fi
+    work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
+    /usr/bin/openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN={{name}}" \
+        -keyout "$work/key.pem" -out "$work/cert.pem" \
+        -addext "keyUsage=critical,digitalSignature" -addext "extendedKeyUsage=critical,codeSigning" \
+        -addext "basicConstraints=critical,CA:false" 2>/dev/null
+    /usr/bin/openssl pkcs12 -export -inkey "$work/key.pem" -in "$work/cert.pem" -out "$work/id.p12" -passout pass:http2scheme
+    keychain=$(security default-keychain | tr -d ' "')
+    security import "$work/id.p12" -k "$keychain" -P http2scheme -T /usr/bin/codesign
+    echo "  macOS now asks for your password to trust the certificate for code signing"
+    security add-trusted-cert -r trustRoot -p codeSign -k "$keychain" "$work/cert.pem"
+    security find-identity -v -p codesigning | grep "\"{{name}}\""
+    echo "✓ created \"{{name}}\" — set HTTP2SCHEME_SIGNING_IDENTITY={{name}}"
+
+_require-create-dmg:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    wanted=1.3.0
+    got=$(create-dmg --version 2>/dev/null | head -1 || true)
+    if [[ "$got" != *"$wanted"* ]]; then
+        echo "✗ create-dmg $wanted not found (got '${got}') — run 'brew install create-dmg'" >&2
+        exit 1
+    fi

@@ -1,4 +1,5 @@
-//! `http2scheme` entry point: reads the machine's environment, builds the component and runs one command.
+//! `http2scheme` entry point: reads the machine's environment, builds the components and runs one
+//! command, or, started from its app bundle with no command, the menu bar app (design D14).
 
 #![forbid(unsafe_code)]
 
@@ -7,11 +8,14 @@ use std::os::unix::fs::MetadataExt as _;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory as _, Parser, Subcommand};
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
 use linkserver::linkserver_setup::LinkserverSetup;
+use menubar::menubar_config::MenubarConfig;
+use menubar::menubar_setup::MenubarSetup;
+use tokio::runtime::Runtime;
 
 const LABEL: &str = "io.github.firstpilotpirx.http2scheme";
 const HOST: &str = "127.0.0.1";
@@ -31,7 +35,7 @@ struct Cli {
     #[arg(long, global = true)]
     no_color: bool,
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -108,8 +112,47 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     }
 }
 
-#[tokio::main]
-async fn main() -> ExitCode {
+fn menubar(setup: &LinkserverSetup) -> MenubarConfig {
+    MenubarConfig::macos(MenubarSetup {
+        version: setup.version.clone(),
+        settings_dir: setup.settings_dir.clone(),
+        log_dir: setup.log_dir.clone(),
+        program: setup.program.clone(),
+        open_program: setup.open_program.clone(),
+    })
+}
+
+fn app(runtime: &Runtime, setup: LinkserverSetup) -> ExitCode {
+    let Some(mtm) = MenubarConfig::main_thread() else {
+        eprintln!("the menu bar app runs only on the main thread");
+        return ExitCode::from(1);
+    };
+    let menubar = menubar(&setup);
+    let output = menubar.server_output();
+    let ports = LinkserverPorts::macos(&setup);
+    let root = LinkserverConfig::new(
+        setup,
+        ports,
+        TerminalStyleConfig::detect(true, false, |_| None),
+    );
+    runtime.spawn(async move {
+        let (mut out, mut err) = (output.out(), output.err());
+        root.serve_command()
+            .run(std::future::pending(), &mut out, &mut err)
+            .await
+    });
+    runtime.spawn(async {
+        stopped().await;
+        std::process::exit(0);
+    });
+    if let Err(error) = runtime.block_on(menubar.offer_login_item()) {
+        eprintln!("{error}");
+    }
+    menubar.run(mtm);
+    ExitCode::SUCCESS
+}
+
+fn main() -> ExitCode {
     let cli = Cli::parse();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
     let style =
@@ -123,7 +166,23 @@ async fn main() -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    let ports = LinkserverPorts::macos(&setup);
-    let root = LinkserverConfig::new(setup, ports, style);
-    ExitCode::from(run(cli.command, root).await)
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("{}", style.fail(&format!("async runtime: {error}")));
+            return ExitCode::from(1);
+        }
+    };
+    match cli.command {
+        Some(command) => {
+            let ports = LinkserverPorts::macos(&setup);
+            let root = LinkserverConfig::new(setup, ports, style);
+            ExitCode::from(runtime.block_on(run(command, root)))
+        }
+        None if MenubarConfig::is_bundle_program(&setup.program) => app(&runtime, setup),
+        None => {
+            let _ = Cli::command().print_help();
+            ExitCode::from(2)
+        }
+    }
 }

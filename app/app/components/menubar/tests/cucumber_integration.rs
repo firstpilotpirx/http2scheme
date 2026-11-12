@@ -14,7 +14,6 @@ use std::sync::Arc;
 use cucumber::World as _;
 use fakes::FakeLoginItem;
 use menubar::core::domain::login_item_state_enum::LoginItemStateEnum;
-use menubar::menubar_config::MenubarConfig;
 use support::RecordingProgram;
 
 /// The state one scenario builds up.
@@ -42,7 +41,7 @@ impl MenubarWorld {
         Self {
             home,
             open,
-            output: MenubarConfig::server_output(),
+            output: menubar::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway::new(),
             login_item: Arc::new(FakeLoginItem::new(LoginItemStateEnum::Off)),
             program: "/Applications/http2scheme.app/Contents/MacOS/http2scheme".to_owned(),
             items: Vec::new(),

@@ -36,6 +36,21 @@ pub fn sut_bin() -> PathBuf {
     PathBuf::from(std::env::var("SUT_BIN").unwrap())
 }
 
+/// The app bundle under test, built by `just bundle`.
+pub fn bundle_app() -> PathBuf {
+    PathBuf::from(std::env::var("BUNDLE_APP").unwrap())
+}
+
+/// The disk image under test, built by `just dmg`.
+pub fn bundle_dmg() -> PathBuf {
+    PathBuf::from(std::env::var("BUNDLE_DMG").unwrap())
+}
+
+/// The program inside the app bundle.
+pub fn bundle_program() -> PathBuf {
+    bundle_app().join("Contents/MacOS/http2scheme")
+}
+
 /// A port no program holds now.
 pub fn free_port() -> u16 {
     StdListener::bind("127.0.0.1:0")
@@ -150,7 +165,12 @@ impl Home {
 
     /// The binary with this home and the recording programs.
     pub fn command(&self, arguments: &[&str]) -> Command {
-        let mut command = Command::new(sut_bin());
+        self.program_command(&sut_bin(), arguments)
+    }
+
+    /// `program` with this home and the recording programs.
+    pub fn program_command(&self, program: &Path, arguments: &[&str]) -> Command {
+        let mut command = Command::new(program);
         command
             .args(arguments)
             .env("HOME", self.path())

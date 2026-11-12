@@ -25,7 +25,7 @@ name = "cucumber_e2e"
 harness = false
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 pedantic = { level = "deny", priority = -1 }

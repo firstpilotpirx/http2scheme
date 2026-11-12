@@ -16,3 +16,4 @@ unit	the test suites and the build; a failing test or build fails the stage
 integration	the test suites and the build; a failing test or build fails the stage
 e2e	the test suites and the build; a failing test or build fails the stage
 build	the test suites and the build; a failing test or build fails the stage
+bundle	the test suites and the build; a failing test or build fails the stage

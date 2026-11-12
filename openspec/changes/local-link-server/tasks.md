@@ -84,17 +84,17 @@
 
 ## 11. App mode, bundle and disk image
 
-- [ ] 11.1 Red: `app/e2e/tests/features/menu_bar_app.feature` and `app_distribution.feature` with the `@bundle` scenarios of the design's table, steps on `dist/http2scheme.app` and its disk image (`BUNDLE_APP`, `BUNDLE_DMG`), the app started with a temp `HOME` and a recording `open`; they fail
-- [ ] 11.2 Green: `main.rs` runs the menu bar app when it has no command and runs from a bundle (D14); `app/packaging/Info.plist`, `draw-artwork.swift`, `icons/http2scheme.iconset` (ten sizes by `sips`), `dmg-background.png`; recipes `bundle`, `dmg`, `_sign`, `_require-signing-identity`, `_require-release-identity`, `signing-identity`, `_require-create-dmg`; the `bundle` stage of `scripts/qa.sh` after `build`, before `coverage`; the scenarios pass
-- [ ] 11.3 `README.md` § Install as VoicePuncher's (download, checksum, drag to Applications, Open Anyway, the menu, `http2scheme uninstall` for a CLI agent, the command line tool in the bundle); `AGENTS.md` (layout, the `bundle` stage, § Release: the disk image and its `.sha256` in place of the tarball, § Gherkin: the slice paths of both components); `.claude/kit.yaml` (build inputs `app/packaging/**`, manual-run area `components/menubar/src/adapters/**`)
-- [ ] 11.4 Commit (`kit ship`)
+- [x] 11.1 Red: `app/e2e/tests/features/menu_bar_app.feature` and `app_distribution.feature` with the `@bundle` scenarios of the design's table, steps on `dist/http2scheme.app` and its disk image (`BUNDLE_APP`, `BUNDLE_DMG`), the app started with a temp `HOME` and a recording `open`; they fail
+- [x] 11.2 Green: `main.rs` runs the menu bar app when it has no command and runs from a bundle (D14); `app/packaging/Info.plist`, `draw-artwork.swift`, `icons/http2scheme.iconset` (ten sizes by `sips`), `dmg-background.png`; recipes `bundle`, `dmg`, `_sign`, `_require-signing-identity`, `_require-release-identity`, `signing-identity`, `_require-create-dmg`; the `bundle` stage of `scripts/qa.sh` after `build`, before `coverage`; the scenarios pass
+- [x] 11.3 `README.md` § Install as VoicePuncher's (download, checksum, drag to Applications, Open Anyway, the menu, `http2scheme uninstall` for a CLI agent, the command line tool in the bundle); `AGENTS.md` (layout, the `bundle` stage, § Release: the disk image and its `.sha256` in place of the tarball, § Gherkin: the slice paths of both components); `.claude/kit.yaml` (build inputs `app/packaging/**`, manual-run area `components/menubar/src/adapters/**`)
+- [x] 11.4 Commit (`kit ship`)
 
 ## 12. Release
 
 - [x] 12.1 Add `just release` (D12); bump `version` in `app/app/Cargo.toml` to 0.1.0; `kit version-check local-link-server` passes
 - [x] 12.2 Commit (`kit ship`)
-- [ ] 12.3 `just release` publishes the disk image and its `.sha256` in place of the tarball (D12); the version stays 0.1.0, the first release
-- [ ] 12.4 Commit (`kit ship`)
+- [x] 12.3 `just release` publishes the disk image and its `.sha256` in place of the tarball (D12); the version stays 0.1.0, the first release
+- [x] 12.4 Commit (`kit ship`)
 
 Manual checks the user performs:
 
