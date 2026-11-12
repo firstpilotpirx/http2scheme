@@ -23,6 +23,16 @@ impl LoginItemStateEnum {
         }
     }
 
+    /// The line under the Start at login switch of the Settings window.
+    #[must_use]
+    pub const fn note(self) -> &'static str {
+        match self {
+            Self::On | Self::Off => "The app starts when you log in to the Mac.",
+            Self::NeedsApproval => "Approve the app in System Settings › Login Items.",
+            Self::Unavailable => "Only the app installed in Applications can start at login.",
+        }
+    }
+
     /// Whether Start at Login shows a check mark.
     #[must_use]
     pub const fn is_checked(self) -> bool {

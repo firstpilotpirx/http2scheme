@@ -1,4 +1,4 @@
-//! Input port: one request of the Link History window.
+//! Input port: one request of the History tab.
 
 use async_trait::async_trait;
 

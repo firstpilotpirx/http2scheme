@@ -31,3 +31,14 @@ fn a_program_outside_a_bundle_disables_the_login_item() {
     assert!(!view.login_checked());
     assert!(!view.login_enabled());
 }
+
+#[test]
+fn the_login_note_follows_the_login_item() {
+    let server = ServerStateEnum::Off;
+    let note = |login| MenuViewValueObject::new("0.1.0", &server, login).login_note();
+    assert_eq!(note(LoginItemStateEnum::On), LoginItemStateEnum::On.note());
+    assert_eq!(
+        note(LoginItemStateEnum::Unavailable),
+        "Only the app installed in Applications can start at login."
+    );
+}

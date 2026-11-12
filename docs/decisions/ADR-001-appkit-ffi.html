@@ -57,7 +57,7 @@ a{color:var(--focust)}
 <p>The owner asked for an installer like VoicePuncher's: a menu bar app in a disk image that starts at login. The menu bar status item lives in AppKit and the login item in ServiceManagement. Both are Objective-C frameworks. Rust reaches them through <code>objc2</code> 0.6.4 and <code>objc2-app-kit</code>, <code>objc2-foundation</code>, <code>objc2-service-management</code> 0.3.2. Some of their calls are <code>unsafe</code>. Until now every crate forbade unsafe code.</p>
 <h2>Decision</h2>
 <ul>
-<li>Unsafe code is allowed in exactly three files of the <code>menubar</code> component: <code>status_menu_handler.rs</code>, <code>history_window_handler.rs</code> (the Link History window, design D18) and <code>sm_app_service_login_item_gateway.rs</code>.</li>
+<li>Unsafe code is allowed in exactly four files of the <code>menubar</code> component: <code>status_menu_handler.rs</code>, <code>settings_window_handler.rs</code> (the Settings window, design D19), <code>history_tab_handler.rs</code> (its History tab, design D18 and D19) and <code>sm_app_service_login_item_gateway.rs</code>.</li>
 <li>Each file opens with <code>#![expect(unsafe_code, reason = "ADR-001: …")]</code>.</li>
 <li>A one-line <code>// SAFETY:</code> comment stands above every unsafe block; a file holds at most three (R-080, <code>scripts/arch/no-todo.sh</code>).</li>
 <li>The workspace lint table sets <code>unsafe_code = "deny"</code>; <code>linkserver</code> and the app keep <code>#![forbid(unsafe_code)]</code> at their crate roots.</li>

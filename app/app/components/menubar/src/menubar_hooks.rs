@@ -19,7 +19,7 @@ pub type LinkReplayer = Arc<dyn Fn(&str) -> String + Send + Sync>;
 pub struct MenubarHooks {
     /// Starts the server.
     pub serve: ServeLauncher,
-    /// Opens a link of the Link History window again.
+    /// Opens a link of the History tab again.
     pub replay: LinkReplayer,
 }
 

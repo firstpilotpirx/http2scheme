@@ -1,7 +1,5 @@
 //! Domain types (flat layout, one public type per file).
 
-pub mod app_folder_enum;
-pub mod app_folders_value_object;
 pub mod history_command_enum;
 pub mod history_view_value_object;
 pub mod link_record_value_object;

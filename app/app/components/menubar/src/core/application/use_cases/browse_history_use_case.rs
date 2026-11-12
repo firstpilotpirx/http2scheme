@@ -11,7 +11,7 @@ use crate::core::application::services::link_replay_service::LinkReplayService;
 use crate::core::domain::history_command_enum::HistoryCommandEnum;
 use crate::core::domain::history_view_value_object::HistoryViewValueObject;
 
-/// How many requests the Link History window lists.
+/// How many requests the History tab lists.
 pub const HISTORY_LIMIT: usize = 100;
 
 /// The window's use case over the request log and the replay.

@@ -1,40 +1,26 @@
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use super::OperateMenuUseCase;
 use crate::core::application::exceptions::menu_action_error::MenuActionError;
-use crate::core::application::services::folder_opener_service::MockFolderOpenerService;
 use crate::core::application::services::login_item_service::MockLoginItemService;
 use crate::core::application::services::server_switch_service::MockServerSwitchService;
 use crate::core::application::use_cases::operate_menu::OperateMenu;
-use crate::core::domain::app_folder_enum::AppFolderEnum;
-use crate::core::domain::app_folders_value_object::AppFoldersValueObject;
 use crate::core::domain::login_item_state_enum::LoginItemStateEnum;
 use crate::core::domain::menu_command_enum::MenuCommandEnum;
 use crate::core::domain::server_state_enum::ServerStateEnum;
 
-fn use_case(
-    login_item: MockLoginItemService,
-    opener: MockFolderOpenerService,
-) -> OperateMenuUseCase {
+fn use_case(login_item: MockLoginItemService) -> OperateMenuUseCase {
     let running = ServerStateEnum::Running("http://127.0.0.1:7777".to_owned());
-    use_case_with_server(running, MockServerSwitchService::new(), login_item, opener)
+    use_case_with_server(running, MockServerSwitchService::new(), login_item)
 }
 
 fn use_case_with_server(
     state: ServerStateEnum,
     mut switch: MockServerSwitchService,
     login_item: MockLoginItemService,
-    opener: MockFolderOpenerService,
 ) -> OperateMenuUseCase {
     switch.expect_current().return_const(state);
-    OperateMenuUseCase::new(
-        "0.1.0".to_owned(),
-        AppFoldersValueObject::new(PathBuf::from("/s"), PathBuf::from("/l")),
-        Arc::new(switch),
-        Arc::new(login_item),
-        Arc::new(opener),
-    )
+    OperateMenuUseCase::new("0.1.0".to_owned(), Arc::new(switch), Arc::new(login_item))
 }
 
 fn login_item(state: LoginItemStateEnum) -> MockLoginItemService {
@@ -45,13 +31,10 @@ fn login_item(state: LoginItemStateEnum) -> MockLoginItemService {
 
 #[tokio::test]
 async fn show_answers_the_current_view_and_changes_nothing() {
-    let view = use_case(
-        login_item(LoginItemStateEnum::On),
-        MockFolderOpenerService::new(),
-    )
-    .execute(MenuCommandEnum::Show)
-    .await
-    .unwrap();
+    let view = use_case(login_item(LoginItemStateEnum::On))
+        .execute(MenuCommandEnum::Show)
+        .await
+        .unwrap();
     assert_eq!(view.title(), "http2scheme 0.1.0");
     assert_eq!(view.status_line(), "Running on http://127.0.0.1:7777");
     assert!(view.login_checked());
@@ -61,7 +44,7 @@ async fn show_answers_the_current_view_and_changes_nothing() {
 async fn toggle_registers_a_login_item_that_is_off() {
     let mut mock = login_item(LoginItemStateEnum::Off);
     mock.expect_register().times(1).returning(|| Ok(()));
-    let result = use_case(mock, MockFolderOpenerService::new())
+    let result = use_case(mock)
         .execute(MenuCommandEnum::ToggleLoginItem)
         .await;
     assert!(result.is_ok());
@@ -71,7 +54,7 @@ async fn toggle_registers_a_login_item_that_is_off() {
 async fn toggle_unregisters_a_login_item_that_is_on() {
     let mut mock = login_item(LoginItemStateEnum::On);
     mock.expect_unregister().times(1).returning(|| Ok(()));
-    let result = use_case(mock, MockFolderOpenerService::new())
+    let result = use_case(mock)
         .execute(MenuCommandEnum::ToggleLoginItem)
         .await;
     assert!(result.is_ok());
@@ -83,7 +66,7 @@ async fn toggle_opens_system_settings_for_a_login_item_waiting_for_approval() {
     mock.expect_open_system_settings()
         .times(1)
         .returning(|| Ok(()));
-    let result = use_case(mock, MockFolderOpenerService::new())
+    let result = use_case(mock)
         .execute(MenuCommandEnum::ToggleLoginItem)
         .await;
     assert!(result.is_ok());
@@ -92,7 +75,7 @@ async fn toggle_opens_system_settings_for_a_login_item_waiting_for_approval() {
 #[tokio::test]
 async fn toggle_does_nothing_outside_a_bundle() {
     let mock = login_item(LoginItemStateEnum::Unavailable);
-    let view = use_case(mock, MockFolderOpenerService::new())
+    let view = use_case(mock)
         .execute(MenuCommandEnum::ToggleLoginItem)
         .await
         .unwrap();
@@ -104,41 +87,10 @@ async fn a_refused_toggle_is_an_error() {
     let mut mock = login_item(LoginItemStateEnum::Off);
     mock.expect_register()
         .returning(|| Err(MenuActionError::LoginItem("denied".to_owned())));
-    let result = use_case(mock, MockFolderOpenerService::new())
+    let result = use_case(mock)
         .execute(MenuCommandEnum::ToggleLoginItem)
         .await;
     assert_eq!(result, Err(MenuActionError::LoginItem("denied".to_owned())));
-}
-
-#[tokio::test]
-async fn open_folder_opens_the_folder_it_names() {
-    for (folder, path) in [(AppFolderEnum::Settings, "/s"), (AppFolderEnum::Logs, "/l")] {
-        let mut opener = MockFolderOpenerService::new();
-        opener
-            .expect_open()
-            .withf(move |opened| opened == Path::new(path))
-            .times(1)
-            .returning(|_| Ok(()));
-        let result = use_case(login_item(LoginItemStateEnum::Off), opener)
-            .execute(MenuCommandEnum::OpenFolder(folder))
-            .await;
-        assert!(result.is_ok());
-    }
-}
-
-#[tokio::test]
-async fn a_failed_open_is_an_error() {
-    let mut opener = MockFolderOpenerService::new();
-    opener.expect_open().returning(|_| {
-        Err(MenuActionError::Folder {
-            path: "/l".to_owned(),
-            reason: "exit status 1".to_owned(),
-        })
-    });
-    let result = use_case(login_item(LoginItemStateEnum::Off), opener)
-        .execute(MenuCommandEnum::OpenFolder(AppFolderEnum::Logs))
-        .await;
-    assert!(matches!(result, Err(MenuActionError::Folder { .. })));
 }
 
 #[tokio::test]
@@ -147,14 +99,9 @@ async fn toggle_server_turns_a_serving_server_off() {
     switch.expect_turn_off().times(1).return_const(());
     switch.expect_turn_on().never();
     let running = ServerStateEnum::Running("http://127.0.0.1:7777".to_owned());
-    let result = use_case_with_server(
-        running,
-        switch,
-        login_item(LoginItemStateEnum::Off),
-        MockFolderOpenerService::new(),
-    )
-    .execute(MenuCommandEnum::ToggleServer)
-    .await;
+    let result = use_case_with_server(running, switch, login_item(LoginItemStateEnum::Off))
+        .execute(MenuCommandEnum::ToggleServer)
+        .await;
     assert!(result.is_ok());
 }
 
@@ -167,7 +114,6 @@ async fn toggle_server_turns_a_server_that_is_off_on() {
         ServerStateEnum::Off,
         switch,
         login_item(LoginItemStateEnum::Off),
-        MockFolderOpenerService::new(),
     )
     .execute(MenuCommandEnum::ToggleServer)
     .await

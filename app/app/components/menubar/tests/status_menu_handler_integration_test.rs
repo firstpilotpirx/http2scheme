@@ -52,18 +52,23 @@ fn row(title: &str, enabled: bool, checked: bool) -> (String, bool, bool) {
 
 fn the_menu_reads_in_order() {
     let mtm = AppKitConfig::main_thread().unwrap();
-    let handler = StatusMenuHandler::install(mtm, Arc::new(FakeMenu::default()), Box::new(|| {}));
+    let handler = StatusMenuHandler::install(
+        mtm,
+        Arc::new(FakeMenu::default()),
+        Box::new(|| {}),
+        Box::new(|| {}),
+    );
     assert_eq!(
         handler.items(),
         [
             row("http2scheme 0.1.0", false, false),
             row("Running on http://127.0.0.1:7777", false, false),
-            row("Serve Links", true, true),
-            row("Link History…", true, false),
             row("-", false, false),
+            row("Serve Links", true, true),
             row("Start at Login", true, false),
-            row("Open Settings Folder", true, false),
-            row("Open Logs Folder", true, false),
+            row("-", false, false),
+            row("Settings…", true, false),
+            row("Link History…", true, false),
             row("-", false, false),
             row("Quit http2scheme", true, false),
         ]
@@ -73,35 +78,32 @@ fn the_menu_reads_in_order() {
 fn choosing_an_item_runs_its_command() {
     let mtm = AppKitConfig::main_thread().unwrap();
     let fake = Arc::new(FakeMenu::default());
-    let shown = Rc::new(Cell::new(0));
-    let count = Rc::clone(&shown);
+    let settings = Rc::new(Cell::new(0));
+    let history = Rc::new(Cell::new(0));
+    let (general, rows) = (Rc::clone(&settings), Rc::clone(&history));
     let handler = StatusMenuHandler::install(
         mtm,
         fake.clone(),
-        Box::new(move || count.set(count.get() + 1)),
+        Box::new(move || general.set(general.get() + 1)),
+        Box::new(move || rows.set(rows.get() + 1)),
     );
     handler.choose("Start at Login");
     handler.choose("Serve Links");
+    handler.choose("Settings…");
     handler.choose("Link History…");
-    handler.choose("Open Logs Folder");
     let commands = fake.commands.lock().unwrap().clone();
     assert!(
         commands.contains(&MenuCommandEnum::ToggleLoginItem),
         "{commands:?}"
     );
     assert!(
-        commands.contains(&MenuCommandEnum::OpenFolder(
-            menubar::core::domain::app_folder_enum::AppFolderEnum::Logs
-        )),
-        "{commands:?}"
-    );
-    assert!(
         commands.contains(&MenuCommandEnum::ToggleServer),
         "{commands:?}"
     );
-    assert_eq!(shown.get(), 1, "Link History… shows the window");
+    assert_eq!(settings.get(), 1, "Settings… shows the General tab");
+    assert_eq!(history.get(), 1, "Link History… shows the History tab");
     assert!(
-        handler.items()[5].2,
+        handler.items()[4].2,
         "Start at Login is checked after one toggle"
     );
 }

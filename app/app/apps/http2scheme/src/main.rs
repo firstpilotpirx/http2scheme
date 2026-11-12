@@ -138,7 +138,6 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
             settings_dir: setup.settings_dir.clone(),
             log_dir: setup.log_dir.clone(),
             program: setup.program.clone(),
-            open_program: setup.programs.open.clone(),
         },
         hooks,
     )

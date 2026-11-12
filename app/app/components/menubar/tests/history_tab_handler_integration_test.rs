@@ -1,4 +1,4 @@
-//! `HistoryWindowHandler` on the main thread over a fake history use case (harness off: `AppKit`
+//! `HistoryTabHandler` on the main thread over a fake history use case (harness off: `AppKit`
 //! needs the main thread).
 #![allow(
     clippy::unwrap_used,
@@ -12,7 +12,7 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use async_trait::async_trait;
 use menubar::adapters::primary::statusmenu::appkit::app_kit_config::AppKitConfig;
-use menubar::adapters::primary::statusmenu::appkit::history_window_handler::HistoryWindowHandler;
+use menubar::adapters::primary::statusmenu::appkit::history_tab_handler::HistoryTabHandler;
 use menubar::core::application::exceptions::menu_action_error::MenuActionError;
 use menubar::core::application::use_cases::browse_history::BrowseHistory;
 use menubar::core::domain::history_command_enum::HistoryCommandEnum;
@@ -59,10 +59,9 @@ impl BrowseHistory for FakeHistory {
 
 fn an_empty_log_shows_the_note() {
     let mtm = AppKitConfig::main_thread().unwrap();
-    let window = HistoryWindowHandler::install(mtm, Arc::new(FakeHistory::default()));
-    assert!(!window.is_visible());
+    let window = HistoryTabHandler::install(mtm, Arc::new(FakeHistory::default()));
+    assert_eq!(window.note(), None);
     window.show();
-    assert!(window.is_visible());
     assert_eq!(window.rows(), Vec::<[String; 3]>::new());
     assert_eq!(window.note().as_deref(), Some(NOTHING_OPENED_NOTE));
 }
@@ -74,7 +73,7 @@ fn the_play_button_replays_its_row() {
         .lock()
         .unwrap()
         .extend(["goland://b".to_owned(), "idea://a".to_owned()]);
-    let window = HistoryWindowHandler::install(mtm, fake.clone());
+    let window = HistoryTabHandler::install(mtm, fake.clone());
     window.show();
     let links: Vec<String> = window.rows().iter().map(|row| row[2].clone()).collect();
     assert_eq!(links, ["goland://b", "idea://a"]);
@@ -100,7 +99,7 @@ fn the_play_button_replays_its_row() {
 fn showing_again_reads_the_log_again() {
     let mtm = AppKitConfig::main_thread().unwrap();
     let fake = Arc::new(FakeHistory::default());
-    let window = HistoryWindowHandler::install(mtm, fake.clone());
+    let window = HistoryTabHandler::install(mtm, fake.clone());
     window.show();
     assert!(window.note().is_some());
     fake.links.lock().unwrap().push("idea://new".to_owned());
@@ -122,7 +121,7 @@ fn an_unreadable_log_says_why() {
         unreadable: true,
         ..FakeHistory::default()
     };
-    let window = HistoryWindowHandler::install(mtm, Arc::new(fake));
+    let window = HistoryTabHandler::install(mtm, Arc::new(fake));
     window.show();
     assert_eq!(window.rows(), Vec::<[String; 3]>::new());
     let note = window.note().unwrap();

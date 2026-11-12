@@ -6,14 +6,6 @@ pub enum MenuActionError {
     /// macOS refused to change or show the login item.
     #[error("login item: {0}")]
     LoginItem(String),
-    /// A folder cannot be created or opened.
-    #[error("{path}: {reason}")]
-    Folder {
-        /// The folder.
-        path: String,
-        /// What went wrong.
-        reason: String,
-    },
     /// The request log cannot be read.
     #[error("{path}: {reason}")]
     History {

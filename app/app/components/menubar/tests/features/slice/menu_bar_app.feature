@@ -35,45 +35,52 @@ Feature: Menu bar app
       Then the server answers again
       And Serve Links shows a check mark
 
-  Rule: The Link History window lists the latest requests
+    @slice
+    Scenario: Turning the server off in the Settings window
+      Given the app runs and its server answers
+      When the user turns the Serve links switch off in the Settings window
+      Then the server no longer answers
+      And the line under the switch reads "Off"
+
+  Rule: The History tab lists the latest requests
 
     @slice
     Scenario: Requests are listed newest first
       Given the request log holds an opened IntelliJ link and, after it, a GoLand link with the wrong key
-      When the user opens the Link History window
+      When the user opens the History tab
       Then the first row shows the GoLand link with the result "wrong key"
       And the second row shows the IntelliJ link with the result "opened"
 
     @slice
     Scenario: Only the latest 100 requests are listed
       Given the request log holds 105 requests
-      When the user opens the Link History window
+      When the user opens the History tab
       Then it lists 100 rows, the latest 100
 
     @slice
     Scenario: An unreadable log line has no row
       Given the request log holds two requests and a damaged line between them
-      When the user opens the Link History window
+      When the user opens the History tab
       Then it lists the two requests
 
     @slice
     Scenario: No request yet
       Given the request log does not exist
-      When the user opens the Link History window
-      Then the window says no link has been opened yet
+      When the user opens the History tab
+      Then the tab says no link has been opened yet
 
   Rule: A row's link opens again
 
     @slice
     Scenario: Opening an IntelliJ link again
-      Given the Link History window lists an opened IntelliJ link
+      Given the History tab lists an opened IntelliJ link
       When the user chooses ▶ on its row
       Then the Mac opens that IntelliJ link
       And the first row shows that IntelliJ link with the result "opened"
 
     @slice
     Scenario: A link whose scheme is not allowed stays closed
-      Given the Link History window lists a Slack link with the result "scheme not allowed"
+      Given the History tab lists a Slack link with the result "scheme not allowed"
       When the user chooses ▶ on its row
       Then the Mac opens nothing
       And the first row shows that Slack link with the result "scheme not allowed"
@@ -84,6 +91,13 @@ Feature: Menu bar app
     Scenario: Turning Start at Login on
       Given the app is not in the login items
       When the user chooses Start at Login
+      Then the app is in the login items
+      And Start at Login shows a check mark
+
+    @slice
+    Scenario: Turning Start at login on in the Settings window
+      Given the app is not in the login items
+      When the user turns the Start at login switch on in the Settings window
       Then the app is in the login items
       And Start at Login shows a check mark
 
@@ -126,17 +140,17 @@ Feature: Menu bar app
       When the app starts
       Then the login items are unchanged
 
-  Rule: The menu opens the app's folders and quits
+  Rule: The Settings window shows the switches and the history
 
     @slice
-    Scenario: Open the settings folder
+    Scenario: Settings opens the General tab
+      Given the app runs and its server listens on port 7777
+      When the user chooses Settings…
+      Then the Settings window shows its General tab
+      And the Serve links switch is on, with the line under it saying the server runs on port 7777
+
+    @slice
+    Scenario: Link History opens the History tab
       Given the app runs
-      When the user chooses Open Settings Folder
-      Then the Finder opens the settings folder
-
-    @slice
-    Scenario: Open the logs folder before the first request
-      Given the app runs and no request was logged yet
-      When the user chooses Open Logs Folder
-      Then the logs folder exists
-      And the Finder opens it
+      When the user chooses Link History…
+      Then the Settings window shows its History tab

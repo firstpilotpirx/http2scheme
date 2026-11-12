@@ -1,6 +1,6 @@
-//! What the user asks of the Link History window.
+//! What the user asks of the History tab.
 
-/// One request of the Link History window.
+/// One request of the History tab.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HistoryCommandEnum {
     /// The window is shown: list the latest requests.

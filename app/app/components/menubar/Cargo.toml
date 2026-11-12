@@ -32,5 +32,9 @@ name = "status_menu_handler_integration_test"
 harness = false
 
 [[test]]
-name = "history_window_handler_integration_test"
+name = "settings_window_handler_integration_test"
+harness = false
+
+[[test]]
+name = "history_tab_handler_integration_test"
 harness = false

@@ -48,6 +48,12 @@ impl MenuViewValueObject {
         self.login.title()
     }
 
+    /// The line under the Start at login switch of the Settings window.
+    #[must_use]
+    pub const fn login_note(&self) -> &'static str {
+        self.login.note()
+    }
+
     /// Whether Start at Login shows a check mark.
     #[must_use]
     pub const fn login_checked(&self) -> bool {

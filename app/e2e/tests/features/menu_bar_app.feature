@@ -17,7 +17,7 @@ Feature: Menu bar app
       When the user asks it for the open link of an IntelliJ link
       Then it prints one open link to the loopback address
 
-  Rule: The menu opens the app's folders and quits
+  Rule: Quit and the system end the app
 
     @e2e @bundle
     Scenario: A terminate signal ends the app

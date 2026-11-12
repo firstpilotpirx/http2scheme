@@ -19,8 +19,8 @@ use crate::fakes::FakeLoginItem;
 
 const APPLICATIONS: &str = "/Applications/http2scheme.app/Contents/MacOS/http2scheme";
 const DOWNLOADS: &str = "/Users/someone/Downloads/http2scheme.app/Contents/MacOS/http2scheme";
-const SERVE: usize = 2;
-const LOGIN: usize = 5;
+const SERVE: usize = 3;
+const LOGIN: usize = 4;
 
 pub(super) fn config(world: &MenubarWorld) -> MenubarConfig {
     let home = world.home.path();
@@ -29,7 +29,6 @@ pub(super) fn config(world: &MenubarWorld) -> MenubarConfig {
         settings_dir: home.join("settings"),
         log_dir: home.join("logs"),
         program: PathBuf::from(&world.program),
-        open_program: world.open.program.clone(),
     };
     let mut ports = MenubarPorts::macos(&setup, &world.output, world.replayer.replayer());
     ports.login_item = world.login_item.clone();
@@ -40,9 +39,10 @@ fn login_item(world: &mut MenubarWorld, state: LoginItemStateEnum) {
     world.login_item = Arc::new(FakeLoginItem::new(state));
 }
 
-fn show(world: &mut MenubarWorld, choice: Option<&str>) {
+pub(super) fn show(world: &mut MenubarWorld, choice: Option<&str>) {
     let mtm = MenubarConfig::main_thread().unwrap();
-    let menu = config(world).status_menu(mtm, Box::new(|| {}));
+    let config = config(world);
+    let menu = config.status_menu(mtm, config.menu(), Box::new(|| {}), Box::new(|| {}));
     if let Some(title) = choice {
         menu.choose(title);
     }
@@ -100,7 +100,7 @@ async fn removed_before(world: &mut MenubarWorld) {
     login_item(world, LoginItemStateEnum::Off);
 }
 
-#[given(regex = r"^the app runs(?: and no request was logged yet)?$")]
+#[given(regex = r"^the app runs$")]
 fn app_runs(world: &mut MenubarWorld) {
     assert!(!world.home.path().join("logs").exists());
 }
@@ -110,13 +110,9 @@ fn opens_menu(world: &mut MenubarWorld) {
     show(world, None);
 }
 
-#[when(regex = r"^the user chooses (Start at Login|Open Settings Folder|Open Logs Folder)$")]
-fn chooses(world: &mut MenubarWorld, item: String) {
-    let title = if item == "Start at Login" {
-        world.login_item.state().title().to_owned()
-    } else {
-        item
-    };
+#[when(regex = r"^the user chooses Start at Login$")]
+fn chooses(world: &mut MenubarWorld) {
+    let title = world.login_item.state().title().to_owned();
     show(world, Some(&title));
 }
 
@@ -178,22 +174,6 @@ fn login_disabled(world: &mut MenubarWorld) {
 fn unchanged(world: &mut MenubarWorld) {
     assert_eq!(world.login_item.actions(), Vec::<&str>::new());
     assert!(!world.home.path().join("settings").exists());
-}
-
-#[then(regex = r"^the Finder opens the (settings|logs) folder$")]
-fn finder_opens(world: &mut MenubarWorld, folder: String) {
-    let path = world.home.path().join(folder);
-    assert_eq!(world.open.calls(), [[path.display().to_string()]]);
-}
-
-#[then(regex = r"^the logs folder exists$")]
-fn logs_exist(world: &mut MenubarWorld) {
-    assert!(world.home.path().join("logs").is_dir());
-}
-
-#[then(regex = r"^the Finder opens it$")]
-fn finder_opens_it(world: &mut MenubarWorld) {
-    finder_opens(world, "logs".to_owned());
 }
 
 #[given(regex = r"^the app runs and its server answers$")]

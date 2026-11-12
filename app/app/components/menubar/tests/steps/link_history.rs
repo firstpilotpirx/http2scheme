@@ -1,4 +1,4 @@
-//! Steps of the `menu-bar-app` capability for the Link History window and its ▶ buttons.
+//! Steps of the `menu-bar-app` capability for the History tab and its ▶ buttons.
 #![allow(
     clippy::needless_pass_by_value,
     reason = "cucumber hands captures over by value"
@@ -16,13 +16,14 @@ const SLACK: &str = "slack://channel?id=C1";
 
 fn open_history(world: &mut MenubarWorld, replay: Option<usize>) {
     let mtm = MenubarConfig::main_thread().unwrap();
-    let window = config(world).history_window(mtm);
-    window.show();
+    let config = config(world);
+    let window = config.settings_window(mtm, config.menu(), config.history_tab(mtm));
+    window.show_history();
     if let Some(index) = replay {
-        window.replay(index);
+        window.history().replay(index);
     }
-    world.rows = window.rows();
-    world.note = window.note();
+    world.rows = window.history().rows();
+    world.note = window.history().note();
 }
 
 fn link_of(name: &str) -> &'static str {
@@ -74,7 +75,7 @@ fn no_log(world: &mut MenubarWorld) {
 }
 
 #[given(
-    regex = r#"^the Link History window lists an? (?:opened )?(IntelliJ|Slack) link(?: with the result "(.+)")?$"#
+    regex = r#"^the History tab lists an? (?:opened )?(IntelliJ|Slack) link(?: with the result "(.+)")?$"#
 )]
 fn window_lists(world: &mut MenubarWorld, name: String, result: String) {
     let result = if result.is_empty() {
@@ -89,7 +90,7 @@ fn window_lists(world: &mut MenubarWorld, name: String, result: String) {
     assert_eq!(world.rows[0][2], link_of(&name));
 }
 
-#[when(regex = r"^the user opens the Link History window$")]
+#[when(regex = r"^the user opens the History tab$")]
 fn opens_history(world: &mut MenubarWorld) {
     open_history(world, None);
 }
@@ -127,7 +128,7 @@ fn lists_two(world: &mut MenubarWorld) {
     assert_eq!(links, [GOLAND, INTELLIJ]);
 }
 
-#[then(regex = r"^the window says no link has been opened yet$")]
+#[then(regex = r"^the tab says no link has been opened yet$")]
 fn says_nothing_yet(world: &mut MenubarWorld) {
     assert_eq!(world.rows, Vec::<[String; 3]>::new());
     assert_eq!(world.note.as_deref(), Some("No link has been opened yet."));

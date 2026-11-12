@@ -13,7 +13,6 @@ fn config(program: &str, settings: PathBuf) -> MenubarConfig {
         settings_dir: settings,
         log_dir: PathBuf::from("logs"),
         program: PathBuf::from(program),
-        open_program: PathBuf::from("open"),
     };
     let hooks = MenubarHooks {
         serve: Arc::new(|_, mut out, _| {

@@ -5,40 +5,31 @@ use std::sync::Arc;
 
 use super::operate_menu::OperateMenu;
 use crate::core::application::exceptions::menu_action_error::MenuActionError;
-use crate::core::application::services::folder_opener_service::FolderOpenerService;
 use crate::core::application::services::login_item_service::LoginItemService;
 use crate::core::application::services::server_switch_service::ServerSwitchService;
-use crate::core::domain::app_folder_enum::AppFolderEnum;
-use crate::core::domain::app_folders_value_object::AppFoldersValueObject;
 use crate::core::domain::login_item_state_enum::LoginItemStateEnum;
 use crate::core::domain::menu_command_enum::MenuCommandEnum;
 use crate::core::domain::menu_view_value_object::MenuViewValueObject;
 
-/// The menu's use case over the server's state and switch, the login item and the Finder.
+/// The menu's use case over the server's state and switch, and the login item.
 pub struct OperateMenuUseCase {
     version: String,
-    folders: AppFoldersValueObject,
     server: Arc<dyn ServerSwitchService>,
     login_item: Arc<dyn LoginItemService>,
-    opener: Arc<dyn FolderOpenerService>,
 }
 
 impl OperateMenuUseCase {
-    /// A use case for the app `version` with its `folders`.
+    /// A use case for the app `version`.
     #[must_use]
     pub fn new(
         version: String,
-        folders: AppFoldersValueObject,
         server: Arc<dyn ServerSwitchService>,
         login_item: Arc<dyn LoginItemService>,
-        opener: Arc<dyn FolderOpenerService>,
     ) -> Self {
         Self {
             version,
-            folders,
             server,
             login_item,
-            opener,
         }
     }
 
@@ -58,10 +49,6 @@ impl OperateMenuUseCase {
             self.server.turn_on().await;
         }
     }
-
-    async fn open(&self, folder: AppFolderEnum) -> Result<(), MenuActionError> {
-        self.opener.open(self.folders.path(folder)).await
-    }
 }
 
 #[async_trait]
@@ -74,7 +61,6 @@ impl OperateMenu for OperateMenuUseCase {
             MenuCommandEnum::Show => {}
             MenuCommandEnum::ToggleServer => self.toggle_server().await,
             MenuCommandEnum::ToggleLoginItem => self.toggle().await?,
-            MenuCommandEnum::OpenFolder(folder) => self.open(folder).await?,
         }
         let server = self.server.current().await;
         Ok(MenuViewValueObject::new(

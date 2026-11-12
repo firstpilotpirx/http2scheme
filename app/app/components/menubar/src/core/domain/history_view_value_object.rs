@@ -1,4 +1,4 @@
-//! What the Link History window shows at one moment.
+//! What the History tab shows at one moment.
 
 use super::link_record_value_object::LinkRecordValueObject;
 

@@ -1,4 +1,4 @@
-//! The request log file of the server, read back for the Link History window.
+//! The request log file of the server, read back for the History tab.
 
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};

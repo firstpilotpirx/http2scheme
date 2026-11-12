@@ -1,4 +1,4 @@
-//! One line of the request log, as the Link History window lists it.
+//! One line of the request log, as the History tab lists it.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 

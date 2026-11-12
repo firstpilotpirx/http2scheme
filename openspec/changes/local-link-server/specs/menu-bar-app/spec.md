@@ -178,7 +178,7 @@ Settings… SHALL bring the window `http2scheme Settings` to the front with its 
 - **GIVEN** the app runs and its server listens on port 7777
 - **WHEN** the user chooses Settings…
 - **THEN** the Settings window shows its General tab
-- **AND** the Serve links switch is on with "Running on http://127.0.0.1:7777" under it
+- **AND** the Serve links switch is on, with the line under it saying the server runs on port 7777
 
 #### Scenario: Link History opens the History tab
 

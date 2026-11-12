@@ -5,7 +5,8 @@ use std::sync::Arc;
 use objc2::MainThreadMarker;
 
 use crate::adapters::primary::statusmenu::appkit::app_kit_config::{AppKitConfig, ready};
-use crate::adapters::primary::statusmenu::appkit::history_window_handler::HistoryWindowHandler;
+use crate::adapters::primary::statusmenu::appkit::history_tab_handler::HistoryTabHandler;
+use crate::adapters::primary::statusmenu::appkit::settings_window_handler::SettingsWindowHandler;
 use crate::adapters::primary::statusmenu::appkit::status_menu_handler::StatusMenuHandler;
 use crate::adapters::secondary::loginitem::smappservice::sm_app_service_login_item_gateway::SmAppServiceLoginItemGateway;
 use crate::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
@@ -13,8 +14,8 @@ use crate::core::application::exceptions::menu_action_error::MenuActionError;
 use crate::core::application::use_cases::browse_history_use_case::BrowseHistoryUseCase;
 use crate::core::application::use_cases::offer_login_item::OfferLoginItem as _;
 use crate::core::application::use_cases::offer_login_item_use_case::OfferLoginItemUseCase;
+use crate::core::application::use_cases::operate_menu::OperateMenu;
 use crate::core::application::use_cases::operate_menu_use_case::OperateMenuUseCase;
-use crate::core::domain::app_folders_value_object::AppFoldersValueObject;
 use crate::menubar_hooks::MenubarHooks;
 use crate::menubar_ports::MenubarPorts;
 use crate::menubar_setup::MenubarSetup;
@@ -87,38 +88,62 @@ impl MenubarConfig {
         .await
     }
 
-    /// Prepares the Link History window; it shows at [`HistoryWindowHandler::show`].
+    /// The menu's use case; the status menu and the Settings window share one.
     #[must_use]
-    pub fn history_window(&self, mtm: MainThreadMarker) -> HistoryWindowHandler {
-        let use_case =
-            BrowseHistoryUseCase::new(self.ports.history.clone(), self.ports.replay.clone());
-        HistoryWindowHandler::install(mtm, Arc::new(use_case))
+    pub fn menu(&self) -> Arc<dyn OperateMenu> {
+        Arc::new(OperateMenuUseCase::new(
+            self.setup.version.clone(),
+            self.ports.switch.clone(),
+            self.ports.login_item.clone(),
+        ))
     }
 
-    /// Puts the status item with its menu in the menu bar; Link History… calls `show_history`.
+    /// Prepares the History tab over the request log and the replayer.
+    #[must_use]
+    pub fn history_tab(&self, mtm: MainThreadMarker) -> HistoryTabHandler {
+        let history =
+            BrowseHistoryUseCase::new(self.ports.history.clone(), self.ports.replay.clone());
+        HistoryTabHandler::install(mtm, Arc::new(history))
+    }
+
+    /// Prepares the Settings window over `menu` with the `history` tab; it shows at
+    /// [`SettingsWindowHandler::show_general`] or [`SettingsWindowHandler::show_history`].
+    #[must_use]
+    pub fn settings_window(
+        &self,
+        mtm: MainThreadMarker,
+        menu: Arc<dyn OperateMenu>,
+        history: HistoryTabHandler,
+    ) -> SettingsWindowHandler {
+        SettingsWindowHandler::install(mtm, menu, history)
+    }
+
+    /// Puts the status item with its menu over `menu` in the menu bar; Settings… calls
+    /// `show_settings` and Link History… calls `show_history`.
     #[must_use]
     pub fn status_menu(
         &self,
         mtm: MainThreadMarker,
+        menu: Arc<dyn OperateMenu>,
+        show_settings: Box<dyn Fn()>,
         show_history: Box<dyn Fn()>,
     ) -> StatusMenuHandler {
-        let folders =
-            AppFoldersValueObject::new(self.setup.settings_dir.clone(), self.setup.log_dir.clone());
-        let use_case = OperateMenuUseCase::new(
-            self.setup.version.clone(),
-            folders,
-            self.ports.switch.clone(),
-            self.ports.login_item.clone(),
-            self.ports.opener.clone(),
-        );
-        StatusMenuHandler::install(mtm, Arc::new(use_case), show_history)
+        StatusMenuHandler::install(mtm, menu, show_settings, show_history)
     }
 
     /// Shows the menu and runs the application loop until the app quits.
     pub fn run(&self, mtm: MainThreadMarker) {
-        let history = std::rc::Rc::new(self.history_window(mtm));
-        let shown = std::rc::Rc::clone(&history);
-        let _menu = self.status_menu(mtm, Box::new(move || shown.show()));
+        let menu = self.menu();
+        let settings =
+            std::rc::Rc::new(self.settings_window(mtm, menu.clone(), self.history_tab(mtm)));
+        let general = std::rc::Rc::clone(&settings);
+        let history = std::rc::Rc::clone(&settings);
+        let _menu = self.status_menu(
+            mtm,
+            menu,
+            Box::new(move || general.show_general()),
+            Box::new(move || history.show_history()),
+        );
         AppKitConfig::run(mtm);
     }
 }

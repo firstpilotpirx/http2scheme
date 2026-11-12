@@ -1,17 +1,16 @@
-//! The Link History window: the latest requests newest first, each with a ▶ that opens its link
-//! again (design D18, after the dictation history window of `VoicePuncher`).
+//! The History tab of the Settings window: the latest requests newest first, each with a ▶ that
+//! opens its link again (design D18, D19, after the dictation history window of `VoicePuncher`).
 
 #![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::RefCell;
 use std::sync::Arc;
 
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
 use objc2_app_kit::{
-    NSApplication, NSBackingStoreType, NSButton, NSFont, NSLineBreakMode, NSScrollView,
-    NSTextAlignment, NSTextField, NSView, NSWindow, NSWindowStyleMask,
+    NSButton, NSFont, NSLineBreakMode, NSScrollView, NSTextAlignment, NSTextField, NSView,
 };
 use objc2_foundation::{
     NSDate, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString, NSTimeZone,
@@ -22,10 +21,8 @@ use crate::core::application::use_cases::browse_history::BrowseHistory;
 use crate::core::domain::history_command_enum::HistoryCommandEnum;
 use crate::core::domain::history_view_value_object::HistoryViewValueObject;
 
-/// The window's title, also how a test finds it.
-pub const WINDOW_TITLE: &str = "Link History";
-const WIDTH: f64 = 720.0;
-const HEIGHT: f64 = 480.0;
+const WIDTH: f64 = 680.0;
+const HEIGHT: f64 = 400.0;
 const MARGIN: f64 = 16.0;
 const HEADER: f64 = 22.0;
 const ROW_HEIGHT: f64 = 26.0;
@@ -43,7 +40,8 @@ type ShownRow = [String; 3];
 /// The ivars of the target of every ▶ button.
 struct HistoryIvars {
     use_case: Arc<dyn BrowseHistory>,
-    window: OnceCell<Retained<NSWindow>>,
+    view: Retained<NSView>,
+    content: RefCell<Option<Retained<NSView>>>,
     shown: RefCell<Vec<ShownRow>>,
     note: RefCell<Option<String>>,
 }
@@ -69,9 +67,11 @@ define_class!(
 
 impl HistoryTarget {
     fn new(mtm: MainThreadMarker, use_case: Arc<dyn BrowseHistory>) -> Retained<Self> {
+        let view = NSView::initWithFrame(mtm.alloc::<NSView>(), rect(0.0, 0.0, WIDTH, HEIGHT));
         let this = Self::alloc(mtm).set_ivars(HistoryIvars {
             use_case,
-            window: OnceCell::new(),
+            view,
+            content: RefCell::new(None),
             shown: RefCell::new(Vec::new()),
             note: RefCell::new(None),
         });
@@ -81,14 +81,6 @@ impl HistoryTarget {
 
     fn mtm(&self) -> MainThreadMarker {
         MainThreadMarker::from(self)
-    }
-
-    fn window(&self) -> &Retained<NSWindow> {
-        self.ivars().window.get_or_init(|| {
-            let window = titled_window(self.mtm());
-            window.center();
-            window
-        })
     }
 
     fn run(&self, command: HistoryCommandEnum) {
@@ -145,7 +137,10 @@ impl HistoryTarget {
             }
             content.addSubview(&self.rows_view(&font, width));
         }
-        self.window().setContentView(Some(&content));
+        if let Some(old) = self.ivars().content.replace(Some(content.clone())) {
+            old.removeFromSuperview();
+        }
+        self.ivars().view.addSubview(&content);
     }
 
     fn rows_view(&self, font: &NSFont, width: f64) -> Retained<NSScrollView> {
@@ -222,25 +217,8 @@ fn label(mtm: MainThreadMarker, text: &str, font: &NSFont) -> Retained<NSTextFie
     field
 }
 
-fn titled_window(mtm: MainThreadMarker) -> Retained<NSWindow> {
-    // SAFETY: a new titled window, kept by the target, so it must not release itself on close.
-    let window = unsafe {
-        let window = NSWindow::initWithContentRect_styleMask_backing_defer(
-            mtm.alloc::<NSWindow>(),
-            rect(0.0, 0.0, WIDTH, HEIGHT),
-            NSWindowStyleMask::Titled | NSWindowStyleMask::Closable,
-            NSBackingStoreType::Buffered,
-            false,
-        );
-        window.setReleasedWhenClosed(false);
-        window
-    };
-    window.setTitle(&NSString::from_str(WINDOW_TITLE));
-    window
-}
-
 fn replay_button(mtm: MainThreadMarker, target: &HistoryTarget) -> Retained<NSButton> {
-    // SAFETY: `replay:` is a sender-taking method of `target`, which outlives the window's rows.
+    // SAFETY: `replay:` is a sender-taking method of `target`, which outlives the tab's rows.
     unsafe {
         NSButton::buttonWithTitle_target_action(
             &NSString::from_str(REPLAY),
@@ -251,13 +229,13 @@ fn replay_button(mtm: MainThreadMarker, target: &HistoryTarget) -> Retained<NSBu
     }
 }
 
-/// The Link History window, built on first use and brought to the front after.
-pub struct HistoryWindowHandler {
+/// The History tab's view and its rows; the Settings window holds the view.
+pub struct HistoryTabHandler {
     target: Retained<HistoryTarget>,
 }
 
-impl HistoryWindowHandler {
-    /// Prepares the window over `use_case`; nothing shows until [`Self::show`].
+impl HistoryTabHandler {
+    /// Prepares the tab over `use_case`; it reads the request log at [`Self::show`].
     #[must_use]
     pub fn install(mtm: MainThreadMarker, use_case: Arc<dyn BrowseHistory>) -> Self {
         Self {
@@ -265,20 +243,24 @@ impl HistoryWindowHandler {
         }
     }
 
-    /// Reads the request log again and brings the window to the front, as Link History… does.
-    pub fn show(&self) {
-        self.target.run(HistoryCommandEnum::Show);
-        NSApplication::sharedApplication(self.target.mtm()).activate();
-        self.target.window().makeKeyAndOrderFront(None);
+    /// The view the History tab holds.
+    #[must_use]
+    pub fn view(&self) -> Retained<NSView> {
+        self.target.ivars().view.clone()
     }
 
-    /// The rows as the window shows them: `[time, result, link]`, newest first.
+    /// Reads the request log again and draws its rows.
+    pub fn show(&self) {
+        self.target.run(HistoryCommandEnum::Show);
+    }
+
+    /// The rows as the tab shows them: `[time, result, link]`, newest first.
     #[must_use]
     pub fn rows(&self) -> Vec<[String; 3]> {
         self.target.ivars().shown.borrow().clone()
     }
 
-    /// The line the window shows in place of its rows, if any.
+    /// The line the tab shows in place of its rows, if any.
     #[must_use]
     pub fn note(&self) -> Option<String> {
         self.target.ivars().note.borrow().clone()
@@ -288,26 +270,8 @@ impl HistoryWindowHandler {
     pub fn replay(&self, index: usize) {
         self.target.replay(index);
     }
-
-    /// Whether the window is on the screen.
-    #[must_use]
-    pub fn is_visible(&self) -> bool {
-        self.target
-            .ivars()
-            .window
-            .get()
-            .is_some_and(|window| window.isVisible())
-    }
-}
-
-impl Drop for HistoryWindowHandler {
-    fn drop(&mut self) {
-        if let Some(window) = self.target.ivars().window.get() {
-            window.orderOut(None);
-        }
-    }
 }
 
 #[cfg(test)]
-#[path = "history_window_handler_test.rs"]
-mod history_window_handler_test;
+#[path = "history_tab_handler_test.rs"]
+mod history_tab_handler_test;

@@ -12,7 +12,6 @@ fn setup() -> MenubarSetup {
         settings_dir: PathBuf::from("settings"),
         log_dir: PathBuf::from("logs"),
         program: PathBuf::from("/usr/local/bin/http2scheme"),
-        open_program: PathBuf::from("open"),
     }
 }
 

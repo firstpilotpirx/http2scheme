@@ -1,5 +1,5 @@
 //! The status item in the menu bar and its menu: the title line, the status line, Serve Links,
-//! Link History…, Start at Login, Open Settings Folder, Open Logs Folder and Quit (design D14, D18).
+//! Start at Login, Settings…, Link History… and Quit (design D14, D18, D19).
 
 #![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]
 
@@ -17,7 +17,6 @@ use objc2_foundation::{NSObject, NSObjectProtocol, NSString};
 
 use super::app_kit_config::ready;
 use crate::core::application::use_cases::operate_menu::OperateMenu;
-use crate::core::domain::app_folder_enum::AppFolderEnum;
 use crate::core::domain::menu_command_enum::MenuCommandEnum;
 use crate::core::domain::menu_view_value_object::MenuViewValueObject;
 
@@ -25,12 +24,13 @@ const SYMBOL: &str = "link";
 const QUIT: &str = "Quit http2scheme";
 const TITLE: isize = 0;
 const STATUS: isize = 1;
-const SERVE: isize = 2;
-const LOGIN: isize = 5;
+const SERVE: isize = 3;
+const LOGIN: isize = 4;
 
 /// The ivars of the target of every menu item.
 struct TargetIvars {
     use_case: Arc<dyn OperateMenu>,
+    show_settings: Box<dyn Fn()>,
     show_history: Box<dyn Fn()>,
     menu: OnceCell<Retained<NSMenu>>,
 }
@@ -57,6 +57,11 @@ define_class!(
             self.chosen(MenuCommandEnum::ToggleServer);
         }
 
+        #[unsafe(method(showSettings:))]
+        fn show_settings(&self, _sender: Option<&AnyObject>) {
+            (self.ivars().show_settings)();
+        }
+
         #[unsafe(method(showHistory:))]
         fn show_history(&self, _sender: Option<&AnyObject>) {
             (self.ivars().show_history)();
@@ -65,16 +70,6 @@ define_class!(
         #[unsafe(method(toggleLogin:))]
         fn toggle_login(&self, _sender: Option<&AnyObject>) {
             self.chosen(MenuCommandEnum::ToggleLoginItem);
-        }
-
-        #[unsafe(method(openSettings:))]
-        fn open_settings(&self, _sender: Option<&AnyObject>) {
-            self.chosen(MenuCommandEnum::OpenFolder(AppFolderEnum::Settings));
-        }
-
-        #[unsafe(method(openLogs:))]
-        fn open_logs(&self, _sender: Option<&AnyObject>) {
-            self.chosen(MenuCommandEnum::OpenFolder(AppFolderEnum::Logs));
         }
 
         #[unsafe(method(quit:))]
@@ -88,10 +83,12 @@ impl MenuTarget {
     fn new(
         mtm: MainThreadMarker,
         use_case: Arc<dyn OperateMenu>,
+        show_settings: Box<dyn Fn()>,
         show_history: Box<dyn Fn()>,
     ) -> Retained<Self> {
         let this = Self::alloc(mtm).set_ivars(TargetIvars {
             use_case,
+            show_settings,
             show_history,
             menu: OnceCell::new(),
         });
@@ -188,38 +185,27 @@ pub struct StatusMenuHandler {
 
 impl StatusMenuHandler {
     /// Puts the link icon with its menu in the menu bar; the menu reads `use_case` each time it
-    /// opens, and Link History… calls `show_history`.
+    /// opens; Settings… calls `show_settings` and Link History… calls `show_history`.
     #[must_use]
     pub fn install(
         mtm: MainThreadMarker,
         use_case: Arc<dyn OperateMenu>,
+        show_settings: Box<dyn Fn()>,
         show_history: Box<dyn Fn()>,
     ) -> Self {
-        let target = MenuTarget::new(mtm, use_case, show_history);
+        let target = MenuTarget::new(mtm, use_case, show_settings, show_history);
         let menu = NSMenu::new(mtm);
         menu.setAutoenablesItems(false);
         menu.setDelegate(Some(ProtocolObject::from_ref(&*target)));
         let entries = [
             item(mtm, &target, "http2scheme", None, ""),
             item(mtm, &target, "", None, ""),
-            item(mtm, &target, "Serve Links", Some(sel!(toggleServer:)), ""),
-            item(mtm, &target, "Link History…", Some(sel!(showHistory:)), ""),
             NSMenuItem::separatorItem(mtm),
+            item(mtm, &target, "Serve Links", Some(sel!(toggleServer:)), ""),
             item(mtm, &target, "Start at Login", Some(sel!(toggleLogin:)), ""),
-            item(
-                mtm,
-                &target,
-                AppFolderEnum::Settings.title(),
-                Some(sel!(openSettings:)),
-                "",
-            ),
-            item(
-                mtm,
-                &target,
-                AppFolderEnum::Logs.title(),
-                Some(sel!(openLogs:)),
-                "",
-            ),
+            NSMenuItem::separatorItem(mtm),
+            item(mtm, &target, "Settings…", Some(sel!(showSettings:)), ","),
+            item(mtm, &target, "Link History…", Some(sel!(showHistory:)), ""),
             NSMenuItem::separatorItem(mtm),
             item(mtm, &target, QUIT, Some(sel!(quit:)), "q"),
         ];

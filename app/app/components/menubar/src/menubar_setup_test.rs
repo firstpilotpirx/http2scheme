@@ -9,7 +9,6 @@ fn a_setup_keeps_what_the_app_hands_in() {
         settings_dir: PathBuf::from("settings"),
         log_dir: PathBuf::from("logs"),
         program: PathBuf::from("program"),
-        open_program: PathBuf::from("open"),
     };
     assert_eq!(setup.version, "0.1.0");
 }

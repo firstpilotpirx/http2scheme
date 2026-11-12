@@ -25,3 +25,19 @@ fn a_login_item_waiting_for_approval_says_so() {
     assert_eq!(On.title(), "Start at Login");
     assert_eq!(Unavailable.title(), "Start at Login");
 }
+
+#[test]
+fn each_login_state_has_its_note() {
+    let notes: Vec<&str> = [On, Off, NeedsApproval, Unavailable]
+        .map(LoginItemStateEnum::note)
+        .into();
+    assert_eq!(
+        notes,
+        [
+            "The app starts when you log in to the Mac.",
+            "The app starts when you log in to the Mac.",
+            "Approve the app in System Settings › Login Items.",
+            "Only the app installed in Applications can start at login.",
+        ]
+    );
+}
