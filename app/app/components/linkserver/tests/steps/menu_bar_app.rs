@@ -5,7 +5,13 @@
     reason = "cucumber hands captures over by value"
 )]
 
+use std::time::SystemTime;
+
 use cucumber::{given, then, when};
+use linkserver::core::application::repositories::open_attempt_repository::OpenAttemptRepository;
+use linkserver::core::domain::link_open_attempted_domain_event::LinkOpenAttemptedDomainEvent;
+use linkserver::core::domain::link_rejected_error::LinkRejectedError;
+use linkserver::core::domain::open_outcome_enum::OpenOutcomeEnum;
 
 use super::home::{config, free_port, write_settings};
 use crate::LinkserverWorld;
@@ -14,11 +20,22 @@ const INTELLIJ: &str = "idea://open?file=/src/Main.java&line=1";
 const SLACK: &str = "slack://channel?id=C1";
 
 #[given(
-    regex = r#"^the Link History window lists an? (?:opened )?(IntelliJ|Slack) link(?: with the result ".+")?$"#
+    regex = r#"^the Link History window lists (an opened IntelliJ|a Slack) link(?: with the result "scheme not allowed")?$"#
 )]
-fn window_lists(world: &mut LinkserverWorld, name: String) {
+async fn window_lists(world: &mut LinkserverWorld, row: String) {
     write_settings(world, free_port(), &["idea"]);
-    world.link = Some(if name == "IntelliJ" { INTELLIJ } else { SLACK }.to_owned());
+    let (link, outcome) = if row == "a Slack" {
+        let scheme = "slack".to_owned();
+        (
+            SLACK,
+            OpenOutcomeEnum::Rejected(LinkRejectedError::SchemeNotAllowed { scheme }),
+        )
+    } else {
+        (INTELLIJ, OpenOutcomeEnum::Opened)
+    };
+    let earlier = LinkOpenAttemptedDomainEvent::new(SystemTime::now(), link.to_owned(), outcome);
+    world.fakes.log.record(&earlier).await.unwrap();
+    world.link = Some(link.to_owned());
 }
 
 #[when(regex = r"^the user chooses ▶ on its row$")]
@@ -36,7 +53,14 @@ fn opens_nothing(world: &mut LinkserverWorld) {
 fn first_row(world: &mut LinkserverWorld, result: String) {
     assert_eq!(world.answer.body, result);
     let events = world.fakes.log.events();
+    assert_eq!(events.len(), 2, "the earlier row and the new attempt");
     let newest = events.last().unwrap();
     assert_eq!(newest.link_text(), world.link.clone().unwrap());
     assert_eq!(newest.outcome().label(), result);
+    assert!(newest.at() >= events[0].at());
+    assert_eq!(
+        world.fakes.closer.ports(),
+        Vec::<u16>::new(),
+        "no tab closes"
+    );
 }

@@ -176,8 +176,8 @@ Slice: `app/app/components/<component>/tests/features/slice/<capability>.feature
 | menu-bar-app: Only the latest 100 requests are listed | slice (menubar) + integration (repository) |
 | menu-bar-app: An unreadable log line has no row | slice (menubar) + integration (repository) |
 | menu-bar-app: No request yet | slice (menubar) + integration (repository) |
-| menu-bar-app: Opening an IntelliJ link again | slice (menubar) + integration (linkserver handler) |
-| menu-bar-app: A link whose scheme is not allowed stays closed | slice (menubar) + integration (linkserver handler) |
+| menu-bar-app: Opening an IntelliJ link again | slice (menubar) + slice (linkserver) + integration (linkserver handler) |
+| menu-bar-app: A link whose scheme is not allowed stays closed | slice (menubar) + slice (linkserver) + integration (linkserver handler) |
 | menu-bar-app: Turning Start at Login on | slice (menubar) |
 | menu-bar-app: Turning Start at Login off | slice (menubar) |
 | menu-bar-app: A login item that waits for approval | slice (menubar) |
