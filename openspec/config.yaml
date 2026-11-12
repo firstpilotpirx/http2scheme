@@ -1,0 +1,31 @@
+schema: spec-driven
+
+context: |
+  http2scheme: a tiny local Rust HTTP server for macOS that turns http://127.0.0.1 links into custom URL scheme links (idea://, slack://, ...) for apps that allow only http links.
+  Product stage: PoC.
+  Workflow: AGENTS.md § Workflow. No code before the user approved the proposal.
+  Tests: AGENTS.md § TDD and § Gherkin; checks: AGENTS.md § How to verify a change.
+  Versioning: AGENTS.md § Release; a behavior change bumps the version and ends in a tag and a release.
+  Write all artifacts in English.
+
+rules:
+  proposal:
+    - State current stage, target stage, scope and acceptance bar.
+    - List what is out of scope.
+    - State the SemVer bump (MAJOR, MINOR, PATCH) and the target version X.Y.Z; state "no release" only for a change without behavior change.
+  specs:
+    - Scenarios state behavior the user or the agent observes; never name a type, flag or file path in GIVEN/WHEN/THEN.
+    - "Each scenario reads as Gherkin: preconditions in GIVEN, exactly one WHEN, observable outcomes in THEN."
+  design:
+    - State the test level of every spec scenario (unit, integration, slice, component, E2E, manual run) per AGENTS.md § Gherkin.
+  tasks:
+    - For each behavior, list a Red task (failing test) before its Green task.
+    - End each task group with a commit (`kit ship`), no check; the change runs its checks once, after the last group.
+    - End the list with the manual checks the user performs, or "none".
+
+operations:
+  apply:
+    guidance:
+      - Work on a `<type>/<change-name>` branch from origin/main; never on main.
+      - Follow Red -> Green -> Refactor (`tdd` skill).
+      - Work found that is related to this change (a capability its specs touch, a file it touches or its tasks name) is fixed in this change without asking, as `~/.claude/rules-custom/openspec.md` says; it is never filed as a new change.

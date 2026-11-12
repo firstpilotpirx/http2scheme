@@ -1,0 +1,7 @@
+# kit config (agent-kit README § Project config). Guessed by kit init; correct what is wrong.
+checks:
+  build_inputs: ["src/**", "tests/**", "Cargo.toml", "Cargo.lock", "justfile", "clippy.toml", "deny.toml", "rust-toolchain.toml"]
+  after_group: just check
+  before_merge: just check
+manual_run: {}
+version_file: Cargo.toml
