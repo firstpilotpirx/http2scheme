@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use crate::adapters::primary::linkopening::http::open_link_response::OpenLinkResponse;
 use crate::core::domain::agent_definition_value_object::AgentDefinitionValueObject;
+use crate::linkserver_programs::LinkserverPrograms;
 
 const SETTINGS_FILE: &str = "settings.toml";
 const REQUEST_LOG: &str = "requests.log";
@@ -29,12 +30,8 @@ pub struct LinkserverSetup {
     pub version: String,
     /// The user id of the agent's launchd domain.
     pub uid: u32,
-    /// The macOS link opener.
-    pub open_program: PathBuf,
-    /// The launchd control program.
-    pub launchctl_program: PathBuf,
-    /// The `AppleScript` runner.
-    pub osascript_program: PathBuf,
+    /// The system programs the adapters run.
+    pub programs: LinkserverPrograms,
 }
 
 impl LinkserverSetup {

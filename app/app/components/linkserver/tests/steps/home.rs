@@ -11,6 +11,7 @@ use std::time::Duration;
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
+use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
 
 use crate::LinkserverWorld;
@@ -125,13 +126,17 @@ pub fn config(world: &mut LinkserverWorld) -> LinkserverConfig {
         hosts: vec!["127.0.0.1".to_owned(), "localhost".to_owned()],
         version: "0.1.0".to_owned(),
         uid: 501,
-        open_program: PathBuf::from("/nonexistent/open"),
-        launchctl_program: PathBuf::from("/nonexistent/launchctl"),
-        osascript_program: PathBuf::from("/nonexistent/osascript"),
+        programs: LinkserverPrograms {
+            open: PathBuf::from("/nonexistent/open"),
+            launchctl: PathBuf::from("/nonexistent/launchctl"),
+            osascript: PathBuf::from("/nonexistent/osascript"),
+            lsappinfo: PathBuf::from("/nonexistent/lsappinfo"),
+        },
     };
     let mut ports = LinkserverPorts::macos(&setup);
     ports.opener = world.fakes.opener.clone();
     ports.closer = world.fakes.closer.clone();
+    ports.order = world.fakes.order.clone();
     ports.attempts = world.fakes.log.clone();
     ports.supervisor = world.fakes.supervisor.clone();
     ports.health = world.fakes.health.clone();

@@ -8,6 +8,7 @@ use crate::core::application::repositories::settings_repository::MockSettingsRep
 use crate::core::application::services::agent_supervisor_service::MockAgentSupervisorService;
 use crate::core::application::services::server_health_service::MockServerHealthService;
 use crate::linkserver_ports::LinkserverPorts;
+use crate::linkserver_programs::LinkserverPrograms;
 use crate::linkserver_setup::LinkserverSetup;
 
 fn setup() -> LinkserverSetup {
@@ -21,9 +22,12 @@ fn setup() -> LinkserverSetup {
         hosts: vec!["127.0.0.1".to_owned()],
         version: "0.1.0".to_owned(),
         uid: 501,
-        open_program: PathBuf::from("/nonexistent/open"),
-        launchctl_program: PathBuf::from("/nonexistent/launchctl"),
-        osascript_program: PathBuf::from("/nonexistent/osascript"),
+        programs: LinkserverPrograms {
+            open: PathBuf::from("/nonexistent/open"),
+            launchctl: PathBuf::from("/nonexistent/launchctl"),
+            osascript: PathBuf::from("/nonexistent/osascript"),
+            lsappinfo: PathBuf::from("/nonexistent/lsappinfo"),
+        },
     }
 }
 

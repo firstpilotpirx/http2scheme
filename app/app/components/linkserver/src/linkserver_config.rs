@@ -63,7 +63,8 @@ impl LinkserverConfig {
         pages: OpenLinkResponse,
     ) -> Router {
         let use_case =
-            OpenLinkUseCase::new(settings, key, ports.opener, ports.closer, ports.attempts);
+            OpenLinkUseCase::new(settings, key, ports.opener, ports.closer, ports.attempts)
+                .with_app_order(ports.order);
         http.router(OpenLinkHandler::new(Arc::new(use_case), pages))
     }
 
@@ -105,6 +106,7 @@ impl LinkserverConfig {
             let open_ports = OpenLinkPorts {
                 opener: ports.opener.clone(),
                 closer: ports.closer.clone(),
+                order: ports.order.clone(),
                 attempts: ports.attempts.clone(),
             };
             let router = Self::open_link_router(settings, key, open_ports, &http, setup.pages());

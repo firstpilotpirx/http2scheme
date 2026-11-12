@@ -53,6 +53,7 @@ async fn start(world: &mut LinkserverWorld) -> u16 {
     let ports = OpenLinkPorts {
         opener: world.fakes.opener.clone(),
         closer: world.fakes.closer.clone(),
+        order: world.fakes.order.clone(),
         attempts: world.fakes.log.clone(),
     };
     let pages = OpenLinkResponse::new(

@@ -48,6 +48,28 @@ Feature: Link opening
       Then the browser shows the "Opened" page
       And the request log ends with the result "opened"
 
+  Rule: The app the user left for the browser comes back behind the opened app
+
+    @slice
+    Scenario: The left app comes back behind the opened app
+      Given the user left the Claude app for the browser
+      When the browser follows a keyed open link to an IntelliJ link
+      Then the server brings the Claude app to the front
+      And then the Mac opens that IntelliJ link
+
+    @slice
+    Scenario: A refused request changes no app order
+      Given the user left the Claude app for the browser
+      When the browser follows an open link with a wrong key
+      Then the server brings no app to the front
+
+    @slice
+    Scenario: A failed reorder keeps the link opened
+      Given the app order cannot be changed
+      When the browser follows a keyed open link to an IntelliJ link
+      Then the browser shows the "Opened" page
+      And the request log ends with the result "opened"
+
   Rule: A request without the right key opens nothing
 
     @slice

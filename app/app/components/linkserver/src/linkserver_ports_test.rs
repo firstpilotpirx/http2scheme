@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use super::LinkserverPorts;
+use crate::linkserver_programs::LinkserverPrograms;
 use crate::linkserver_setup::LinkserverSetup;
 
 #[tokio::test]
@@ -16,9 +17,12 @@ async fn the_macos_settings_read_the_handed_folder() {
         hosts: vec!["127.0.0.1".to_owned()],
         version: "0.1.0".to_owned(),
         uid: 501,
-        open_program: PathBuf::from("/nonexistent/open"),
-        launchctl_program: PathBuf::from("/nonexistent/launchctl"),
-        osascript_program: PathBuf::from("/nonexistent/osascript"),
+        programs: LinkserverPrograms {
+            open: PathBuf::from("/nonexistent/open"),
+            launchctl: PathBuf::from("/nonexistent/launchctl"),
+            osascript: PathBuf::from("/nonexistent/osascript"),
+            lsappinfo: PathBuf::from("/nonexistent/lsappinfo"),
+        },
     };
     let ports = LinkserverPorts::macos(&setup);
     assert!(ports.settings.read_settings().await.unwrap().is_none());

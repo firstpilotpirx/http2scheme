@@ -15,6 +15,12 @@ pub enum OpenLinkError {
         /// What went wrong.
         reason: String,
     },
+    /// Bringing back the app the user left for the browser failed.
+    #[error("bringing back the left app failed: {reason}")]
+    ReorderFailed {
+        /// What went wrong.
+        reason: String,
+    },
     /// Writing the request log failed.
     #[error("writing the request log failed: {reason}")]
     RecordFailed {

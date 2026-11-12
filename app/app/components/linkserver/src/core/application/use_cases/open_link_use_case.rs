@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use super::open_link::OpenLink;
 use super::open_link_command::OpenLinkCommand;
 use crate::core::application::repositories::open_attempt_repository::OpenAttemptRepository;
+use crate::core::application::services::app_order_service::AppOrderService;
 use crate::core::application::services::browser_tab_closer_service::BrowserTabCloserService;
 use crate::core::application::services::scheme_link_opener_service::SchemeLinkOpenerService;
 use crate::core::domain::access_key_value_object::AccessKeyValueObject;
@@ -17,12 +18,14 @@ use crate::core::domain::open_outcome_enum::OpenOutcomeEnum;
 use crate::core::domain::scheme_link_value_object::SchemeLinkValueObject;
 use crate::core::domain::server_settings_value_object::ServerSettingsValueObject;
 
-/// Checks the key and the link, opens it, closes its tab and logs the request.
+/// Checks the key and the link, brings back the app left for the browser, opens the link, closes
+/// its tab and logs the request.
 pub struct OpenLinkUseCase {
     settings: ServerSettingsValueObject,
     key: AccessKeyValueObject,
     opener: Arc<dyn SchemeLinkOpenerService>,
     closer: Arc<dyn BrowserTabCloserService>,
+    order: Option<Arc<dyn AppOrderService>>,
     attempts: Arc<dyn OpenAttemptRepository>,
 }
 
@@ -41,8 +44,16 @@ impl OpenLinkUseCase {
             key,
             opener,
             closer,
+            order: None,
             attempts,
         }
+    }
+
+    /// The same use case, bringing back the app left for the browser before each link opens.
+    #[must_use]
+    pub fn with_app_order(mut self, order: Arc<dyn AppOrderService>) -> Self {
+        self.order = Some(order);
+        self
     }
 
     fn admit(&self, command: &OpenLinkCommand) -> Result<SchemeLinkValueObject, OpenOutcomeEnum> {
@@ -64,6 +75,9 @@ impl OpenLinkUseCase {
     }
 
     async fn open(&self, link: &SchemeLinkValueObject) -> OpenOutcomeEnum {
+        if let Some(order) = &self.order {
+            let _ = order.bring_back_left_app().await;
+        }
         if self.opener.open(link).await.is_err() {
             return OpenOutcomeEnum::OpenFailed;
         }

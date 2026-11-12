@@ -17,6 +17,13 @@ fn messages_name_the_failed_step() {
         "closing the browser tab failed: denied"
     );
     assert_eq!(
+        OpenLinkError::ReorderFailed {
+            reason: "no browser in front".to_owned()
+        }
+        .to_string(),
+        "bringing back the left app failed: no browser in front"
+    );
+    assert_eq!(
         OpenLinkError::RecordFailed {
             reason: "disk full".to_owned()
         }

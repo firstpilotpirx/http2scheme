@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::adapters::secondary::agentcontrol::filesystem::filesystem_agent_definition_repository::FilesystemAgentDefinitionRepository;
 use crate::adapters::secondary::agentcontrol::launchd::launchd_agent_supervisor_gateway::LaunchdAgentSupervisorGateway;
+use crate::adapters::secondary::apporder::lsappinfo::ls_app_info_app_order_gateway::LsAppInfoAppOrderGateway;
 use crate::adapters::secondary::browsertabs::applescript::apple_script_browser_tab_closer_gateway::AppleScriptBrowserTabCloserGateway;
 use crate::adapters::secondary::linkopening::launchservices::launch_services_scheme_link_opener_gateway::LaunchServicesSchemeLinkOpenerGateway;
 use crate::adapters::secondary::requestlog::filesystem::filesystem_open_attempt_repository::FilesystemOpenAttemptRepository;
@@ -15,6 +16,7 @@ use crate::core::application::repositories::agent_definition_repository::AgentDe
 use crate::core::application::repositories::open_attempt_repository::OpenAttemptRepository;
 use crate::core::application::repositories::settings_repository::SettingsRepository;
 use crate::core::application::services::agent_supervisor_service::AgentSupervisorService;
+use crate::core::application::services::app_order_service::AppOrderService;
 use crate::core::application::services::browser_tab_closer_service::BrowserTabCloserService;
 use crate::core::application::services::scheme_link_opener_service::SchemeLinkOpenerService;
 use crate::core::application::services::secret_generator_service::SecretGeneratorService;
@@ -35,6 +37,8 @@ pub struct LinkserverPorts {
     pub opener: Arc<dyn SchemeLinkOpenerService>,
     /// Closes the browser tabs.
     pub closer: Arc<dyn BrowserTabCloserService>,
+    /// Brings back the app left for the browser.
+    pub order: Arc<dyn AppOrderService>,
     /// Records open attempts.
     pub attempts: Arc<dyn OpenAttemptRepository>,
     /// The agent definitions.
@@ -55,19 +59,23 @@ impl LinkserverPorts {
             )),
             secrets: Arc::new(OsRandomSecretGeneratorGateway),
             opener: Arc::new(LaunchServicesSchemeLinkOpenerGateway::new(
-                setup.open_program.clone(),
+                setup.programs.open.clone(),
             )),
             closer: Arc::new(AppleScriptBrowserTabCloserGateway::new(
-                setup.osascript_program.clone(),
+                setup.programs.osascript.clone(),
                 setup.hosts.clone(),
                 TAB_CLOSE_DELAY,
+            )),
+            order: Arc::new(LsAppInfoAppOrderGateway::new(
+                setup.programs.lsappinfo.clone(),
+                setup.programs.open.clone(),
             )),
             attempts: Arc::new(FilesystemOpenAttemptRepository::new(setup.request_log())),
             agents: Arc::new(FilesystemAgentDefinitionRepository::new(
                 setup.agents_dir.clone(),
             )),
             supervisor: Arc::new(LaunchdAgentSupervisorGateway::new(
-                setup.launchctl_program.clone(),
+                setup.programs.launchctl.clone(),
                 setup.uid,
                 setup.agents_dir.clone(),
             )),

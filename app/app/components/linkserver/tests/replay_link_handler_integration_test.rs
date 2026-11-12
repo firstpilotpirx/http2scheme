@@ -13,6 +13,7 @@ use std::path::Path;
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
+use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
 use support::RecordingProgram;
 
@@ -27,9 +28,12 @@ fn root(home: &Path, open: &RecordingProgram) -> LinkserverConfig {
         hosts: vec!["127.0.0.1".to_owned()],
         version: "0.0.0".to_owned(),
         uid: 0,
-        open_program: open.program.clone(),
-        launchctl_program: home.join("launchctl"),
-        osascript_program: home.join("osascript"),
+        programs: LinkserverPrograms {
+            open: open.program.clone(),
+            launchctl: home.join("launchctl"),
+            osascript: home.join("osascript"),
+            lsappinfo: home.join("lsappinfo"),
+        },
     };
     let ports = LinkserverPorts::macos(&setup);
     LinkserverConfig::new(setup, ports, TerminalStyleConfig::new(false))

@@ -177,6 +177,7 @@ impl Home {
             .env("HTTP2SCHEME_OPEN_PROGRAM", self.bin("open"))
             .env("HTTP2SCHEME_LAUNCHCTL_PROGRAM", self.bin("launchctl"))
             .env("HTTP2SCHEME_OSASCRIPT_PROGRAM", self.bin("osascript"))
+            .env("HTTP2SCHEME_LSAPPINFO_PROGRAM", self.bin("lsappinfo"))
             .env("NO_COLOR", "1")
             .env_remove("FORCE_COLOR")
             .stdin(Stdio::null())

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use super::LinkserverSetup;
+use crate::linkserver_programs::LinkserverPrograms;
 
 fn setup() -> LinkserverSetup {
     LinkserverSetup {
@@ -13,9 +14,12 @@ fn setup() -> LinkserverSetup {
         hosts: vec!["127.0.0.1".to_owned()],
         version: "0.1.0".to_owned(),
         uid: 501,
-        open_program: PathBuf::from("/bin/open"),
-        launchctl_program: PathBuf::from("/bin/launchctl"),
-        osascript_program: PathBuf::from("/bin/osascript"),
+        programs: LinkserverPrograms {
+            open: PathBuf::from("/bin/open"),
+            launchctl: PathBuf::from("/bin/launchctl"),
+            osascript: PathBuf::from("/bin/osascript"),
+            lsappinfo: PathBuf::from("/usr/bin/lsappinfo"),
+        },
     }
 }
 

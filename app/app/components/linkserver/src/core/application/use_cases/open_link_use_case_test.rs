@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use super::OpenLinkUseCase;
 use crate::core::application::exceptions::open_link_error::OpenLinkError;
 use crate::core::application::repositories::open_attempt_repository::MockOpenAttemptRepository;
+use crate::core::application::services::app_order_service::MockAppOrderService;
 use crate::core::application::services::browser_tab_closer_service::MockBrowserTabCloserService;
 use crate::core::application::services::scheme_link_opener_service::MockSchemeLinkOpenerService;
 use crate::core::application::use_cases::open_link::OpenLink;
@@ -18,6 +19,7 @@ use crate::core::domain::server_settings_value_object::ServerSettingsValueObject
 struct Fixture {
     opener: MockSchemeLinkOpenerService,
     closer: MockBrowserTabCloserService,
+    order: Option<MockAppOrderService>,
     events: Arc<Mutex<Vec<LinkOpenAttemptedDomainEvent>>>,
     close_tab: bool,
 }
@@ -27,6 +29,7 @@ impl Fixture {
         Self {
             opener: MockSchemeLinkOpenerService::new(),
             closer: MockBrowserTabCloserService::new(),
+            order: None,
             events: Arc::default(),
             close_tab: true,
         }
@@ -49,13 +52,15 @@ impl Fixture {
             SchemeAllowlistPolicy::defaults(),
             self.close_tab,
         );
+        let order = self.order.unwrap_or_else(|| order_answering(Ok(()), 0..));
         let use_case = OpenLinkUseCase::new(
             settings,
             AccessKeyValueObject::from_bytes([7; 32]),
             Arc::new(self.opener),
             Arc::new(self.closer),
             Arc::new(attempts),
-        );
+        )
+        .with_app_order(Arc::new(order));
         (use_case, self.events)
     }
 }
@@ -217,6 +222,8 @@ async fn a_failed_record_keeps_the_outcome() {
     opener.expect_open().returning(|_| Ok(()));
     let mut closer = MockBrowserTabCloserService::new();
     closer.expect_close_open_tabs().returning(|_| Ok(()));
+    let mut order = MockAppOrderService::new();
+    order.expect_bring_back_left_app().returning(|| Ok(()));
     let mut attempts = MockOpenAttemptRepository::new();
     attempts.expect_record().returning(|_| {
         Err(OpenLinkError::RecordFailed {
@@ -229,11 +236,83 @@ async fn a_failed_record_keeps_the_outcome() {
         Arc::new(opener),
         Arc::new(closer),
         Arc::new(attempts),
-    );
+    )
+    .with_app_order(Arc::new(order));
     assert_eq!(
         use_case
             .execute(command(Some(right_key()), "idea://x"))
             .await,
         OpenOutcomeEnum::Opened
+    );
+}
+
+fn order_answering(
+    answer: Result<(), OpenLinkError>,
+    times: impl Into<mockall::TimesRange>,
+) -> MockAppOrderService {
+    let mut order = MockAppOrderService::new();
+    order
+        .expect_bring_back_left_app()
+        .times(times)
+        .returning(move || answer.clone());
+    order
+}
+
+#[tokio::test]
+async fn brings_back_the_left_app_before_it_opens_the_link() {
+    let mut fixture = Fixture::new();
+    let mut sequence = mockall::Sequence::new();
+    let mut order = MockAppOrderService::new();
+    order
+        .expect_bring_back_left_app()
+        .times(1)
+        .in_sequence(&mut sequence)
+        .returning(|| Ok(()));
+    fixture
+        .opener
+        .expect_open()
+        .times(1)
+        .in_sequence(&mut sequence)
+        .returning(|_| Ok(()));
+    fixture.close_tab = false;
+    fixture.order = Some(order);
+    let (use_case, _) = fixture.build();
+    let outcome = use_case
+        .execute(command(Some(right_key()), "idea://x"))
+        .await;
+    assert_eq!(outcome, OpenOutcomeEnum::Opened);
+}
+
+#[tokio::test]
+async fn a_refused_request_brings_back_no_app() {
+    let mut fixture = Fixture::new();
+    fixture.order = Some(order_answering(Ok(()), 0));
+    let (use_case, _) = fixture.build();
+    let outcome = use_case
+        .execute(command(Some("00".repeat(32)), "idea://x"))
+        .await;
+    assert_eq!(outcome, OpenOutcomeEnum::WrongKey);
+}
+
+#[tokio::test]
+async fn a_failed_reorder_keeps_the_link_opened() {
+    let mut fixture = Fixture::new();
+    let failure = OpenLinkError::ReorderFailed {
+        reason: "denied".to_owned(),
+    };
+    fixture.order = Some(order_answering(Err(failure), 1));
+    fixture.opener.expect_open().times(1).returning(|_| Ok(()));
+    fixture
+        .closer
+        .expect_close_open_tabs()
+        .returning(|_| Ok(()));
+    let (use_case, events) = fixture.build();
+    let outcome = use_case
+        .execute(command(Some(right_key()), "idea://x"))
+        .await;
+    assert_eq!(outcome, OpenOutcomeEnum::Opened);
+    assert_eq!(
+        events.lock().unwrap()[0].outcome(),
+        &OpenOutcomeEnum::Opened
     );
 }

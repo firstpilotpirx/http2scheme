@@ -7,6 +7,7 @@ use linkserver::core::application::exceptions::agent_control_error::AgentControl
 use linkserver::core::application::exceptions::open_link_error::OpenLinkError;
 use linkserver::core::application::repositories::open_attempt_repository::OpenAttemptRepository;
 use linkserver::core::application::services::agent_supervisor_service::AgentSupervisorService;
+use linkserver::core::application::services::app_order_service::AppOrderService;
 use linkserver::core::application::services::browser_tab_closer_service::BrowserTabCloserService;
 use linkserver::core::application::services::scheme_link_opener_service::SchemeLinkOpenerService;
 use linkserver::core::application::services::server_health_service::ServerHealthService;
@@ -167,6 +168,54 @@ impl ServerHealthService for FakeHealth {
     }
 }
 
+/// Brings back the app left for the browser: records, per call, how many links the watched
+/// opener had opened then; fails when told to.
+#[derive(Debug, Default)]
+pub struct FakeAppOrder {
+    fails: bool,
+    opener: Option<Arc<FakeOpener>>,
+    calls: Mutex<Vec<usize>>,
+}
+
+impl FakeAppOrder {
+    /// An order that watches `opener`, so a step can tell whether it ran before the link opened.
+    pub fn watching(opener: Arc<FakeOpener>) -> Self {
+        Self {
+            opener: Some(opener),
+            ..Self::default()
+        }
+    }
+
+    pub fn failing() -> Self {
+        Self {
+            fails: true,
+            ..Self::default()
+        }
+    }
+
+    /// Per call, the number of links opened before it.
+    pub fn calls(&self) -> Vec<usize> {
+        lock(&self.calls).clone()
+    }
+}
+
+#[async_trait]
+impl AppOrderService for FakeAppOrder {
+    async fn bring_back_left_app(&self) -> Result<(), OpenLinkError> {
+        let opened = self
+            .opener
+            .as_ref()
+            .map_or(0, |opener| opener.links().len());
+        lock(&self.calls).push(opened);
+        if self.fails {
+            return Err(OpenLinkError::ReorderFailed {
+                reason: "not allowed".to_owned(),
+            });
+        }
+        Ok(())
+    }
+}
+
 /// Every fake secondary adapter of one scenario.
 #[derive(Debug, Default)]
 pub struct Fakes {
@@ -174,6 +223,8 @@ pub struct Fakes {
     pub opener: Arc<FakeOpener>,
     /// The tab closer.
     pub closer: Arc<FakeCloser>,
+    /// The app order.
+    pub order: Arc<FakeAppOrder>,
     /// The request log.
     pub log: Arc<FakeLog>,
     /// The agent supervisor.

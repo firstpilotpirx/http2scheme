@@ -13,6 +13,7 @@ use clap::{CommandFactory as _, Parser, Subcommand};
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
+use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
 use menubar::menubar_config::MenubarConfig;
 use menubar::menubar_hooks::MenubarHooks;
@@ -28,6 +29,7 @@ const AGENTS_DIR: &str = "Library/LaunchAgents";
 const OPEN_PROGRAM: (&str, &str) = ("HTTP2SCHEME_OPEN_PROGRAM", "/usr/bin/open");
 const LAUNCHCTL_PROGRAM: (&str, &str) = ("HTTP2SCHEME_LAUNCHCTL_PROGRAM", "/bin/launchctl");
 const OSASCRIPT_PROGRAM: (&str, &str) = ("HTTP2SCHEME_OSASCRIPT_PROGRAM", "/usr/bin/osascript");
+const LSAPPINFO_PROGRAM: (&str, &str) = ("HTTP2SCHEME_LSAPPINFO_PROGRAM", "/usr/bin/lsappinfo");
 
 /// Opens custom URL scheme links (idea://, goland://, slack://…) from http links on 127.0.0.1.
 #[derive(Parser)]
@@ -82,9 +84,12 @@ fn setup() -> Result<LinkserverSetup, String> {
         hosts: HOSTS.iter().map(|&host| host.to_owned()).collect(),
         version: env!("CARGO_PKG_VERSION").to_owned(),
         uid,
-        open_program: program(OPEN_PROGRAM),
-        launchctl_program: program(LAUNCHCTL_PROGRAM),
-        osascript_program: program(OSASCRIPT_PROGRAM),
+        programs: LinkserverPrograms {
+            open: program(OPEN_PROGRAM),
+            launchctl: program(LAUNCHCTL_PROGRAM),
+            osascript: program(OSASCRIPT_PROGRAM),
+            lsappinfo: program(LSAPPINFO_PROGRAM),
+        },
     })
 }
 
@@ -133,7 +138,7 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
             settings_dir: setup.settings_dir.clone(),
             log_dir: setup.log_dir.clone(),
             program: setup.program.clone(),
-            open_program: setup.open_program.clone(),
+            open_program: setup.programs.open.clone(),
         },
         hooks,
     )
