@@ -170,3 +170,24 @@ _require-cargo-modules: (_require "cargo modules" modules_version "cargo install
 _require-typos: (_require "typos" typos_version "cargo install typos-cli --version " + typos_version + " --locked")
 _require-shellcheck: (_require "shellcheck" shellcheck_version "brew install shellcheck (pinned " + shellcheck_version + ")")
 _require-jscpd: (_require "jscpd" jscpd_version "npm install --global jscpd@" + jscpd_version)
+
+# Release the version in app/app/Cargo.toml from a clean origin/main: the gate, a release build,
+# the tarball with its checksum, the tag and the GitHub release (design D12).
+release:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git fetch origin main
+    [ -z "$(git status --porcelain)" ] || { echo "release: the checkout has uncommitted changes"; exit 1; }
+    [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "release: HEAD is not origin/main"; exit 1; }
+    version="$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' {{app}}/Cargo.toml)"
+    tag="v$version"
+    git rev-parse -q --verify "refs/tags/$tag" > /dev/null && { echo "release: $tag exists"; exit 1; }
+    scripts/qa.sh
+    cargo build --release --manifest-path {{app}}/Cargo.toml -p http2scheme
+    dist="$(mktemp -d)"
+    archive="http2scheme-$tag-aarch64-apple-darwin.tar.gz"
+    tar -czf "$dist/$archive" -C {{app}}/target/release http2scheme
+    (cd "$dist" && shasum -a 256 "$archive" > "$archive.sha256")
+    git tag -a "$tag" -m "http2scheme $tag"
+    git push origin "$tag"
+    gh release create "$tag" "$dist/$archive" "$dist/$archive.sha256" --title "http2scheme $tag" --generate-notes

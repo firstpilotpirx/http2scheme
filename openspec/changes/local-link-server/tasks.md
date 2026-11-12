@@ -72,8 +72,8 @@
 
 ## 9. Release
 
-- [ ] 9.1 Add `just release` (D12); bump `version` in `app/app/Cargo.toml` to 0.1.0; `kit version-check local-link-server` passes
-- [ ] 9.2 Commit (`kit ship`)
+- [x] 9.1 Add `just release` (D12); bump `version` in `app/app/Cargo.toml` to 0.1.0; `kit version-check local-link-server` passes
+- [x] 9.2 Commit (`kit ship`)
 
 Manual checks the user performs:
 

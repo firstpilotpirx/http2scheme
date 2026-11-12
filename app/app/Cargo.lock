@@ -745,7 +745,7 @@ dependencies = [
 
 [[package]]
 name = "http2scheme"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
@@ -1094,7 +1094,7 @@ checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "linkserver"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "assert_cmd",
  "async-trait",
