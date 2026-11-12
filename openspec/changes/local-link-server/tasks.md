@@ -16,15 +16,15 @@
 
 ## 3. Application
 
-- [ ] 3.1 Red: sibling `*_test.rs` for `OpenLinkCommand` (fields kept, `Debug` hides the key) and the errors `OpenLinkError`, `SettingsError`, `AgentControlError` (messages); they fail
-- [ ] 3.1a Green: the `#[async_trait]` port traits (`SettingsRepository`, `OpenAttemptRepository`, `AgentDefinitionRepository`, `SchemeLinkOpenerService`, `BrowserTabCloserService`, `SecretGeneratorService`, `AgentSupervisorService`, `ServerHealthService`) with `mockall::automock`, `OpenLinkCommand` in `use_cases/`, the three errors; the tests pass
-- [ ] 3.2 Red: unit tests for `OpenLinkUseCase` (opens on right key and allowed scheme; wrong or missing key, malformed link, scheme not allowed open nothing; opener failure maps to `OpenFailed`; every path records one event without the key; the mocked `BrowserTabCloserService` is called once with the port after an opened link, never after a refused or failed one, never when `close_tab` is off, and its failure keeps the outcome `Opened`); they fail
-- [ ] 3.3 Green: implement `OpenLink` + `OpenLinkUseCase` in separate files; the tests pass
-- [ ] 3.4 Red: unit tests for `PrepareSettingsUseCase` (creates defaults and a key from the generator when missing, keeps existing ones, passes repository errors on) and `PrepareLinkUseCase` (returns port, key and link for an allowed link; refuses malformed and not-allowed links); they fail
-- [ ] 3.5 Green: implement both; the tests pass
-- [ ] 3.6 Red: unit tests for `InstallAgentUseCase` (writes the definition, unloads an old one, loads), `UninstallAgentUseCase` (unloads when loaded, deletes, harmless when absent), `StartAgentUseCase` and `StopAgentUseCase` (refuse when not installed), `CheckAgentStatusUseCase` (three facts); they fail
-- [ ] 3.7 Green: implement the five use cases and their traits; every application test passes
-- [ ] 3.8 Commit (`kit ship`)
+- [x] 3.1 Red: sibling `*_test.rs` for `OpenLinkCommand` (fields kept, `Debug` hides the key) and the errors `OpenLinkError`, `SettingsError`, `AgentControlError` (messages); they fail
+- [x] 3.1a Green: the `#[async_trait]` port traits (`SettingsRepository`, `OpenAttemptRepository`, `AgentDefinitionRepository`, `SchemeLinkOpenerService`, `BrowserTabCloserService`, `SecretGeneratorService`, `AgentSupervisorService`, `ServerHealthService`) with `mockall::automock`, `OpenLinkCommand` in `use_cases/`, the three errors; the tests pass
+- [x] 3.2 Red: unit tests for `OpenLinkUseCase` (opens on right key and allowed scheme; wrong or missing key, malformed link, scheme not allowed open nothing; opener failure maps to `OpenFailed`; every path records one event without the key; the mocked `BrowserTabCloserService` is called once with the port after an opened link, never after a refused or failed one, never when `close_tab` is off, and its failure keeps the outcome `Opened`); they fail
+- [x] 3.3 Green: implement `OpenLink` + `OpenLinkUseCase` in separate files; the tests pass
+- [x] 3.4 Red: unit tests for `PrepareSettingsUseCase` (creates defaults and a key from the generator when missing, keeps existing ones, passes repository errors on) and `PrepareLinkUseCase` (returns port, key and link for an allowed link; refuses malformed and not-allowed links); they fail
+- [x] 3.5 Green: implement both; the tests pass
+- [x] 3.6 Red: unit tests for `InstallAgentUseCase` (writes the definition, unloads an old one, loads), `UninstallAgentUseCase` (unloads when loaded, deletes, harmless when absent), `StartAgentUseCase` and `StopAgentUseCase` (refuse when not installed), `CheckAgentStatusUseCase` (three facts); they fail
+- [x] 3.7 Green: implement the five use cases and their traits; every application test passes
+- [x] 3.8 Commit (`kit ship`)
 
 ## 4. Secondary adapters
 

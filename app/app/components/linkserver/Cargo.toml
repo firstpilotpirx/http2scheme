@@ -11,3 +11,8 @@ workspace = true
 [dependencies]
 subtle.workspace = true
 thiserror.workspace = true
+async-trait.workspace = true
+
+[dev-dependencies]
+mockall.workspace = true
+tokio.workspace = true
