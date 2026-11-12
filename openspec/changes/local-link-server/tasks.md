@@ -40,11 +40,11 @@
 
 ## 5. HTTP primary adapter and link-opening
 
-- [ ] 5.1 Red: `open_link_handler_integration_test.rs` — real axum on an ephemeral loopback port, mocked `OpenLink`: status and page per outcome (200, 403, 400 both kinds, 502), 404, 405, 421 for a foreign `Host`, `/health`, `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, HTML escaping of the scheme, the bind address is 127.0.0.1; sibling `*_test.rs` unit tests for every implementation file this group adds (R-071) (`OpenLinkRequest`, `OpenLinkResponse`, `AxumConfig`); they fail
-- [ ] 5.2 Green: `OpenLinkHandler`, `OpenLinkRequest`, `OpenLinkResponse` (pages as in the agreed mock, light and dark), `AxumConfig`; the test passes
-- [ ] 5.3 Red: `tests/features/slice/link_opening.feature` with one `Rule:` per requirement of `link-opening` and every scenario but the network one, steps in `tests/steps/link_opening.rs`, harness `tests/cucumber_integration.rs` (World holds fake opener, fake log, server handle; the fake tab closer is wired through the real use case); `just test-one "scenario: …"` fails
-- [ ] 5.4 Green: `LinkserverConfig::router` wires the real use case with the fakes; the slice scenarios pass
-- [ ] 5.5 Commit (`kit ship`)
+- [x] 5.1 Red: `open_link_handler_integration_test.rs` — real axum on an ephemeral loopback port, mocked `OpenLink`: status and page per outcome (200, 403, 400 both kinds, 502), 404, 405, 421 for a foreign `Host`, `/health`, `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, HTML escaping of the scheme, the bind address is 127.0.0.1; sibling `*_test.rs` unit tests for every implementation file this group adds (R-071) (`OpenLinkRequest`, `OpenLinkResponse`, `AxumConfig`); they fail
+- [x] 5.2 Green: `OpenLinkHandler`, `OpenLinkRequest`, `OpenLinkResponse` (pages as in the agreed mock, light and dark), `AxumConfig`; the test passes
+- [x] 5.3 Red: `tests/features/slice/link_opening.feature` with one `Rule:` per requirement of `link-opening` and every scenario but the network one, steps in `tests/steps/link_opening.rs`, harness `tests/cucumber_integration.rs` (World holds fake opener, fake log, server handle; the fake tab closer is wired through the real use case); `just test-one "scenario: …"` fails
+- [x] 5.4 Green: `LinkserverConfig::router` wires the real use case with the fakes; the slice scenarios pass
+- [x] 5.5 Commit (`kit ship`)
 
 ## 6. CLI primary adapters
 
