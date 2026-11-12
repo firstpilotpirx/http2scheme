@@ -50,7 +50,7 @@ async fn request(world: &mut E2eWorld, path: &str, host: Option<String>) {
     let port = start(world).await;
     let address = format!("127.0.0.1:{port}");
     let host = host.unwrap_or_else(|| address.clone());
-    (world.status, world.body) = get(&address, &host, path).await.unwrap();
+    (world.answer.status, world.answer.body) = get(&address, &host, path).await.unwrap();
 }
 
 async fn follow(world: &mut E2eWorld, right_key: Option<bool>, link: Option<&str>) {
@@ -176,16 +176,16 @@ async fn network_request(world: &mut E2eWorld) {
         .ok()
         .filter(|ip| !ip.is_loopback() && !ip.is_unspecified());
     let Some(ip) = address else {
-        world.refused = true;
+        world.answer.refused = true;
         return;
     };
     let target = format!("{ip}:{port}");
-    world.refused = get(&target, &target, "/health").await.is_err();
+    world.answer.refused = get(&target, &target, "/health").await.is_err();
 }
 
 #[then(regex = r"^the connection is refused$")]
 fn connection_refused(world: &mut E2eWorld) {
-    assert!(world.refused);
+    assert!(world.answer.refused);
 }
 
 #[then(
@@ -216,8 +216,8 @@ fn shows_page(world: &mut E2eWorld, title: String) {
         "Wrong key" => 403,
         _ => 404,
     };
-    assert_eq!(world.status, status, "{}", world.body);
-    assert!(world.body.contains(&title), "{}", world.body);
+    assert_eq!(world.answer.status, status, "{}", world.answer.body);
+    assert!(world.answer.body.contains(&title), "{}", world.answer.body);
 }
 
 #[then(regex = r"^the server asks the browsers to close the tabs that show its open address$")]
@@ -251,33 +251,40 @@ fn not_allowed(world: &mut E2eWorld, which: String) {
     } else {
         "Scheme not allowed: slack"
     };
-    assert_eq!(world.status, 400);
-    assert!(world.body.contains(title), "{}", world.body);
+    assert_eq!(world.answer.status, 400);
+    assert!(world.answer.body.contains(title), "{}", world.answer.body);
 }
 
 #[then(regex = r"^the browser shows a page saying the link is malformed$")]
 fn malformed(world: &mut E2eWorld) {
-    assert_eq!(world.status, 400);
-    assert!(world.body.contains("Malformed link"), "{}", world.body);
+    assert_eq!(world.answer.status, 400);
+    assert!(
+        world.answer.body.contains("Malformed link"),
+        "{}",
+        world.answer.body
+    );
 }
 
 #[then(regex = r"^the server answers that the host is not served$")]
 fn host_not_served(world: &mut E2eWorld) {
-    assert_eq!(world.status, 421);
+    assert_eq!(world.answer.status, 421);
 }
 
 #[then(regex = r"^the server answers that it is running$")]
 fn running(world: &mut E2eWorld) {
-    assert_eq!((world.status, world.body.as_str()), (200, "ok"));
+    assert_eq!(
+        (world.answer.status, world.answer.body.as_str()),
+        (200, "ok")
+    );
 }
 
 #[then(regex = r"^the browser shows a page saying the app could not be opened$")]
 fn could_not_open(world: &mut E2eWorld) {
-    assert_eq!(world.status, 502);
+    assert_eq!(world.answer.status, 502);
     assert!(
-        world.body.contains("Could not open the app"),
+        world.answer.body.contains("Could not open the app"),
         "{}",
-        world.body
+        world.answer.body
     );
 }
 

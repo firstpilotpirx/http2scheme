@@ -1,4 +1,5 @@
 //! E2E scenarios on the built binary: the world and the runner.
+#![forbid(unsafe_code)]
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -10,6 +11,8 @@ mod support;
 
 use cucumber::World as _;
 use support::Home;
+use support::answer::Answer;
+use support::printed::Printed;
 use tokio::process::Child;
 
 /// The state one scenario builds up.
@@ -28,22 +31,14 @@ pub struct E2eWorld {
     pub server: Option<Child>,
     /// The scheme link of the last request or command.
     pub link: Option<String>,
-    /// The status of the last answer.
-    pub status: u16,
-    /// The body of the last answer.
-    pub body: String,
-    /// The exit status of the last command.
-    pub code: Option<i32>,
+    /// The last answer of the server.
+    pub answer: Answer,
     /// What the last command printed.
-    pub out: String,
-    /// What the last command printed as errors.
-    pub err: String,
+    pub printed: Printed,
     /// The keys seen so far.
     pub keys: Vec<String>,
     /// A socket that holds a port.
     pub held: Option<std::net::TcpListener>,
-    /// Whether the last connection was refused.
-    pub refused: bool,
 }
 
 impl E2eWorld {
@@ -55,14 +50,10 @@ impl E2eWorld {
             port: None,
             server: None,
             link: None,
-            status: 0,
-            body: String::new(),
-            code: None,
-            out: String::new(),
-            err: String::new(),
+            answer: Answer::default(),
+            printed: Printed::default(),
             keys: Vec::new(),
             held: None,
-            refused: false,
         }
     }
 }

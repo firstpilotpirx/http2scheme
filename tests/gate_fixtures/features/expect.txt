@@ -1,0 +1,1 @@
+R-064: scenario "A locked door stays shut" of door-opening is in no door_opening.feature

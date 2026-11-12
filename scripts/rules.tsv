@@ -1,0 +1,118 @@
+# rule	verdict	checks (comma-separated qa stages or scripts) or the reason it does not apply (R-096)
+R-001	check	repo
+R-002	check	repo
+R-003	n/a	not applicable: no docs/ until the documentation change
+R-005	n/a	not applicable: no docs/ until the documentation change
+R-006	n/a	not applicable: no docs/ until the documentation change
+R-007	n/a	not applicable: no docs/ until the documentation change
+R-008	n/a	not applicable: no docs/ until the documentation change
+R-009	check	repo
+R-010	check	repo
+R-011	check	layout
+R-012	check	layout
+R-013	check	layout
+R-014	check	layout
+R-015	check	layout
+R-016	check	layout
+R-017	check	layout
+R-018	check	layout
+R-019	n/a	not applicable: the project has no database and no migrations
+R-020	n/a	not applicable: the project has no database and no migrations
+R-021	check	layers
+R-022	check	layers
+R-023	check	layers
+R-024	check	layers
+R-025	check	modules
+R-026	check	modules
+R-027	check	layers
+R-028	n/a	not applicable: the project has no kernel/
+R-029	n/a	not applicable: the project has no kernel/
+R-030	check	layers
+R-031	check	layers
+R-032	check	purity
+R-033	check	purity
+R-034	check	purity
+R-035	check	purity
+R-036	check	layers
+R-040	check	naming
+R-042	check	naming
+R-043	check	naming
+R-044	check	naming
+R-045	check	naming
+R-046	check	naming
+R-047	check	naming
+R-048	check	naming
+R-049	check	naming
+R-050	check	naming
+R-051	check	naming
+R-052	check	naming
+R-053	check	naming
+R-054	check	naming
+R-060	check	tests,unit
+R-061	check	tests,integration
+R-062	check	tests,integration
+R-063	check	tests
+R-064	check	features
+R-065	check	features
+R-066	n/a	not applicable: no docs/ until the documentation change
+R-067	check	layers,e2e
+R-068	check	tests
+R-069	n/a	not applicable: the project runs on no database or other production engine
+R-070	n/a	not applicable: a Java-only rule; the Rust architecture rules are scripts in their own arch stage
+R-071	check	tests
+R-072	check	tests
+R-073	check	slices
+R-080	check	no-todo
+R-081	check	no-todo
+R-082	n/a	not applicable: no Rust analyzer tells a named literal from a magic one; R-083 covers hosts and ports
+R-083	check	purity
+R-084	check	lint,check,build
+R-085	check	purity
+R-086	check	lint
+R-087	check	lint
+R-088	check	purity
+R-130	check	lint
+R-131	check	size-limits
+R-132	check	lint
+R-133	check	lint
+R-134	check	lint
+R-135	check	size-limits
+R-136	check	complexity-ratchet,complexity
+R-137	check	size-limits
+R-138	check	size-limits
+R-090	check	repo
+R-091	check	repo
+R-092	check	repo
+R-093	check	repo
+R-094	check	repo
+R-095	check	repo
+R-096	check	rule-coverage,arch-tests
+R-129	check	gate-fixtures,arch-tests
+R-100	n/a	not applicable: no docs/ until the documentation change
+R-102	n/a	not applicable: no docs/ until the documentation change
+R-103	n/a	not applicable: no docs/ until the documentation change
+R-110	check	unit
+R-111	n/a	not applicable: http2scheme has no --json mode, and qa.sh --json turns color off
+R-112	check	repo
+R-120	n/a	not applicable: a Spring rule; the project has no Spring
+R-121	check	repo
+R-122	check	repo
+R-123	check	repo
+R-124	n/a	not applicable: no docs/ until the documentation change
+R-125	n/a	not applicable: no docs/ until the documentation change
+R-126	n/a	not applicable: the architecture rules are scripts in their own arch stage, not tests in a source set
+R-127	check	exact-versions
+R-139	check	repo
+R-140	check	lint,fmt
+R-141	check	complexity
+R-142	check	deny
+R-143	check	machete
+R-144	check	unsafe-count
+R-145	n/a	not applicable: the project publishes no library, only a binary
+R-146	check	coverage
+R-148	check	modules
+R-149	check	typos
+R-150	check	recipes
+R-151	check	dup
+R-152	check	arch
+R-128	n/a	not applicable: AGENTS.md runs the checks once per change

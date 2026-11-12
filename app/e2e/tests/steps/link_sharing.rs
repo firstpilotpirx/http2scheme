@@ -15,8 +15,8 @@ const INTELLIJ_SPACES: &str =
 const SLACK: &str = "slack://channel?id=C123";
 
 fn printed(world: &E2eWorld) -> String {
-    let lines: Vec<&str> = world.out.lines().collect();
-    assert_eq!(lines.len(), 1, "one line expected: {}", world.out);
+    let lines: Vec<&str> = world.printed.out.lines().collect();
+    assert_eq!(lines.len(), 1, "one line expected: {}", world.printed.out);
     lines[0].to_owned()
 }
 
@@ -52,14 +52,14 @@ async fn ask_for_link(world: &mut E2eWorld, which: String) {
     };
     world.link = Some(link.to_owned());
     let (code, out, err) = world.home.run(&["link", link]).await;
-    (world.code, world.out, world.err) = (Some(code), out, err);
+    (world.printed.code, world.printed.out, world.printed.err) = (Some(code), out, err);
 }
 
 #[then(regex = r"^the command prints one open link to the loopback address on that port$")]
 fn prints_open_link(world: &mut E2eWorld) {
     let prefix = format!("http://127.0.0.1:{}/open?", world.port.unwrap());
-    assert!(printed(world).starts_with(&prefix), "{}", world.out);
-    assert_eq!(world.code, Some(0));
+    assert!(printed(world).starts_with(&prefix), "{}", world.printed.out);
+    assert_eq!(world.printed.code, Some(0));
 }
 
 #[then(regex = r"^following that link opens exactly that IntelliJ link$")]
@@ -97,25 +97,28 @@ fn carries_key(world: &mut E2eWorld) {
 
 #[then(regex = r"^the command prints no link$")]
 fn prints_no_link(world: &mut E2eWorld) {
-    assert_eq!(world.out, "");
+    assert_eq!(world.printed.out, "");
 }
 
 #[then(regex = r"^it says the Slack scheme is not allowed and how to allow it$")]
 fn says_not_allowed(world: &mut E2eWorld) {
     assert!(
-        world.err.contains("scheme not allowed: slack"),
+        world.printed.err.contains("scheme not allowed: slack"),
         "{}",
-        world.err
+        world.printed.err
     );
     assert!(
-        world.err.contains("add \"slack\" to allowed_schemes in"),
+        world
+            .printed
+            .err
+            .contains("add \"slack\" to allowed_schemes in"),
         "{}",
-        world.err
+        world.printed.err
     );
 }
 
 #[then(regex = r"^it ends with a (success|failure) status$")]
 fn exit_status(world: &mut E2eWorld, which: String) {
-    let code = world.code.unwrap();
+    let code = world.printed.code.unwrap();
     assert_eq!(code == 0, which == "success", "status {code}");
 }

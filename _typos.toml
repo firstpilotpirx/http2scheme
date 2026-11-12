@@ -1,0 +1,3 @@
+# typos configuration (R-149): the words and files the spelling check leaves alone.
+[files]
+extend-exclude = ["target", "*.lock", "tests/gate_fixtures"]

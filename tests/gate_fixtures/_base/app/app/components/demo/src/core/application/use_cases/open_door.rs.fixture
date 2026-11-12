@@ -1,0 +1,11 @@
+//! Open a door.
+
+/// Opens a door.
+pub trait OpenDoor {
+    /// Opens it.
+    fn execute(&self) -> bool;
+}
+
+#[cfg(test)]
+#[path = "open_door_test.rs"]
+mod open_door_test;

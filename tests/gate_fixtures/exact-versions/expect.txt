@@ -1,0 +1,1 @@
+R-127: app/app/components/demo/Cargo.toml:7 thiserror is "2.0", not one exact version

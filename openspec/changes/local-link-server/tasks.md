@@ -63,12 +63,12 @@
 
 ## 8. The gate
 
-- [ ] 8.1 `scripts/arch/` checks (layout R-011–R-018, layer imports R-021–R-024, R-027, purity R-032–R-035, naming R-040–R-054, R-071/R-072 sibling tests, R-061/R-062 adapter ITs, R-063, R-073 slice per primary adapter, R-064/R-065 features, R-081 no TODO, R-127 exact versions, sizes R-131/R-135/R-137/R-138) each reading `QA_ROOT`; `scripts/check-complexity-ratchet.sh` with `metrics/cyclomatic.tsv`
-- [ ] 8.2 `tests/gate_fixtures/<check>/{violation,clean}/` with `expect.txt` per check, `exempt.tsv`, `scripts/check-gate-fixtures.sh` (R-129): every check fails its violation tree and passes its clean tree
-- [ ] 8.3 `scripts/rules.tsv` ledger with one verdict per registry rule (enforced by a named check, or not applicable with a reason — the documentation rules: "not applicable: no docs/ until the documentation change"; R-128: "not applicable: AGENTS.md runs the checks once per change") and `scripts/check-rule-coverage.sh` (R-096)
-- [ ] 8.4 `scripts/qa.sh` (`--fix`, `--clean`, `--stage`, `--skip`, `--json`, `--no-color`, `--help`; stages in R-091 order as in D11, the `--ignored` real-program stage included, with `[ OK | FAIL | WARN ] <stage> (<n>s)`; both workspaces) and the remaining recipes (`check`, `complexity`, `machete`, `unsafe-count`, `modules`, `typos`, `recipes`, `dup`, `arch`, `coverage`); install `cargo-modules` 0.28.0
-- [ ] 8.5 `README.md` (one screen: Install, Run (dev), Run (production), Test, allow the Automation prompt once per browser, how the agent writes links); `AGENTS.md` (layout, check commands, Gherkin levels, release) and `.claude/kit.yaml` (build inputs, version file `app/app/Cargo.toml`, release command, manual-run area `adapters/secondary/linkopening/**`, `browsertabs/**` and `agentcontrol/**`); `kit doctor` reports no config problem
-- [ ] 8.6 Commit (`kit ship`)
+- [x] 8.1 `scripts/arch/` checks (layout R-011–R-018, layer imports R-021–R-024, R-027, purity R-032–R-035, naming R-040–R-054, R-071/R-072 sibling tests, R-061/R-062 adapter ITs, R-063, R-073 slice per primary adapter, R-064/R-065 features, R-081 no TODO, R-127 exact versions, sizes R-131/R-135/R-137/R-138) each reading `QA_ROOT`; `scripts/check-complexity-ratchet.sh` with `metrics/cyclomatic.tsv`
+- [x] 8.2 `tests/gate_fixtures/<check>/{violation,clean}/` with `expect.txt` per check, `exempt.tsv`, `scripts/check-gate-fixtures.sh` (R-129): every check fails its violation tree and passes its clean tree
+- [x] 8.3 `scripts/rules.tsv` ledger with one verdict per registry rule (enforced by a named check, or not applicable with a reason — the documentation rules: "not applicable: no docs/ until the documentation change"; R-128: "not applicable: AGENTS.md runs the checks once per change") and `scripts/check-rule-coverage.sh` (R-096)
+- [x] 8.4 `scripts/qa.sh` (`--fix`, `--clean`, `--stage`, `--skip`, `--json`, `--no-color`, `--help`; stages in R-091 order as in D11, the `--ignored` real-program stage included, with `[ OK | FAIL | WARN ] <stage> (<n>s)`; both workspaces) and the remaining recipes (`check`, `complexity`, `machete`, `unsafe-count`, `modules`, `typos`, `recipes`, `dup`, `arch`, `coverage`); install `cargo-modules` 0.28.0
+- [x] 8.5 `README.md` (one screen: Install, Run (dev), Run (production), Test, allow the Automation prompt once per browser, how the agent writes links); `AGENTS.md` (layout, check commands, Gherkin levels, release) and `.claude/kit.yaml` (build inputs, version file `app/app/Cargo.toml`, release command, manual-run area `adapters/secondary/linkopening/**`, `browsertabs/**` and `agentcontrol/**`); `kit doctor` reports no config problem
+- [x] 8.6 Commit (`kit ship`)
 
 ## 9. Release
 

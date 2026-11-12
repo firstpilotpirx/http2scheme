@@ -1,0 +1,15 @@
+//! A door.
+
+/// A door number.
+pub struct DoorValueObject(u16);
+
+impl DoorValueObject {
+    /// The number.
+    pub fn number(&self) -> u16 {
+        if self.0 > 10 { self.0 } else { 0 }
+    }
+}
+
+#[cfg(test)]
+#[path = "door_value_object_test.rs"]
+mod door_value_object_test;

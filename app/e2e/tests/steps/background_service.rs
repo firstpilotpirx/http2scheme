@@ -16,7 +16,7 @@ use crate::support::{answers, free_port, sut_bin, wait_until_answering};
 
 async fn run(world: &mut E2eWorld, command: &str) {
     let (code, out, err) = world.home.run(&[command]).await;
-    (world.code, world.out, world.err) = (Some(code), out, err);
+    (world.printed.code, world.printed.out, world.printed.err) = (Some(code), out, err);
 }
 
 fn settings(world: &mut E2eWorld) -> u16 {
@@ -36,7 +36,7 @@ async fn installed(world: &mut E2eWorld) {
     settings(world);
     world.home.write_key(KEY, 0o600);
     run(world, "install").await;
-    assert_eq!(world.code, Some(0), "{}", world.err);
+    assert_eq!(world.printed.code, Some(0), "{}", world.printed.err);
 }
 
 #[given(regex = r"^the agent is installed and loaded and the server answers$")]
@@ -81,15 +81,19 @@ fn definition_keeps_alive(world: &mut E2eWorld) {
 
 #[then(regex = r"^the agent is loaded$")]
 fn is_loaded(world: &mut E2eWorld) {
-    assert!(world.home.loaded(), "{}", world.err);
+    assert!(world.home.loaded(), "{}", world.printed.err);
 }
 
 #[then(regex = r"^the command says the agent is installed and running$")]
 fn says_installed(world: &mut E2eWorld) {
     let port = world.port.unwrap_or(7777);
     let expected = format!("installed and running on http://127.0.0.1:{port}");
-    assert!(world.out.contains(&expected), "{}", world.out);
-    assert_eq!(world.code, Some(0));
+    assert!(
+        world.printed.out.contains(&expected),
+        "{}",
+        world.printed.out
+    );
+    assert_eq!(world.printed.code, Some(0));
 }
 
 #[then(regex = r"^one agent definition exists, pointing at the current program$")]
@@ -118,31 +122,43 @@ fn settings_remain(world: &mut E2eWorld) {
 
 #[then(regex = r"^the command succeeds and says nothing was installed$")]
 fn says_nothing_installed(world: &mut E2eWorld) {
-    assert_eq!(world.code, Some(0));
-    assert!(world.out.contains("nothing was installed"), "{}", world.out);
+    assert_eq!(world.printed.code, Some(0));
+    assert!(
+        world.printed.out.contains("nothing was installed"),
+        "{}",
+        world.printed.out
+    );
 }
 
 #[then(regex = r"^the command fails and says to install the agent first$")]
 fn says_install_first(world: &mut E2eWorld) {
-    assert_eq!(world.code, Some(1));
-    assert!(world.err.contains("http2scheme install"), "{}", world.err);
+    assert_eq!(world.printed.code, Some(1));
+    assert!(
+        world.printed.err.contains("http2scheme install"),
+        "{}",
+        world.printed.err
+    );
 }
 
 #[then(
     regex = r"^the command shows (installed|not installed), (loaded|not loaded) and (answering|not answering)$"
 )]
 fn shows_status(world: &mut E2eWorld, installed: String, loaded: String, answering: String) {
-    let lines: Vec<&str> = world.out.lines().collect();
+    let lines: Vec<&str> = world.printed.out.lines().collect();
     assert!(
         lines[0].ends_with(&format!(" {installed}")),
         "{}",
-        world.out
+        world.printed.out
     );
-    assert!(lines[1].ends_with(&format!(" {loaded}")), "{}", world.out);
+    assert!(
+        lines[1].ends_with(&format!(" {loaded}")),
+        "{}",
+        world.printed.out
+    );
     assert!(
         lines[2].contains(&format!(" {answering} on 127.0.0.1:")),
         "{}",
-        world.out
+        world.printed.out
     );
 }
 
@@ -173,7 +189,7 @@ async fn runs_foreground(world: &mut E2eWorld) {
         .read_line(&mut line)
         .await
         .unwrap();
-    world.out = line;
+    world.printed.out = line;
     world.server = Some(server);
 }
 
@@ -181,7 +197,11 @@ async fn runs_foreground(world: &mut E2eWorld) {
 fn prints_address(world: &mut E2eWorld) {
     let port = world.port.unwrap();
     let expected = format!("listening on http://127.0.0.1:{port}");
-    assert!(world.out.contains(&expected), "{}", world.out);
+    assert!(
+        world.printed.out.contains(&expected),
+        "{}",
+        world.printed.out
+    );
 }
 
 #[then(regex = r"^the health address answers$")]
@@ -192,10 +212,10 @@ async fn health_answers(world: &mut E2eWorld) {
 #[then(regex = r"^it fails and says the port is taken$")]
 fn says_taken(world: &mut E2eWorld) {
     let port = world.port.unwrap();
-    assert_eq!(world.code, Some(1));
+    assert_eq!(world.printed.code, Some(1));
     assert!(
-        world.err.contains(&format!("port {port} is taken")),
+        world.printed.err.contains(&format!("port {port} is taken")),
         "{}",
-        world.err
+        world.printed.err
     );
 }

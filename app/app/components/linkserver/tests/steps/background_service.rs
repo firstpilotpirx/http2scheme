@@ -21,8 +21,8 @@ fn definition(world: &mut LinkserverWorld) -> std::path::PathBuf {
 async fn install(world: &mut LinkserverWorld) {
     reset_output(world);
     let command = config(world).install_command().await;
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
-    world.code = Some(command.run(&mut out, &mut err).await);
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    world.printed.code = Some(command.run(&mut out, &mut err).await);
 }
 
 #[given(regex = r"^the agent is not installed$")]
@@ -35,20 +35,20 @@ async fn installed(world: &mut LinkserverWorld) {
     write_settings(world, free_port(), &["idea"]);
     write_key(world, 0o600);
     install(world).await;
-    assert!(world.supervisor.is_loaded_now());
+    assert!(world.fakes.supervisor.is_loaded_now());
 }
 
 #[given(regex = r"^the agent is installed and loaded and the server answers$")]
 async fn healthy(world: &mut LinkserverWorld) {
     install(world).await;
-    world.health.set_answering(true);
+    world.fakes.health.set_answering(true);
 }
 
 #[given(regex = r"^the agent is installed but not loaded and the server does not answer$")]
 async fn stopped(world: &mut LinkserverWorld) {
     install(world).await;
-    world.supervisor.set_loaded(false);
-    world.health.set_answering(false);
+    world.fakes.supervisor.set_loaded(false);
+    world.fakes.health.set_answering(false);
 }
 
 #[when(regex = r"^the user installs the agent(?: again)?$")]
@@ -60,29 +60,29 @@ async fn user_installs(world: &mut LinkserverWorld) {
 async fn user_uninstalls(world: &mut LinkserverWorld) {
     reset_output(world);
     let command = config(world).uninstall_command();
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
-    world.code = Some(command.run(&mut out, &mut err).await);
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    world.printed.code = Some(command.run(&mut out, &mut err).await);
 }
 
 #[when(regex = r"^the user (starts|stops) the agent$")]
 async fn user_starts_or_stops(world: &mut LinkserverWorld, verb: String) {
     reset_output(world);
     let root = config(world);
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
     let code = if verb == "starts" {
         root.start_command().run(&mut out, &mut err).await
     } else {
         root.stop_command().run(&mut out, &mut err).await
     };
-    world.code = Some(code);
+    world.printed.code = Some(code);
 }
 
 #[when(regex = r"^the user asks for the status$")]
 async fn user_asks_status(world: &mut LinkserverWorld) {
     reset_output(world);
     let command = config(world).status_command().await;
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
-    world.code = Some(command.run(&mut out, &mut err).await);
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    world.printed.code = Some(command.run(&mut out, &mut err).await);
 }
 
 #[then(
@@ -96,17 +96,17 @@ fn definition_keeps_alive(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^the agent is loaded$")]
 fn is_loaded(world: &mut LinkserverWorld) {
-    assert!(world.supervisor.is_loaded_now());
+    assert!(world.fakes.supervisor.is_loaded_now());
 }
 
 #[then(regex = r"^the command says the agent is installed and running$")]
 fn says_installed(world: &mut LinkserverWorld) {
-    let text = world.out.text();
+    let text = world.printed.out.text();
     assert!(
         text.contains("installed and running on http://127.0.0.1:7777"),
         "{text}"
     );
-    assert_eq!(world.code, Some(0));
+    assert_eq!(world.printed.code, Some(0));
 }
 
 #[then(regex = r"^one agent definition exists, pointing at the current program$")]
@@ -122,7 +122,7 @@ fn one_definition(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^the agent is unloaded and its definition is gone$")]
 fn unloaded_and_gone(world: &mut LinkserverWorld) {
-    assert!(!world.supervisor.is_loaded_now());
+    assert!(!world.fakes.supervisor.is_loaded_now());
     assert!(!definition(world).exists());
 }
 
@@ -135,27 +135,27 @@ fn settings_remain(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^the command succeeds and says nothing was installed$")]
 fn says_nothing_installed(world: &mut LinkserverWorld) {
-    assert_eq!(world.code, Some(0));
-    assert!(world.out.text().contains("nothing was installed"));
+    assert_eq!(world.printed.code, Some(0));
+    assert!(world.printed.out.text().contains("nothing was installed"));
 }
 
 #[then(regex = r"^the agent is unloaded and its definition remains$")]
 fn unloaded_and_kept(world: &mut LinkserverWorld) {
-    assert!(!world.supervisor.is_loaded_now());
+    assert!(!world.fakes.supervisor.is_loaded_now());
     assert!(definition(world).exists());
 }
 
 #[then(regex = r"^the command fails and says to install the agent first$")]
 fn says_install_first(world: &mut LinkserverWorld) {
-    assert_eq!(world.code, Some(1));
-    assert!(world.err.text().contains("http2scheme install"));
+    assert_eq!(world.printed.code, Some(1));
+    assert!(world.printed.err.text().contains("http2scheme install"));
 }
 
 #[then(
     regex = r"^the command shows (installed|not installed), (loaded|not loaded) and (answering|not answering)$"
 )]
 fn shows_status(world: &mut LinkserverWorld, installed: String, loaded: String, answering: String) {
-    let text = world.out.text();
+    let text = world.printed.out.text();
     let lines: Vec<&str> = text.lines().collect();
     assert!(lines[0].ends_with(&format!(" {installed}")), "{text}");
     assert!(lines[1].ends_with(&format!(" {loaded}")), "{text}");
@@ -194,7 +194,7 @@ async fn runs_foreground(world: &mut LinkserverWorld) {
 #[then(regex = r"^it prints the loopback address with the port$")]
 fn prints_address(world: &mut LinkserverWorld) {
     let port = world.port.unwrap();
-    let text = world.out.text();
+    let text = world.printed.out.text();
     assert!(
         text.contains(&format!("listening on http://127.0.0.1:{port}")),
         "{text}"
@@ -209,10 +209,14 @@ async fn health_answers(world: &mut LinkserverWorld) {
 #[then(regex = r"^it fails and says the port is taken$")]
 fn says_taken(world: &mut LinkserverWorld) {
     let port = world.port.unwrap();
-    assert_eq!(world.code, Some(1));
+    assert_eq!(world.printed.code, Some(1));
     assert!(
-        world.err.text().contains(&format!("port {port} is taken")),
+        world
+            .printed
+            .err
+            .text()
+            .contains(&format!("port {port} is taken")),
         "{}",
-        world.err.text()
+        world.printed.err.text()
     );
 }

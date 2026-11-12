@@ -1,0 +1,4 @@
+//! Steps.
+fn open(config: &DemoConfig) {
+    config.open_door_command();
+}

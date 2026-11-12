@@ -1,7 +1,16 @@
-# kit config (agent-kit README § Project config). Guessed by kit init; correct what is wrong.
+# kit config (agent-kit README § Project config).
+version_file: app/app/Cargo.toml
 checks:
-  build_inputs: ["src/**", "tests/**", "Cargo.toml", "Cargo.lock", "justfile", "clippy.toml", "deny.toml", "rust-toolchain.toml"]
-  after_group: just check
+  build_inputs: ["app/**", "scripts/**", "tests/gate_fixtures/**", "metrics/**", "justfile", "clippy.toml", "deny.toml", "rust-toolchain.toml", ".jscpd.json", "_typos.toml"]
+  after_edit: just test
+  after_group: just test
   before_merge: just check
-manual_run: {}
-version_file: Cargo.toml
+manual_run:
+  link-opening: ["app/app/components/linkserver/src/adapters/secondary/linkopening/**"]
+  browser-tabs: ["app/app/components/linkserver/src/adapters/secondary/browsertabs/**"]
+  agent-control: ["app/app/components/linkserver/src/adapters/secondary/agentcontrol/**"]
+release:
+  command: just release
+run:
+  commands:
+    just check: {limit: 30m}

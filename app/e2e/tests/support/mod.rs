@@ -1,5 +1,8 @@
 //! A temporary home with recording system programs, and the built binary run inside it.
 
+pub mod answer;
+pub mod printed;
+
 use std::fs;
 use std::net::TcpListener as StdListener;
 use std::os::unix::fs::PermissionsExt as _;

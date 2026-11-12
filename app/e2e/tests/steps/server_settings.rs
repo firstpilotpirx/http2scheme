@@ -41,14 +41,14 @@ pub async fn server_starts_in(world: &mut E2eWorld) {
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
     }
     if answering {
-        world.code = None;
+        world.printed.code = None;
         world.server = Some(child);
         return;
     }
     let output = child.wait_with_output().await.unwrap();
-    world.code = output.status.code();
-    world.out = String::from_utf8(output.stdout).unwrap();
-    world.err = String::from_utf8(output.stderr).unwrap();
+    world.printed.code = output.status.code();
+    world.printed.out = String::from_utf8(output.stdout).unwrap();
+    world.printed.err = String::from_utf8(output.stderr).unwrap();
 }
 
 #[given(regex = r"^two homes with no settings$")]
@@ -109,7 +109,7 @@ async fn follow_slack(world: &mut E2eWorld) {
         world.home.key(),
         utf8_percent_encode(SLACK, NON_ALPHANUMERIC)
     );
-    (world.status, world.body) = get(&address, &address, &path).await.unwrap();
+    (world.answer.status, world.answer.body) = get(&address, &address, &path).await.unwrap();
 }
 
 #[then(
@@ -155,19 +155,19 @@ fn key_unchanged(world: &mut E2eWorld) {
 
 #[then(regex = r"^the Mac opens that Slack link$")]
 fn opens_slack(world: &mut E2eWorld) {
-    assert_eq!(world.status, 200, "{}", world.body);
+    assert_eq!(world.answer.status, 200, "{}", world.answer.body);
     assert_eq!(world.home.calls("open"), [vec![SLACK.to_owned()]]);
 }
 
 #[then(regex = r"^it does not start$")]
 fn does_not_start(world: &mut E2eWorld) {
-    assert_eq!(world.code, Some(1), "{}", world.err);
-    assert!(!world.out.contains("listening"));
+    assert_eq!(world.printed.code, Some(1), "{}", world.printed.err);
+    assert!(!world.printed.out.contains("listening"));
 }
 
 #[then(regex = r"^it says the port in the settings file must be between 1024 and 65535$")]
 fn says_port_range(world: &mut E2eWorld) {
-    let text = &world.err;
+    let text = &world.printed.err;
     assert!(
         text.contains("settings.toml") && text.contains("port"),
         "{text}"
@@ -177,7 +177,7 @@ fn says_port_range(world: &mut E2eWorld) {
 
 #[then(regex = r"^it says the key file must be readable only by its owner$")]
 fn says_key_private(world: &mut E2eWorld) {
-    let text = &world.err;
+    let text = &world.printed.err;
     assert!(
         text.contains("must be readable only by its owner"),
         "{text}"

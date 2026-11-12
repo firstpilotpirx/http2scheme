@@ -1,0 +1,4 @@
+//! `close`.
+
+/// The command.
+pub struct CloseDoorCommand;

@@ -1,6 +1,6 @@
 //! Fake secondary adapters for the slice scenarios.
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use linkserver::core::application::exceptions::agent_control_error::AgentControlError;
@@ -160,4 +160,19 @@ impl ServerHealthService for FakeHealth {
     async fn is_answering(&self, _port: PortValueObject) -> bool {
         *lock(&self.answering)
     }
+}
+
+/// Every fake secondary adapter of one scenario.
+#[derive(Debug, Default)]
+pub struct Fakes {
+    /// The link opener.
+    pub opener: Arc<FakeOpener>,
+    /// The tab closer.
+    pub closer: Arc<FakeCloser>,
+    /// The request log.
+    pub log: Arc<FakeLog>,
+    /// The agent supervisor.
+    pub supervisor: Arc<FakeSupervisor>,
+    /// The server health check.
+    pub health: Arc<FakeHealth>,
 }

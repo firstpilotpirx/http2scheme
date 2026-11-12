@@ -1,8 +1,6 @@
 //! Builds the component's use cases, commands and routers from what the app hands in.
 
-use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::Router;
 
@@ -17,22 +15,6 @@ use crate::adapters::primary::linkopening::http::open_link_handler::OpenLinkHand
 use crate::adapters::primary::linkopening::http::open_link_response::OpenLinkResponse;
 use crate::adapters::primary::linksharing::cli::prepare_link_command::PrepareLinkCommand;
 use crate::adapters::primary::serving::cli::serve_command::{ServeCommand, ServerFactory};
-use crate::adapters::secondary::agentcontrol::filesystem::filesystem_agent_definition_repository::FilesystemAgentDefinitionRepository;
-use crate::adapters::secondary::agentcontrol::launchd::launchd_agent_supervisor_gateway::LaunchdAgentSupervisorGateway;
-use crate::adapters::secondary::browsertabs::applescript::apple_script_browser_tab_closer_gateway::AppleScriptBrowserTabCloserGateway;
-use crate::adapters::secondary::linkopening::launchservices::launch_services_scheme_link_opener_gateway::LaunchServicesSchemeLinkOpenerGateway;
-use crate::adapters::secondary::requestlog::filesystem::filesystem_open_attempt_repository::FilesystemOpenAttemptRepository;
-use crate::adapters::secondary::secret::osrandom::os_random_secret_generator_gateway::OsRandomSecretGeneratorGateway;
-use crate::adapters::secondary::serverhealth::http::http_server_health_client::HttpServerHealthClient;
-use crate::adapters::secondary::settings::filesystem::filesystem_settings_repository::FilesystemSettingsRepository;
-use crate::core::application::repositories::agent_definition_repository::AgentDefinitionRepository;
-use crate::core::application::repositories::open_attempt_repository::OpenAttemptRepository;
-use crate::core::application::repositories::settings_repository::SettingsRepository;
-use crate::core::application::services::agent_supervisor_service::AgentSupervisorService;
-use crate::core::application::services::browser_tab_closer_service::BrowserTabCloserService;
-use crate::core::application::services::scheme_link_opener_service::SchemeLinkOpenerService;
-use crate::core::application::services::secret_generator_service::SecretGeneratorService;
-use crate::core::application::services::server_health_service::ServerHealthService;
 use crate::core::application::use_cases::check_agent_status_use_case::CheckAgentStatusUseCase;
 use crate::core::application::use_cases::install_agent_use_case::InstallAgentUseCase;
 use crate::core::application::use_cases::open_link_use_case::OpenLinkUseCase;
@@ -42,133 +24,11 @@ use crate::core::application::use_cases::start_agent_use_case::StartAgentUseCase
 use crate::core::application::use_cases::stop_agent_use_case::StopAgentUseCase;
 use crate::core::application::use_cases::uninstall_agent_use_case::UninstallAgentUseCase;
 use crate::core::domain::access_key_value_object::AccessKeyValueObject;
-use crate::core::domain::agent_definition_value_object::AgentDefinitionValueObject;
 use crate::core::domain::port_value_object::PortValueObject;
 use crate::core::domain::server_settings_value_object::ServerSettingsValueObject;
-
-const SETTINGS_FILE: &str = "settings.toml";
-const REQUEST_LOG: &str = "requests.log";
-const TAB_CLOSE_DELAY: Duration = Duration::from_millis(300);
-const HEALTH_TIMEOUT: Duration = Duration::from_secs(1);
-
-/// The folders, names and programs the app hands in; the component holds no machine literal.
-#[derive(Debug, Clone)]
-pub struct LinkserverSetup {
-    /// The folder of `settings.toml` and `key`.
-    pub settings_dir: PathBuf,
-    /// The folder of the request log and the agent's output.
-    pub log_dir: PathBuf,
-    /// The folder of the per-user agent definitions.
-    pub agents_dir: PathBuf,
-    /// The program the agent runs.
-    pub program: PathBuf,
-    /// The agent label.
-    pub label: String,
-    /// The address the server binds and the printed links name.
-    pub host: String,
-    /// The host names the server serves and whose tabs it closes.
-    pub hosts: Vec<String>,
-    /// The program version.
-    pub version: String,
-    /// The user id of the agent's launchd domain.
-    pub uid: u32,
-    /// The macOS link opener.
-    pub open_program: PathBuf,
-    /// The launchd control program.
-    pub launchctl_program: PathBuf,
-    /// The `AppleScript` runner.
-    pub osascript_program: PathBuf,
-}
-
-impl LinkserverSetup {
-    fn settings_file(&self) -> String {
-        self.settings_dir.join(SETTINGS_FILE).display().to_string()
-    }
-
-    fn request_log(&self) -> PathBuf {
-        self.log_dir.join(REQUEST_LOG)
-    }
-
-    fn definition(&self) -> AgentDefinitionValueObject {
-        AgentDefinitionValueObject::new(
-            self.label.clone(),
-            self.program.clone(),
-            self.log_dir.clone(),
-        )
-    }
-
-    fn pages(&self) -> OpenLinkResponse {
-        OpenLinkResponse::new(
-            self.settings_file(),
-            self.request_log().display().to_string(),
-        )
-    }
-}
-
-/// The secondary ports every use case drives.
-#[derive(Clone)]
-pub struct LinkserverPorts {
-    /// The settings and key files.
-    pub settings: Arc<dyn SettingsRepository>,
-    /// The key source.
-    pub secrets: Arc<dyn SecretGeneratorService>,
-    /// Opens scheme links.
-    pub opener: Arc<dyn SchemeLinkOpenerService>,
-    /// Closes the browser tabs.
-    pub closer: Arc<dyn BrowserTabCloserService>,
-    /// Records open attempts.
-    pub attempts: Arc<dyn OpenAttemptRepository>,
-    /// The agent definitions.
-    pub agents: Arc<dyn AgentDefinitionRepository>,
-    /// Loads and unloads the agent.
-    pub supervisor: Arc<dyn AgentSupervisorService>,
-    /// Asks the server whether it answers.
-    pub health: Arc<dyn ServerHealthService>,
-}
-
-impl LinkserverPorts {
-    /// The macOS adapters for the setup.
-    #[must_use]
-    pub fn macos(setup: &LinkserverSetup) -> Self {
-        Self {
-            settings: Arc::new(FilesystemSettingsRepository::new(
-                setup.settings_dir.clone(),
-            )),
-            secrets: Arc::new(OsRandomSecretGeneratorGateway),
-            opener: Arc::new(LaunchServicesSchemeLinkOpenerGateway::new(
-                setup.open_program.clone(),
-            )),
-            closer: Arc::new(AppleScriptBrowserTabCloserGateway::new(
-                setup.osascript_program.clone(),
-                setup.hosts.clone(),
-                TAB_CLOSE_DELAY,
-            )),
-            attempts: Arc::new(FilesystemOpenAttemptRepository::new(setup.request_log())),
-            agents: Arc::new(FilesystemAgentDefinitionRepository::new(
-                setup.agents_dir.clone(),
-            )),
-            supervisor: Arc::new(LaunchdAgentSupervisorGateway::new(
-                setup.launchctl_program.clone(),
-                setup.uid,
-                setup.agents_dir.clone(),
-            )),
-            health: Arc::new(HttpServerHealthClient::new(
-                setup.host.clone(),
-                HEALTH_TIMEOUT,
-            )),
-        }
-    }
-}
-
-/// The secondary ports the open-link use case drives.
-pub struct OpenLinkPorts {
-    /// Opens scheme links.
-    pub opener: Arc<dyn SchemeLinkOpenerService>,
-    /// Closes the browser tabs.
-    pub closer: Arc<dyn BrowserTabCloserService>,
-    /// Records open attempts.
-    pub attempts: Arc<dyn OpenAttemptRepository>,
-}
+use crate::linkserver_ports::LinkserverPorts;
+use crate::linkserver_setup::LinkserverSetup;
+use crate::open_link_ports::OpenLinkPorts;
 
 /// The component's composition root.
 pub struct LinkserverConfig {

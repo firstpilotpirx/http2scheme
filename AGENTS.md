@@ -2,7 +2,12 @@
 
 ## What this project is
 
-A tiny local HTTP server for macOS, written in Rust. It lets apps that allow only `http://` and `https://` links (for example the Claude chat) open custom URL scheme links (`idea://`, `goland://`, `slack://`, …): a click on an `http://127.0.0.1` link makes the server run `open` on the matching scheme link. It listens only on loopback, needs a secret key in every link and opens only the schemes it allows. One Cargo crate at the repository root: the binary and its library (`src/`), tests in `tests/`, task recipes in `justfile`. The first design is in the original spec saved with the first OpenSpec change.
+A tiny local HTTP server for macOS, written in Rust. It lets apps that allow only `http://` and `https://` links (for example the Claude chat) open custom URL scheme links (`idea://`, `goland://`, `slack://`, …): a click on an `http://127.0.0.1` link makes the server run `open` on the matching scheme link. It listens only on loopback, needs a secret key in every link and opens only the schemes it allows. Layout (hexagonal, `~/.claude/rules-custom/architecture-rust.md`):
+
+- `app/app/` — the Cargo workspace: `apps/http2scheme` (the binary: CLI and wiring) and `components/linkserver` (the component: `src/core/{domain,application}`, `src/adapters/{primary,secondary}/<feature>/<tech>/`, the composition root `linkserver_config.rs`; sibling unit tests `*_test.rs`; adapter integration tests, slice and component features in `tests/`).
+- `app/e2e/` — its own Cargo workspace: cucumber E2E scenarios on the built binary, with recording `open`, `launchctl` and `osascript` scripts.
+- `scripts/` — the gate (`qa.sh`), the architecture checks (`arch/`), the rule ledger (`rules.tsv`); `tests/gate_fixtures/` proves every check can fail; `metrics/` holds the complexity record.
+- `justfile` — every task; `just --list` shows them.
 
 **Product lifecycle stage:** PoC.
 
@@ -41,22 +46,22 @@ Every behavior change in stage 5 is test-first (`tdd` skill):
 
 ## Gherkin
 
-Slice and component tests are Gherkin `.feature` files run by cucumber-rs, one per OpenSpec capability, in `tests/features/`, steps in `tests/steps/`. Unit tests (`#[cfg(test)]`) and adapter integration tests stay plain Rust. Each `.feature` scenario matches a spec scenario by meaning (`~/.claude/rules-custom/gherkin.md`); the design of each change names the test level of every scenario.
+Slice and component tests are Gherkin `.feature` files run by cucumber-rs, one per OpenSpec capability, in `app/app/components/linkserver/tests/features/{slice,component}/`, steps in `tests/steps/`; E2E features in `app/e2e/tests/features/`, tagged `@e2e`. Unit tests (`#[cfg(test)]`) and adapter integration tests stay plain Rust. Each `.feature` scenario matches a spec scenario by meaning (`~/.claude/rules-custom/gherkin.md`); the design of each change names the test level of every scenario.
 
 ## How to verify a change
 
 | When | Command |
 |---|---|
 | At TDD Red and Green, on the new test | `just test-one <name>` |
-| Once per change, after the last task group | `just check`: fmt, clippy, cargo-deny, tests (`kit verify` in the background runs the level `kit checks-needed` names) |
+| Once per change, after the last task group | `just check` (`scripts/qa.sh`: fmt, lint, check, complexity, machete, unsafe-count, modules, typos, recipes, dup, deny, arch, unit, integration, arch-tests, e2e, build, coverage); `kit verify` in the background runs the level `kit checks-needed` names |
 | Before merge | `just check` |
 
 No check after an edit or a task group beyond the tests `tdd` writes; the checks run once per change.
 
 ## Release
 
-The version is `version` in `Cargo.toml` (SemVer, `~/.claude/rules-custom/semver.md`).
+The version is `version` in `[workspace.package]` of `app/app/Cargo.toml` (SemVer, `~/.claude/rules-custom/semver.md`).
 
 - Every change with behavior change states its bump and target version in the proposal and bumps the version in its last task group; `kit version-check <name>` checks both.
 - A change without behavior change states "no release" and leaves the version alone.
-- After `kit land`, when `kit release-needed` names a version, run `kit release` (or the project's own release command named here).
+- After `kit land`, when `kit release-needed` names a version, run `just release` on `origin/main`: the gate, a release build, `http2scheme-vX.Y.Z-aarch64-apple-darwin.tar.gz` with its `.sha256`, the tag and the GitHub release.

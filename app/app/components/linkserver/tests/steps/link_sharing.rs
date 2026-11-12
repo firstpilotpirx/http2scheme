@@ -30,7 +30,7 @@ fn parameter(link: &str, name: &str) -> String {
 }
 
 fn printed(world: &LinkserverWorld) -> String {
-    let text = world.out.text();
+    let text = world.printed.out.text();
     let lines: Vec<&str> = text.lines().collect();
     assert_eq!(lines.len(), 1, "one line expected: {text}");
     lines[0].to_owned()
@@ -63,14 +63,14 @@ async fn ask_for_link(world: &mut LinkserverWorld, which: String) {
     world.link = Some(link.to_owned());
     reset_output(world);
     let command = config(world).link_command();
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
-    world.code = Some(command.run(link, &mut out, &mut err).await);
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    world.printed.code = Some(command.run(link, &mut out, &mut err).await);
 }
 
 #[then(regex = r"^the command prints one open link to the loopback address on port 7777$")]
 fn prints_open_link(world: &mut LinkserverWorld) {
     assert!(printed(world).starts_with("http://127.0.0.1:7777/open?"));
-    assert_eq!(world.code, Some(0));
+    assert_eq!(world.printed.code, Some(0));
 }
 
 #[then(regex = r"^following that link opens exactly that IntelliJ link$")]
@@ -100,12 +100,12 @@ fn carries_key(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^the command prints no link$")]
 fn prints_no_link(world: &mut LinkserverWorld) {
-    assert_eq!(world.out.text(), "");
+    assert_eq!(world.printed.out.text(), "");
 }
 
 #[then(regex = r"^it says the Slack scheme is not allowed and how to allow it$")]
 fn says_not_allowed(world: &mut LinkserverWorld) {
-    let text = world.err.text();
+    let text = world.printed.err.text();
     assert!(text.contains("scheme not allowed: slack"), "{text}");
     assert!(
         text.contains("add \"slack\" to allowed_schemes in"),
@@ -115,13 +115,13 @@ fn says_not_allowed(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^it ends with a failure status$")]
 fn failure_status(world: &mut LinkserverWorld) {
-    assert_ne!(world.code, Some(0));
-    assert!(world.code.is_some());
+    assert_ne!(world.printed.code, Some(0));
+    assert!(world.printed.code.is_some());
 }
 
 #[then(regex = r"^it ends with a success status$")]
 fn success_status(world: &mut LinkserverWorld) {
-    assert_eq!(world.code, Some(0));
+    assert_eq!(world.printed.code, Some(0));
 }
 
 #[when(regex = r"^the browser follows the printed link through the server$")]
@@ -135,7 +135,7 @@ async fn follow_printed(world: &mut LinkserverWorld) {
         .unwrap();
     serve_in_background(world, port).await;
     let response = reqwest::get(&link).await.unwrap();
-    world.status = response.status().as_u16();
-    world.body = response.text().await.unwrap();
-    assert_eq!(world.status, 200, "{}", world.body);
+    world.answer.status = response.status().as_u16();
+    world.answer.body = response.text().await.unwrap();
+    assert_eq!(world.answer.status, 200, "{}", world.answer.body);
 }

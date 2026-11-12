@@ -7,12 +7,12 @@
 
 mod fakes;
 mod steps;
-
-use std::sync::Arc;
+mod world;
 
 use cucumber::World as _;
-use fakes::{FakeCloser, FakeHealth, FakeLog, FakeOpener, FakeSupervisor};
-use steps::home::SharedBuffer;
+use fakes::Fakes;
+use world::answer::Answer;
+use world::printed::Printed;
 
 /// The state one scenario builds up.
 #[derive(Debug, cucumber::World)]
@@ -22,32 +22,18 @@ pub struct LinkserverWorld {
     pub allowed: Vec<String>,
     /// Whether the settings close the tab.
     pub close_tab: bool,
-    /// The link opener.
-    pub opener: Arc<FakeOpener>,
-    /// The tab closer.
-    pub closer: Arc<FakeCloser>,
-    /// The request log.
-    pub log: Arc<FakeLog>,
+    /// The fake secondary adapters.
+    pub fakes: Fakes,
     /// The port of the running server.
     pub port: Option<u16>,
     /// The scheme link the last request carried.
     pub link: Option<String>,
-    /// The status of the last answer.
-    pub status: u16,
-    /// The body of the last answer.
-    pub body: String,
+    /// The last answer of the server.
+    pub answer: Answer,
     /// The temporary home of the settings, the key, the logs and the agent definitions.
     pub home: Option<tempfile::TempDir>,
-    /// The agent supervisor.
-    pub supervisor: Arc<FakeSupervisor>,
-    /// The server health check.
-    pub health: Arc<FakeHealth>,
     /// What the last command printed.
-    pub out: SharedBuffer,
-    /// What the last command printed as errors.
-    pub err: SharedBuffer,
-    /// The exit status of the last command.
-    pub code: Option<u8>,
+    pub printed: Printed,
     /// The keys seen so far.
     pub keys: Vec<String>,
     /// A socket that holds a port.
@@ -61,19 +47,12 @@ impl LinkserverWorld {
         Self {
             allowed: vec!["idea".to_owned(), "goland".to_owned()],
             close_tab: true,
-            opener: Arc::default(),
-            closer: Arc::default(),
-            log: Arc::default(),
+            fakes: Fakes::default(),
             port: None,
             link: None,
-            status: 0,
-            body: String::new(),
+            answer: Answer::default(),
             home: None,
-            supervisor: Arc::default(),
-            health: Arc::default(),
-            out: SharedBuffer::default(),
-            err: SharedBuffer::default(),
-            code: None,
+            printed: Printed::default(),
             keys: Vec::new(),
             held: None,
             shutdown: None,

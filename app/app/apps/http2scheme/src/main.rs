@@ -1,5 +1,7 @@
 //! `http2scheme` entry point: reads the machine's environment, builds the component and runs one command.
 
+#![forbid(unsafe_code)]
+
 use std::io::IsTerminal as _;
 use std::os::unix::fs::MetadataExt as _;
 use std::path::PathBuf;
@@ -7,7 +9,9 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
-use linkserver::linkserver_config::{LinkserverConfig, LinkserverPorts, LinkserverSetup};
+use linkserver::linkserver_config::LinkserverConfig;
+use linkserver::linkserver_ports::LinkserverPorts;
+use linkserver::linkserver_setup::LinkserverSetup;
 
 const LABEL: &str = "io.github.firstpilotpirx.http2scheme";
 const HOST: &str = "127.0.0.1";

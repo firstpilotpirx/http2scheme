@@ -9,7 +9,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
-use linkserver::linkserver_config::{LinkserverConfig, LinkserverPorts, LinkserverSetup};
+use linkserver::linkserver_config::LinkserverConfig;
+use linkserver::linkserver_ports::LinkserverPorts;
+use linkserver::linkserver_setup::LinkserverSetup;
 
 use crate::LinkserverWorld;
 
@@ -128,26 +130,26 @@ pub fn config(world: &mut LinkserverWorld) -> LinkserverConfig {
         osascript_program: PathBuf::from("/nonexistent/osascript"),
     };
     let mut ports = LinkserverPorts::macos(&setup);
-    ports.opener = world.opener.clone();
-    ports.closer = world.closer.clone();
-    ports.attempts = world.log.clone();
-    ports.supervisor = world.supervisor.clone();
-    ports.health = world.health.clone();
+    ports.opener = world.fakes.opener.clone();
+    ports.closer = world.fakes.closer.clone();
+    ports.attempts = world.fakes.log.clone();
+    ports.supervisor = world.fakes.supervisor.clone();
+    ports.health = world.fakes.health.clone();
     LinkserverConfig::new(setup, ports, TerminalStyleConfig::new(false))
 }
 
 /// Fresh buffers for the next command.
 pub fn reset_output(world: &mut LinkserverWorld) {
-    world.out = SharedBuffer::default();
-    world.err = SharedBuffer::default();
+    world.printed.out = SharedBuffer::default();
+    world.printed.err = SharedBuffer::default();
 }
 
 /// Runs the serve command until it is ready to stop at once; the files it prepares stay.
 pub async fn serve_once(world: &mut LinkserverWorld) {
     reset_output(world);
     let command = config(world).serve_command();
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
-    world.code = Some(
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    world.printed.code = Some(
         command
             .run(std::future::ready(()), &mut out, &mut err)
             .await,
@@ -159,7 +161,7 @@ pub async fn serve_in_background(world: &mut LinkserverWorld, port: u16) {
     reset_output(world);
     let command = config(world).serve_command();
     let (sender, receiver) = tokio::sync::oneshot::channel::<()>();
-    let (mut out, mut err) = (world.out.clone(), world.err.clone());
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
     tokio::spawn(async move {
         let stop = async {
             let _ = receiver.await;
@@ -174,7 +176,7 @@ pub async fn serve_in_background(world: &mut LinkserverWorld, port: u16) {
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
-    panic!("the server did not answer: {}", world.err.text());
+    panic!("the server did not answer: {}", world.printed.err.text());
 }
 
 /// Whether the health address on `port` answers.

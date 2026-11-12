@@ -71,7 +71,7 @@ async fn follow_slack(world: &mut LinkserverWorld) {
         utf8_percent_encode(SLACK, NON_ALPHANUMERIC)
     );
     let response = reqwest::get(link).await.unwrap();
-    world.status = response.status().as_u16();
+    world.answer.status = response.status().as_u16();
 }
 
 #[then(
@@ -117,19 +117,19 @@ fn key_unchanged(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^the Mac opens that Slack link$")]
 fn opens_slack(world: &mut LinkserverWorld) {
-    assert_eq!(world.status, 200);
-    assert_eq!(world.opener.links(), [SLACK.to_owned()]);
+    assert_eq!(world.answer.status, 200);
+    assert_eq!(world.fakes.opener.links(), [SLACK.to_owned()]);
 }
 
 #[then(regex = r"^it does not start$")]
 fn does_not_start(world: &mut LinkserverWorld) {
-    assert_eq!(world.code, Some(1));
-    assert!(!world.out.text().contains("listening"));
+    assert_eq!(world.printed.code, Some(1));
+    assert!(!world.printed.out.text().contains("listening"));
 }
 
 #[then(regex = r"^it says the port in the settings file must be between 1024 and 65535$")]
 fn says_port_range(world: &mut LinkserverWorld) {
-    let text = world.err.text();
+    let text = world.printed.err.text();
     assert!(text.contains("settings.toml"), "{text}");
     assert!(text.contains("port"), "{text}");
     assert!(text.contains("must be between 1024 and 65535"), "{text}");
@@ -137,7 +137,7 @@ fn says_port_range(world: &mut LinkserverWorld) {
 
 #[then(regex = r"^it says the key file must be readable only by its owner$")]
 fn says_key_private(world: &mut LinkserverWorld) {
-    let text = world.err.text();
+    let text = world.printed.err.text();
     assert!(text.contains("key"), "{text}");
     assert!(
         text.contains("must be readable only by its owner"),

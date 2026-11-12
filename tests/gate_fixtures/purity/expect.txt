@@ -1,0 +1,1 @@
+R-035: app/app/components/demo/src/core/domain/lock_value_object.rs uses I/O in core

@@ -1,0 +1,2 @@
+app/app/components/demo/src/core/domain/door_value_object.rs	DoorValueObject::number	2
+app/app/components/demo/src/demo_config.rs	DemoConfig::open_door_command	1

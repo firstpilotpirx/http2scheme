@@ -16,7 +16,8 @@ use linkserver::core::domain::port_value_object::PortValueObject;
 use linkserver::core::domain::scheme_allowlist_policy::SchemeAllowlistPolicy;
 use linkserver::core::domain::scheme_name_value_object::SchemeNameValueObject;
 use linkserver::core::domain::server_settings_value_object::ServerSettingsValueObject;
-use linkserver::linkserver_config::{LinkserverConfig, OpenLinkPorts};
+use linkserver::linkserver_config::LinkserverConfig;
+use linkserver::open_link_ports::OpenLinkPorts;
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 
 use crate::LinkserverWorld;
@@ -50,9 +51,9 @@ async fn start(world: &mut LinkserverWorld) -> u16 {
     let hosts = vec!["127.0.0.1".to_owned(), "localhost".to_owned()];
     let http = AxumConfig::new("127.0.0.1".to_owned(), hosts, port_value);
     let ports = OpenLinkPorts {
-        opener: world.opener.clone(),
-        closer: world.closer.clone(),
-        attempts: world.log.clone(),
+        opener: world.fakes.opener.clone(),
+        closer: world.fakes.closer.clone(),
+        attempts: world.fakes.log.clone(),
     };
     let pages = OpenLinkResponse::new(
         "/home/settings.toml".to_owned(),
@@ -88,8 +89,8 @@ async fn request(world: &mut LinkserverWorld, path: &str, host: Option<String>) 
         builder = builder.header("host", host);
     }
     let response = builder.send().await.unwrap();
-    world.status = response.status().as_u16();
-    world.body = response.text().await.unwrap();
+    world.answer.status = response.status().as_u16();
+    world.answer.body = response.text().await.unwrap();
 }
 
 async fn follow(world: &mut LinkserverWorld, key: Option<&str>, link: Option<&str>) {
@@ -109,7 +110,7 @@ fn server_runs(world: &mut LinkserverWorld) {
 
 #[given(regex = r"^the server runs with tab closing on and the browser refuses to close tabs$")]
 fn closer_refuses(world: &mut LinkserverWorld) {
-    world.closer = Arc::new(FakeCloser::failing());
+    world.fakes.closer = Arc::new(FakeCloser::failing());
 }
 
 #[given(regex = r"^the settings turn tab closing off$")]
@@ -124,7 +125,7 @@ fn web_and_file_allowed(world: &mut LinkserverWorld) {
 
 #[given(regex = r"^the server runs and the Mac's link opener fails for the IntelliJ link$")]
 fn opener_fails(world: &mut LinkserverWorld) {
-    world.opener = Arc::new(FakeOpener::failing());
+    world.fakes.opener = Arc::new(FakeOpener::failing());
 }
 
 #[when(
@@ -206,14 +207,15 @@ async fn health(world: &mut LinkserverWorld) {
     regex = r"^the Mac opens (?:(?:exactly )?that IntelliJ link|the IntelliJ link with exactly those characters, as one link)$"
 )]
 fn opens_that_link(world: &mut LinkserverWorld) {
-    assert_eq!(world.opener.links(), [world.link.clone().unwrap()]);
+    assert_eq!(world.fakes.opener.links(), [world.link.clone().unwrap()]);
 }
 
 #[then(regex = r"^no command other than the link opener runs$")]
 fn only_the_opener_runs(world: &mut LinkserverWorld) {
-    assert_eq!(world.opener.links().len(), 1);
+    assert_eq!(world.fakes.opener.links().len(), 1);
     assert!(
         world
+            .fakes
             .closer
             .ports()
             .iter()
@@ -228,70 +230,81 @@ fn shows_page(world: &mut LinkserverWorld, title: String) {
         "Wrong key" => 403,
         _ => 404,
     };
-    assert_eq!(world.status, status, "{}", world.body);
-    assert!(world.body.contains(&title), "{}", world.body);
+    assert_eq!(world.answer.status, status, "{}", world.answer.body);
+    assert!(world.answer.body.contains(&title), "{}", world.answer.body);
 }
 
 #[then(regex = r"^the server asks the browsers to close the tabs that show its open address$")]
 fn closes_tabs(world: &mut LinkserverWorld) {
-    assert_eq!(world.closer.ports(), [world.port.unwrap()]);
+    assert_eq!(world.fakes.closer.ports(), [world.port.unwrap()]);
 }
 
 #[then(regex = r"^the server asks no browser to close a tab$")]
 fn closes_no_tab(world: &mut LinkserverWorld) {
-    assert_eq!(world.closer.ports().len(), 0);
+    assert_eq!(world.fakes.closer.ports().len(), 0);
 }
 
 #[then(regex = r"^nothing opens$")]
 fn nothing_opens(world: &mut LinkserverWorld) {
-    assert_eq!(world.opener.links().len(), 0);
+    assert_eq!(world.fakes.opener.links().len(), 0);
 }
 
 #[then(regex = r"^the browser shows a page saying the Slack scheme is not allowed$")]
 fn slack_not_allowed(world: &mut LinkserverWorld) {
-    assert_eq!(world.status, 400);
+    assert_eq!(world.answer.status, 400);
     assert!(
-        world.body.contains("Scheme not allowed: slack"),
+        world.answer.body.contains("Scheme not allowed: slack"),
         "{}",
-        world.body
+        world.answer.body
     );
 }
 
 #[then(regex = r"^the browser shows a page saying the scheme is not allowed$")]
 fn scheme_not_allowed(world: &mut LinkserverWorld) {
-    assert_eq!(world.status, 400);
-    assert!(world.body.contains("Scheme not allowed"), "{}", world.body);
+    assert_eq!(world.answer.status, 400);
+    assert!(
+        world.answer.body.contains("Scheme not allowed"),
+        "{}",
+        world.answer.body
+    );
 }
 
 #[then(regex = r"^the browser shows a page saying the link is malformed$")]
 fn malformed(world: &mut LinkserverWorld) {
-    assert_eq!(world.status, 400);
-    assert!(world.body.contains("Malformed link"), "{}", world.body);
+    assert_eq!(world.answer.status, 400);
+    assert!(
+        world.answer.body.contains("Malformed link"),
+        "{}",
+        world.answer.body
+    );
 }
 
 #[then(regex = r"^the server answers that the host is not served$")]
 fn host_not_served(world: &mut LinkserverWorld) {
-    assert_eq!(world.status, 421);
+    assert_eq!(world.answer.status, 421);
 }
 
 #[then(regex = r"^the server answers that it is running$")]
 fn running(world: &mut LinkserverWorld) {
-    assert_eq!((world.status, world.body.as_str()), (200, "ok"));
+    assert_eq!(
+        (world.answer.status, world.answer.body.as_str()),
+        (200, "ok")
+    );
 }
 
 #[then(regex = r"^the browser shows a page saying the app could not be opened$")]
 fn could_not_open(world: &mut LinkserverWorld) {
-    assert_eq!(world.status, 502);
+    assert_eq!(world.answer.status, 502);
     assert!(
-        world.body.contains("Could not open the app"),
+        world.answer.body.contains("Could not open the app"),
         "{}",
-        world.body
+        world.answer.body
     );
 }
 
 #[then(regex = r#"^the request log ends with (?:a line holding )?the result "(.+)"$"#)]
 fn log_ends_with_result(world: &mut LinkserverWorld, result: String) {
-    let events = world.log.events();
+    let events = world.fakes.log.events();
     assert_eq!(events.last().unwrap().outcome().label(), result);
 }
 
@@ -299,7 +312,7 @@ fn log_ends_with_result(world: &mut LinkserverWorld, result: String) {
     regex = r#"^the request log ends with a line holding the time, that IntelliJ link and the result "(.+)"$"#
 )]
 fn log_ends_with_line(world: &mut LinkserverWorld, result: String) {
-    let events = world.log.events();
+    let events = world.fakes.log.events();
     let last = events.last().unwrap();
     assert_eq!(last.link_text(), world.link.clone().unwrap());
     assert_eq!(last.outcome().label(), result);
@@ -309,7 +322,7 @@ fn log_ends_with_line(world: &mut LinkserverWorld, result: String) {
 
 #[then(regex = r"^neither the secret key nor the wrong key appears in the log$")]
 fn no_key_in_log(world: &mut LinkserverWorld) {
-    for event in world.log.events() {
+    for event in world.fakes.log.events() {
         let text = format!("{event:?}");
         assert!(!text.contains(KEY) && !text.contains(WRONG_KEY), "{text}");
     }
