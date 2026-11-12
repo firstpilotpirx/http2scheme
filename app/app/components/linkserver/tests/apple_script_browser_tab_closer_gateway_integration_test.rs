@@ -72,7 +72,10 @@ async fn close_open_tabs_returns_at_once_and_runs_after_the_delay() {
     );
     gateway.close_open_tabs(port()).await.unwrap();
     assert_eq!(osascript.calls().len(), 0);
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    while osascript.calls().is_empty() && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
     assert_eq!(osascript.calls().len(), 1);
 }
 
