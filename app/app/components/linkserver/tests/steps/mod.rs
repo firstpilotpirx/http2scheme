@@ -1,5 +1,6 @@
 //! Step definitions, one module per capability, and the helpers they share.
 
+pub mod agent_skill;
 pub mod app_order;
 pub mod background_service;
 pub mod home;

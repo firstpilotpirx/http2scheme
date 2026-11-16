@@ -13,6 +13,8 @@ pub mod prepare_settings;
 pub mod prepare_settings_use_case;
 pub mod replay_link;
 pub mod replay_link_use_case;
+pub mod show_skill;
+pub mod show_skill_use_case;
 pub mod start_agent;
 pub mod start_agent_use_case;
 pub mod stop_agent;

@@ -2,12 +2,12 @@
 
 ## 1. Skill text and the `skill` command
 
-- [ ] 1.1 Write `skills/http2scheme/SKILL.md`: header (`name: http2scheme`, one-line description), the link style D rule with an example, one `{{program}} link` call per reply, the scheme per language, the fallback line.
-- [ ] 1.2 Red: unit test for `AgentSkillValueObject` rendering the template with a program path (header kept, `{{program}}` replaced everywhere).
-- [ ] 1.3 Green: `agent_skill_value_object.rs` with `include_str!` of the template.
-- [ ] 1.4 Red: slice scenario "The printed skill names the program and the link style" in `tests/features/slice/agent_skill.feature` with its steps.
-- [ ] 1.5 Green: `show_skill` port and use case, `show_skill_command.rs`, `Skill` subcommand in `main.rs`, wiring in `linkserver_config.rs`.
-- [ ] 1.6 `kit ship` the group.
+- [x] 1.1 Write `skills/http2scheme/SKILL.md`: header (`name: http2scheme`, one-line description), the link style D rule with an example, one `{{program}} link` call per reply, the scheme per language, the fallback line.
+- [x] 1.2 Red: unit test for `AgentSkillValueObject` rendering the template with a program path (header kept, `{{program}}` replaced everywhere).
+- [x] 1.3 Green: `agent_skill_value_object.rs` with `include_str!` of the template.
+- [x] 1.4 Red: slice scenario "The printed skill names the program and the link style" in `tests/features/slice/agent_skill.feature` with its steps.
+- [x] 1.5 Green: `show_skill` port and use case, `show_skill_command.rs`, `Skill` subcommand in `main.rs`, wiring in `linkserver_config.rs`.
+- [x] 1.6 `kit ship` the group.
 
 ## 2. Installing the skill
 

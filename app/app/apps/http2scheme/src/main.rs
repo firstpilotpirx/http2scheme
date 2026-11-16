@@ -51,6 +51,8 @@ enum Command {
         /// The scheme link, for example `idea://open?file=/a/B.java&line=3`.
         link: String,
     },
+    /// Print the agent skill that teaches coding agents to write IDE links.
+    Skill,
     /// Run the server at login and restart it after a crash.
     Install,
     /// Stop the server and remove it from login; settings, key and logs stay.
@@ -111,6 +113,7 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     match command {
         Command::Serve => root.serve_command().run(stopped(), out, err).await,
         Command::Link { link } => root.link_command().run(&link, out, err).await,
+        Command::Skill => root.skill_command().run(out, err).await,
         Command::Install => root.install_command().await.run(out, err).await,
         Command::Uninstall => root.uninstall_command().run(out, err).await,
         Command::Start => root.start_command().run(out, err).await,

@@ -2,6 +2,7 @@
 
 pub mod access_key_value_object;
 pub mod agent_definition_value_object;
+pub mod agent_skill_value_object;
 pub mod agent_status_value_object;
 pub mod link_open_attempted_domain_event;
 pub mod link_rejected_error;

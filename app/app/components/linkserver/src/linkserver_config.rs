@@ -10,6 +10,7 @@ use crate::adapters::primary::agentcontrol::cli::start_agent_command::StartAgent
 use crate::adapters::primary::agentcontrol::cli::stop_agent_command::StopAgentCommand;
 use crate::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use crate::adapters::primary::agentcontrol::cli::uninstall_agent_command::UninstallAgentCommand;
+use crate::adapters::primary::agentskill::cli::show_skill_command::ShowSkillCommand;
 use crate::adapters::primary::linkopening::http::axum_config::AxumConfig;
 use crate::adapters::primary::linkopening::http::open_link_handler::OpenLinkHandler;
 use crate::adapters::primary::linkopening::http::open_link_response::OpenLinkResponse;
@@ -22,6 +23,7 @@ use crate::core::application::use_cases::open_link_use_case::OpenLinkUseCase;
 use crate::core::application::use_cases::prepare_link_use_case::PrepareLinkUseCase;
 use crate::core::application::use_cases::prepare_settings_use_case::PrepareSettingsUseCase;
 use crate::core::application::use_cases::replay_link_use_case::ReplayLinkUseCase;
+use crate::core::application::use_cases::show_skill_use_case::ShowSkillUseCase;
 use crate::core::application::use_cases::start_agent_use_case::StartAgentUseCase;
 use crate::core::application::use_cases::stop_agent_use_case::StopAgentUseCase;
 use crate::core::application::use_cases::uninstall_agent_use_case::UninstallAgentUseCase;
@@ -85,6 +87,16 @@ impl LinkserverConfig {
             self.setup.settings_file(),
             self.style,
         )
+    }
+
+    fn show_skill(&self) -> Arc<ShowSkillUseCase> {
+        Arc::new(ShowSkillUseCase::new(self.setup.program.display().to_string()))
+    }
+
+    /// `skill`.
+    #[must_use]
+    pub fn skill_command(&self) -> ShowSkillCommand {
+        ShowSkillCommand::new(self.show_skill())
     }
 
     /// The ▶ of the menu bar app's History tab.
