@@ -10,7 +10,13 @@ fn keeps_what_was_reported() {
         Some(PathBuf::from("/kit/http2scheme/SKILL.md")),
         SkillStateEnum::Outdated,
     );
-    assert_eq!(place.file(), Path::new("/h/.claude/skills/http2scheme/SKILL.md"));
-    assert_eq!(place.real_file(), Some(Path::new("/kit/http2scheme/SKILL.md")));
+    assert_eq!(
+        place.file(),
+        Path::new("/h/.claude/skills/http2scheme/SKILL.md")
+    );
+    assert_eq!(
+        place.real_file(),
+        Some(Path::new("/kit/http2scheme/SKILL.md"))
+    );
     assert_eq!(place.state(), SkillStateEnum::Outdated);
 }

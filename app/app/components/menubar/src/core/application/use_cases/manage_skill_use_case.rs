@@ -67,7 +67,12 @@ impl ManageSkill for ManageSkillUseCase {
     async fn install(&self, folder: PathBuf) -> AgentsViewValueObject {
         match self.skill.install(&folder).await {
             Ok(place) => {
-                let error = self.folders.save(&folder).await.err().map(|e| e.to_string());
+                let error = self
+                    .folders
+                    .save(&folder)
+                    .await
+                    .err()
+                    .map(|e| e.to_string());
                 AgentsViewValueObject::new(folder, self.home.clone(), Some(place), error)
             }
             Err(reason) => self.view(folder, Some(reason)).await,
@@ -82,7 +87,11 @@ impl ManageSkill for ManageSkillUseCase {
         let Some(folder) = self.folders.find().await? else {
             return Ok(());
         };
-        let place = self.skill.inspect(&folder).await.map_err(MenuActionError::Skill)?;
+        let place = self
+            .skill
+            .inspect(&folder)
+            .await
+            .map_err(MenuActionError::Skill)?;
         if place.state() == SkillStateEnum::Outdated {
             self.skill
                 .install(&folder)

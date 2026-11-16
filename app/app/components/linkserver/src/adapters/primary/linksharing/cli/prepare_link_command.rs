@@ -56,15 +56,11 @@ impl PrepareLinkCommand {
         for link in links {
             match self.use_case.execute(link).await {
                 Ok(open) => prepared.push(open),
-                Err(error) => {
-                    for line in self.reason(&error) {
-                        if !reasons.contains(&line) {
-                            reasons.push(line);
-                        }
-                    }
-                }
+                Err(error) => reasons.extend(self.reason(&error)),
             }
         }
+        let mut seen = std::collections::HashSet::new();
+        reasons.retain(|line| seen.insert(line.clone()));
         if !reasons.is_empty() {
             for line in reasons {
                 let _ = writeln!(err, "{line}");

@@ -15,5 +15,7 @@ pub fn show() -> Arc<ShowSkillUseCase> {
 
 /// The text of the current skill.
 pub fn current() -> String {
-    AgentSkillValueObject::for_program(PROGRAM).text().to_owned()
+    AgentSkillValueObject::for_program(PROGRAM)
+        .text()
+        .to_owned()
 }

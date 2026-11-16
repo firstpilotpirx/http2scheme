@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use objc2::MainThreadMarker;
 
+use crate::adapters::primary::statusmenu::appkit::agents_tab_handler::AgentsTabHandler;
 use crate::adapters::primary::statusmenu::appkit::app_kit_config::{AppKitConfig, ready};
 use crate::adapters::primary::statusmenu::appkit::history_tab_handler::HistoryTabHandler;
 use crate::adapters::primary::statusmenu::appkit::settings_window_handler::SettingsWindowHandler;
@@ -90,6 +91,17 @@ impl MenubarConfig {
         .await
     }
 
+    /// Rewrites the skill in the folder last installed to when its text differs from the app's
+    /// (design D8). It waits on the hooks itself, so it runs outside the async runtime, as the
+    /// tabs do.
+    ///
+    /// # Errors
+    ///
+    /// When the remembered folder, the skill file or the write fails.
+    pub fn refresh_skill(&self) -> Result<(), MenuActionError> {
+        ready(self.skill().refresh())
+    }
+
     /// The Agents tab's use case: the remembered folder, else the setup's Claude Code folder.
     #[must_use]
     pub fn skill(&self) -> Arc<dyn ManageSkill> {
@@ -125,7 +137,13 @@ impl MenubarConfig {
         HistoryTabHandler::install(mtm, Arc::new(history))
     }
 
-    /// Prepares the Settings window over `menu` with the `history` tab; it shows at
+    /// Prepares the Agents tab over the skill's use case.
+    #[must_use]
+    pub fn agents_tab(&self, mtm: MainThreadMarker) -> AgentsTabHandler {
+        AgentsTabHandler::install(mtm, self.skill())
+    }
+
+    /// Prepares the Settings window over `menu` with the `history` and `agents` tabs; it shows at
     /// [`SettingsWindowHandler::show_general`] or [`SettingsWindowHandler::show_history`].
     #[must_use]
     pub fn settings_window(
@@ -133,8 +151,9 @@ impl MenubarConfig {
         mtm: MainThreadMarker,
         menu: Arc<dyn OperateMenu>,
         history: HistoryTabHandler,
+        agents: AgentsTabHandler,
     ) -> SettingsWindowHandler {
-        SettingsWindowHandler::install(mtm, menu, history)
+        SettingsWindowHandler::install(mtm, menu, history, agents)
     }
 
     /// Puts the status item with its menu over `menu` in the menu bar; Settings… calls
@@ -153,8 +172,12 @@ impl MenubarConfig {
     /// Shows the menu and runs the application loop until the app quits.
     pub fn run(&self, mtm: MainThreadMarker) {
         let menu = self.menu();
-        let settings =
-            std::rc::Rc::new(self.settings_window(mtm, menu.clone(), self.history_tab(mtm)));
+        let settings = std::rc::Rc::new(self.settings_window(
+            mtm,
+            menu.clone(),
+            self.history_tab(mtm),
+            self.agents_tab(mtm),
+        ));
         let general = std::rc::Rc::clone(&settings);
         let history = std::rc::Rc::clone(&settings);
         let _menu = self.status_menu(

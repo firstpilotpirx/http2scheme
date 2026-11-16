@@ -29,7 +29,10 @@ async fn an_equal_file_is_installed() {
 
 #[tokio::test]
 async fn a_different_file_is_outdated() {
-    assert_eq!(inspect(Some("older".to_owned())).await, SkillStateEnum::Outdated);
+    assert_eq!(
+        inspect(Some("older".to_owned())).await,
+        SkillStateEnum::Outdated
+    );
 }
 
 #[tokio::test]
@@ -43,7 +46,10 @@ async fn keeps_the_real_file_and_the_folder() {
         .returning(move |_| Ok((None, Some(found.clone()))));
     let use_case = InspectSkillUseCase::new(show(), Arc::new(repository));
     let place = use_case.execute(Path::new("/work/.claude")).await.unwrap();
-    assert_eq!(place.file(), Path::new("/work/.claude/skills/http2scheme/SKILL.md"));
+    assert_eq!(
+        place.file(),
+        Path::new("/work/.claude/skills/http2scheme/SKILL.md")
+    );
     assert_eq!(place.real_file(), Some(real.as_path()));
 }
 

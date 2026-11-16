@@ -4,7 +4,10 @@ use crate::core::domain::agent_skill_value_object::AgentSkillValueObject;
 #[test]
 fn no_file_is_not_installed() {
     let skill = AgentSkillValueObject::for_program("/p");
-    assert_eq!(SkillStateEnum::of(None, &skill), SkillStateEnum::NotInstalled);
+    assert_eq!(
+        SkillStateEnum::of(None, &skill),
+        SkillStateEnum::NotInstalled
+    );
 }
 
 #[test]

@@ -33,8 +33,14 @@ fn the_folder_shows_home_as_a_tilde() {
 
 #[test]
 fn the_state_line_names_the_state() {
-    assert_eq!(view(SkillStateEnum::NotInstalled, None, None).skill_title(), "Skill · Not installed");
-    assert_eq!(view(SkillStateEnum::Installed, None, None).skill_title(), "Skill · Installed");
+    assert_eq!(
+        view(SkillStateEnum::NotInstalled, None, None).skill_title(),
+        "Skill · Not installed"
+    );
+    assert_eq!(
+        view(SkillStateEnum::Installed, None, None).skill_title(),
+        "Skill · Installed"
+    );
     assert_eq!(
         view(SkillStateEnum::Outdated, None, None).skill_title(),
         "Skill · An older version is installed"
@@ -43,8 +49,14 @@ fn the_state_line_names_the_state() {
 
 #[test]
 fn an_older_skill_offers_update() {
-    assert_eq!(view(SkillStateEnum::Outdated, None, None).button(), "Update");
-    assert_eq!(view(SkillStateEnum::NotInstalled, None, None).button(), "Install");
+    assert_eq!(
+        view(SkillStateEnum::Outdated, None, None).button(),
+        "Update"
+    );
+    assert_eq!(
+        view(SkillStateEnum::NotInstalled, None, None).button(),
+        "Install"
+    );
 }
 
 #[test]
@@ -68,7 +80,11 @@ fn a_linked_folder_names_the_real_place() {
 
 #[test]
 fn a_failure_replaces_the_line() {
-    let shown = view(SkillStateEnum::NotInstalled, None, Some("/x: permission denied"));
+    let shown = view(
+        SkillStateEnum::NotInstalled,
+        None,
+        Some("/x: permission denied"),
+    );
     assert_eq!(shown.skill_line(), "/x: permission denied");
     assert_eq!(shown.error(), Some("/x: permission denied"));
 }

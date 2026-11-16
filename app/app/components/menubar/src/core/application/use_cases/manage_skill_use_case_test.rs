@@ -17,7 +17,9 @@ fn place(dir: &Path, state: SkillStateEnum) -> SkillPlaceValueObject {
 
 fn inspects(state: SkillStateEnum) -> MockAgentSkillService {
     let mut skill = MockAgentSkillService::new();
-    skill.expect_inspect().returning(move |dir| Ok(place(dir, state)));
+    skill
+        .expect_inspect()
+        .returning(move |dir| Ok(place(dir, state)));
     skill
 }
 
@@ -52,17 +54,23 @@ async fn without_a_remembered_folder_it_shows_the_default_one() {
 
 #[tokio::test]
 async fn it_starts_from_the_remembered_folder() {
-    let view = use_case(remembers(Some("/w/.claude")), inspects(SkillStateEnum::Installed))
-        .show(None)
-        .await;
+    let view = use_case(
+        remembers(Some("/w/.claude")),
+        inspects(SkillStateEnum::Installed),
+    )
+    .show(None)
+    .await;
     assert_eq!(view.folder(), Path::new("/w/.claude"));
 }
 
 #[tokio::test]
 async fn a_chosen_folder_is_shown_with_its_state() {
-    let view = use_case(MockSkillFolderRepository::new(), inspects(SkillStateEnum::Outdated))
-        .show(Some(PathBuf::from("/w/.claude")))
-        .await;
+    let view = use_case(
+        MockSkillFolderRepository::new(),
+        inspects(SkillStateEnum::Outdated),
+    )
+    .show(Some(PathBuf::from("/w/.claude")))
+    .await;
     assert_eq!(view.folder(), Path::new("/w/.claude"));
     assert_eq!(view.button(), "Update");
 }
@@ -146,7 +154,12 @@ async fn refresh_does_nothing_without_a_remembered_folder() {
 #[tokio::test]
 async fn refresh_reports_a_failed_write() {
     let mut skill = inspects(SkillStateEnum::Outdated);
-    skill.expect_install().returning(|_| Err("denied".to_owned()));
-    let error = use_case(remembers(Some("/w")), skill).refresh().await.unwrap_err();
+    skill
+        .expect_install()
+        .returning(|_| Err("denied".to_owned()));
+    let error = use_case(remembers(Some("/w")), skill)
+        .refresh()
+        .await
+        .unwrap_err();
     assert_eq!(error, MenuActionError::Skill("denied".to_owned()));
 }

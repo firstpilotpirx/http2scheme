@@ -9,9 +9,14 @@ use crate::core::domain::skill_state_enum::SkillStateEnum;
 async fn the_port_is_object_safe_and_forwards_its_calls() {
     let mut mock = MockAgentSkillService::new();
     mock.expect_text().returning(|| "skill".to_owned());
-    mock.expect_inspect().returning(|_| Err("denied".to_owned()));
+    mock.expect_inspect()
+        .returning(|_| Err("denied".to_owned()));
     mock.expect_install().returning(|dir| {
-        Ok(SkillPlaceValueObject::new(dir.join("f"), None, SkillStateEnum::Installed))
+        Ok(SkillPlaceValueObject::new(
+            dir.join("f"),
+            None,
+            SkillStateEnum::Installed,
+        ))
     });
     let port: Arc<dyn AgentSkillService> = Arc::new(mock);
     assert_eq!(port.text().await, "skill");

@@ -23,7 +23,12 @@ fn through_menu(world: &mut MenubarWorld, title: &str) {
     let mtm = MenubarConfig::main_thread().unwrap();
     let config = config(world);
     let menu = config.menu();
-    let window = Rc::new(config.settings_window(mtm, menu.clone(), config.history_tab(mtm)));
+    let window = Rc::new(config.settings_window(
+        mtm,
+        menu.clone(),
+        config.history_tab(mtm),
+        config.agents_tab(mtm),
+    ));
     let (general, history) = (Rc::clone(&window), Rc::clone(&window));
     let status = config.status_menu(
         mtm,
@@ -38,7 +43,12 @@ fn through_menu(world: &mut MenubarWorld, title: &str) {
 fn turn(world: &mut MenubarWorld, switch: &str) {
     let mtm = MenubarConfig::main_thread().unwrap();
     let config = config(world);
-    let window = config.settings_window(mtm, config.menu(), config.history_tab(mtm));
+    let window = config.settings_window(
+        mtm,
+        config.menu(),
+        config.history_tab(mtm),
+        config.agents_tab(mtm),
+    );
     window.show_general();
     if switch == "Serve links" {
         window.turn_server();

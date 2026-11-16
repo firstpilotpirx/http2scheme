@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::{PrepareLinkCommand, open_url};
 use crate::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use crate::core::application::use_cases::prepare_link::MockPrepareLink;
-use crate::core::domain::link_rejected_error::LinkRejectedError;
 use crate::core::domain::access_key_value_object::AccessKeyValueObject;
+use crate::core::domain::link_rejected_error::LinkRejectedError;
 use crate::core::domain::port_value_object::PortValueObject;
 use crate::core::domain::prepared_link_value_object::PreparedLinkValueObject;
 use crate::core::domain::scheme_link_value_object::SchemeLinkValueObject;
@@ -64,7 +64,11 @@ async fn run(links: &[&str]) -> (u8, String, String) {
 
 #[tokio::test]
 async fn prints_one_line_per_link_in_order() {
-    let links = ["idea://open?file=/a", "goland://open?file=/b", "idea://open?file=/c"];
+    let links = [
+        "idea://open?file=/a",
+        "goland://open?file=/b",
+        "idea://open?file=/c",
+    ];
     let (code, out, err) = run(&links).await;
     assert_eq!(code, 0);
     assert!(err.is_empty(), "{err}");

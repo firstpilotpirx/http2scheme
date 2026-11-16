@@ -17,7 +17,12 @@ const SLACK: &str = "slack://channel?id=C1";
 fn open_history(world: &mut MenubarWorld, replay: Option<usize>) {
     let mtm = MenubarConfig::main_thread().unwrap();
     let config = config(world);
-    let window = config.settings_window(mtm, config.menu(), config.history_tab(mtm));
+    let window = config.settings_window(
+        mtm,
+        config.menu(),
+        config.history_tab(mtm),
+        config.agents_tab(mtm),
+    );
     window.show_history();
     if let Some(index) = replay {
         window.history().replay(index);

@@ -19,8 +19,7 @@ pub type LinkReplayer = Arc<dyn Fn(&str) -> String + Send + Sync>;
 /// Answers the agent skill text, the same the skill command prints.
 pub type SkillText = Arc<dyn Fn() -> String + Send + Sync>;
 /// Inspects or installs the skill in a Claude Code folder; the reason when it fails.
-pub type SkillAction =
-    Arc<dyn Fn(&Path) -> Result<SkillPlaceValueObject, String> + Send + Sync>;
+pub type SkillAction = Arc<dyn Fn(&Path) -> Result<SkillPlaceValueObject, String> + Send + Sync>;
 
 /// The calls into the server the app runs; `menubar` knows nothing else of it.
 #[derive(Clone)]

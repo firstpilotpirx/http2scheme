@@ -17,5 +17,5 @@ async fn prints_the_skill_text_unchanged() {
         String::from_utf8(out).unwrap(),
         AgentSkillValueObject::for_program("/p").text()
     );
-    assert!(err.is_empty());
+    assert_eq!(err, Vec::<u8>::new());
 }

@@ -16,9 +16,13 @@ async fn answers_the_text_the_state_and_the_reason() {
     show.expect_execute()
         .returning(|| AgentSkillValueObject::for_program("/p"));
     let mut inspect = MockInspectSkill::new();
-    inspect
-        .expect_execute()
-        .returning(|dir| Ok(SkillPlaceValueObject::new(dir, None, SkillStateEnum::Outdated)));
+    inspect.expect_execute().returning(|dir| {
+        Ok(SkillPlaceValueObject::new(
+            dir,
+            None,
+            SkillStateEnum::Outdated,
+        ))
+    });
     let mut install = MockInstallSkill::new();
     install.expect_execute().returning(|_| {
         Err(InstallSkillError::Io {

@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use async_trait::async_trait;
+use menubar::adapters::primary::statusmenu::appkit::agents_tab_handler::AgentsTabHandler;
 use menubar::adapters::primary::statusmenu::appkit::app_kit_config::AppKitConfig;
 use menubar::adapters::primary::statusmenu::appkit::history_tab_handler::HistoryTabHandler;
 use menubar::adapters::primary::statusmenu::appkit::settings_window_handler::{
@@ -17,7 +18,9 @@ use menubar::adapters::primary::statusmenu::appkit::settings_window_handler::{
 };
 use menubar::core::application::exceptions::menu_action_error::MenuActionError;
 use menubar::core::application::use_cases::browse_history::BrowseHistory;
+use menubar::core::application::use_cases::manage_skill::ManageSkill;
 use menubar::core::application::use_cases::operate_menu::OperateMenu;
+use menubar::core::domain::agents_view_value_object::AgentsViewValueObject;
 use menubar::core::domain::history_command_enum::HistoryCommandEnum;
 use menubar::core::domain::history_view_value_object::{
     HistoryViewValueObject, NOTHING_OPENED_NOTE,
@@ -38,6 +41,36 @@ impl BrowseHistory for EmptyHistory {
     ) -> Result<HistoryViewValueObject, MenuActionError> {
         Ok(HistoryViewValueObject::new(Vec::new()))
     }
+}
+
+/// A skill that is never installed anywhere.
+struct NoSkill;
+
+#[async_trait]
+impl ManageSkill for NoSkill {
+    async fn show(&self, folder: Option<std::path::PathBuf>) -> AgentsViewValueObject {
+        let folder = folder.unwrap_or_else(|| "/Users/someone/.claude".into());
+        AgentsViewValueObject::new(folder, "/Users/someone".into(), None, None)
+    }
+
+    async fn install(&self, folder: std::path::PathBuf) -> AgentsViewValueObject {
+        self.show(Some(folder)).await
+    }
+
+    async fn skill_text(&self) -> String {
+        String::new()
+    }
+
+    async fn refresh(&self) -> Result<(), MenuActionError> {
+        Ok(())
+    }
+}
+
+fn tabs(mtm: objc2::MainThreadMarker) -> (HistoryTabHandler, AgentsTabHandler) {
+    (
+        HistoryTabHandler::install(mtm, Arc::new(EmptyHistory)),
+        AgentsTabHandler::install(mtm, Arc::new(NoSkill)),
+    )
 }
 
 /// A menu whose server turns on and off and whose login item turns on and off, unless the
@@ -76,8 +109,8 @@ impl OperateMenu for FakeMenu {
 fn settings_shows_the_switches_and_their_lines() {
     let mtm = AppKitConfig::main_thread().unwrap();
     let menu = Arc::new(FakeMenu::default());
-    let history = HistoryTabHandler::install(mtm, Arc::new(EmptyHistory));
-    let window = SettingsWindowHandler::install(mtm, menu.clone(), history);
+    let (history, agents) = tabs(mtm);
+    let window = SettingsWindowHandler::install(mtm, menu.clone(), history, agents);
     window.show_general();
     assert!(window.is_visible());
     assert_eq!(window.title(), WINDOW_TITLE);
@@ -122,6 +155,14 @@ fn the_window_fits_the_chosen_tab() {
         "{general} {}",
         window.content_height()
     );
+    window.choose_tab(2);
+    assert_eq!(window.selected_tab(), "Agents");
+    assert!(
+        window.content_height() > general,
+        "{general} {}",
+        window.content_height()
+    );
+    assert_eq!(window.agents().lines()[0], "~/.claude");
     window.choose_tab(0);
     assert_eq!(window.selected_tab(), "General");
     assert_eq!(window.content_height(), general);
@@ -133,8 +174,8 @@ fn settings_window(login: LoginItemStateEnum) -> (Arc<FakeMenu>, SettingsWindowH
         stuck_login: Some(login),
         ..FakeMenu::default()
     });
-    let history = HistoryTabHandler::install(mtm, Arc::new(EmptyHistory));
-    let window = SettingsWindowHandler::install(mtm, menu.clone(), history);
+    let (history, agents) = tabs(mtm);
+    let window = SettingsWindowHandler::install(mtm, menu.clone(), history, agents);
     window.show_general();
     (menu, window)
 }
@@ -198,8 +239,8 @@ impl OperateMenu for StartingMenu {
 
 fn starting_window(menu: StartingMenu) -> SettingsWindowHandler {
     let mtm = AppKitConfig::main_thread().unwrap();
-    let history = HistoryTabHandler::install(mtm, Arc::new(EmptyHistory));
-    SettingsWindowHandler::install(mtm, Arc::new(menu), history)
+    let (history, agents) = tabs(mtm);
+    SettingsWindowHandler::install(mtm, Arc::new(menu), history, agents)
 }
 
 fn turning_serve_links_on_waits_until_the_server_runs() {

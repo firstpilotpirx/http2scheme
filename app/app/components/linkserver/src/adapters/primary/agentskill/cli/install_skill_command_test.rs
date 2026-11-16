@@ -48,7 +48,10 @@ async fn without_a_folder_it_installs_into_the_default_one() {
 #[tokio::test]
 async fn a_named_folder_is_used() {
     let (_, out, _) = run(installs(None), Some(Path::new("/w/.claude"))).await;
-    assert!(out.contains("/w/.claude/skills/http2scheme/SKILL.md"), "{out}");
+    assert!(
+        out.contains("/w/.claude/skills/http2scheme/SKILL.md"),
+        "{out}"
+    );
 }
 
 #[tokio::test]
@@ -71,6 +74,9 @@ async fn a_write_error_fails_with_the_reason() {
     });
     let (code, out, err) = run(use_case, None).await;
     assert_eq!(code, 1);
-    assert!(out.is_empty());
-    assert!(err.contains("/h/.claude/skills: permission denied"), "{err}");
+    assert_eq!(out, "");
+    assert!(
+        err.contains("/h/.claude/skills: permission denied"),
+        "{err}"
+    );
 }

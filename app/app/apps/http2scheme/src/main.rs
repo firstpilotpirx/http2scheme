@@ -11,12 +11,12 @@ use std::sync::Arc;
 
 use clap::{CommandFactory as _, Parser, Subcommand};
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
+use linkserver::core::domain::skill_place_value_object::SkillPlaceValueObject as ServerSkillPlace;
+use linkserver::core::domain::skill_state_enum::SkillStateEnum as ServerSkillState;
 use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
 use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
-use linkserver::core::domain::skill_place_value_object::SkillPlaceValueObject as ServerSkillPlace;
-use linkserver::core::domain::skill_state_enum::SkillStateEnum as ServerSkillState;
 use menubar::core::domain::skill_place_value_object::SkillPlaceValueObject;
 use menubar::core::domain::skill_state_enum::SkillStateEnum;
 use menubar::menubar_config::MenubarConfig;
@@ -221,6 +221,9 @@ fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
     });
     if let Err(error) = runtime.block_on(menubar.offer_login_item()) {
         eprintln!("{error}");
+    }
+    if let Err(error) = menubar.refresh_skill() {
+        eprintln!("skill refresh: {error}");
     }
     menubar.run(mtm);
     ExitCode::SUCCESS

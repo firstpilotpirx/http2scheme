@@ -74,8 +74,10 @@ impl AgentsViewValueObject {
     /// The name of the skill row: `Skill · <state>`.
     #[must_use]
     pub fn skill_title(&self) -> String {
-        self.state()
-            .map_or_else(|| "Skill".to_owned(), |state| format!("Skill · {}", state.label()))
+        self.state().map_or_else(
+            || "Skill".to_owned(),
+            |state| format!("Skill · {}", state.label()),
+        )
     }
 
     /// The line under the skill row: the failure, else where the file lands.

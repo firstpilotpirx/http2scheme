@@ -35,9 +35,9 @@ pub(super) fn config(world: &MenubarWorld) -> MenubarConfig {
     let hooks = MenubarHooks {
         serve: Arc::new(|_, _, _| {}),
         replay: world.replayer.replayer(),
-        skill_text: FakeSkill.text(),
-        inspect_skill: FakeSkill.inspect(),
-        install_skill: FakeSkill.install(),
+        skill_text: FakeSkill::text(),
+        inspect_skill: FakeSkill::inspect(),
+        install_skill: FakeSkill::install(),
     };
     let mut ports = MenubarPorts::macos(&setup, &world.output, hooks);
     ports.login_item = world.login_item.clone();

@@ -1,5 +1,8 @@
 //! `FilesystemSkillFolderRepository` against a real temporary folder.
-#![allow(clippy::unwrap_used, reason = "test helpers fail loudly, like the tests")]
+#![allow(
+    clippy::unwrap_used,
+    reason = "test helpers fail loudly, like the tests"
+)]
 
 use std::path::PathBuf;
 

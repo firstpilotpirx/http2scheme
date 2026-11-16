@@ -12,7 +12,10 @@ use crate::LinkserverWorld;
 
 #[given(regex = r"^the program is installed at a known path$")]
 fn program_at_known_path(_world: &mut LinkserverWorld) {
-    assert!(PROGRAM.starts_with('/'), "the scenarios' program is a full path");
+    assert!(
+        PROGRAM.starts_with('/'),
+        "the scenarios' program is a full path"
+    );
 }
 
 #[when(regex = r"^the user asks the program for the skill text$")]
@@ -30,7 +33,10 @@ fn header_names_skill(world: &mut LinkserverWorld) {
     let text = world.printed.out.text();
     assert!(text.starts_with("---\nname: http2scheme\n"), "{text}");
     let header = text.split("\n---\n").next().unwrap();
-    assert!(header.contains("description: ") && header.contains("Use whenever"), "{header}");
+    assert!(
+        header.contains("description: ") && header.contains("Use whenever"),
+        "{header}"
+    );
     assert_eq!(world.printed.code, Some(0));
 }
 
@@ -66,7 +72,9 @@ fn skill_file(dir: &Path) -> PathBuf {
 }
 
 fn current_text() -> String {
-    AgentSkillValueObject::for_program(PROGRAM).text().to_owned()
+    AgentSkillValueObject::for_program(PROGRAM)
+        .text()
+        .to_owned()
 }
 
 async fn install(world: &mut LinkserverWorld, dir: Option<PathBuf>) {
@@ -163,5 +171,8 @@ fn file_in_target(world: &mut LinkserverWorld) {
 fn prints_real_folder(world: &mut LinkserverWorld) {
     let real = fs::canonicalize(elsewhere(world)).unwrap();
     let text = world.printed.out.text();
-    assert!(text.contains(&format!("lands in {}", real.display())), "{text}");
+    assert!(
+        text.contains(&format!("lands in {}", real.display())),
+        "{text}"
+    );
 }

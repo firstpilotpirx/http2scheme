@@ -1,6 +1,6 @@
-//! The layout of the Settings window as the approved mock draws it: a General and History tab bar
-//! over a line, the General rows with their switches, and a window as high as the shown tab
-//! (design D19).
+//! The layout of the Settings window as the approved mocks draw it: a General, History and Agents
+//! tab bar over a line, the General rows with their switches, and a window as high as the shown
+//! tab (design D19 of the first change, D10 of `agent-skill-install`).
 
 use objc2::MainThreadMarker;
 use objc2::rc::Retained;
@@ -10,37 +10,47 @@ use objc2_app_kit::{
 };
 use objc2_foundation::{NSSize, NSString};
 
-use super::history_tab_handler;
 use super::history_table_config::{pin_to_top, rect};
+use super::{agents_tab_handler, history_tab_handler};
 
 /// The width of the window.
 pub(super) const WIDTH: f64 = 720.0;
 /// The tab bar: the segmented control and the line under it.
 pub(super) const BAR: f64 = 40.0;
-const MARGIN: f64 = 20.0;
-const ROW_HEIGHT: f64 = 56.0;
+/// The space around the rows.
+pub(super) const MARGIN: f64 = 20.0;
+/// The height of one row: its name, the line under it and the space after.
+pub(super) const ROW_HEIGHT: f64 = 56.0;
 /// The General tab is as high as its two rows, with no empty space under them.
 pub(super) const GENERAL_HEIGHT: f64 = 2.0 * MARGIN + 2.0 * ROW_HEIGHT - 14.0;
-const TABS: [&str; 2] = ["General", "History"];
+const TABS: [&str; 3] = ["General", "History", "Agents"];
 const NAMES: [&str; 2] = ["Serve links", "Start at login"];
 const ROW_WIDTH: f64 = 360.0;
-const NAME_HEIGHT: f64 = 20.0;
-const LINE_HEIGHT: f64 = 16.0;
+/// The height of a row's name.
+pub(super) const NAME_HEIGHT: f64 = 20.0;
+/// The height of the grey line under a row's name.
+pub(super) const LINE_HEIGHT: f64 = 16.0;
 const SWITCH_SIZE: NSSize = NSSize::new(38.0, 22.0);
-const NAME_SIZE: f64 = 13.0;
-const NOTE_SIZE: f64 = 12.0;
+/// The font size of a row's name.
+pub(super) const NAME_SIZE: f64 = 13.0;
+/// The font size of the line under a row's name.
+pub(super) const NOTE_SIZE: f64 = 12.0;
 
 /// The height of the window's content while tab `tab` shows: the tab bar and that tab.
 pub(super) fn tab_height(tab: usize) -> f64 {
-    BAR + [GENERAL_HEIGHT, history_tab_handler::HEIGHT][tab.min(1)]
+    BAR + [
+        GENERAL_HEIGHT,
+        history_tab_handler::HEIGHT,
+        agents_tab_handler::HEIGHT,
+    ][tab.min(2)]
 }
 
-/// The General and History segments centered at the top of `content`, with a line under them
+/// The General, History and Agents segments centered at the top of `content`, with a line under them
 /// across the window, as the mock's tab bar.
 pub(super) fn tab_bar(mtm: MainThreadMarker, content: &NSView) -> Retained<NSSegmentedControl> {
     let top = content.frame().size.height;
     let segments = NSSegmentedControl::new(mtm);
-    segments.setSegmentCount(2);
+    segments.setSegmentCount(3);
     for (index, label) in (0..).zip(TABS) {
         segments.setLabel_forSegment(&NSString::from_str(label), index);
     }
@@ -69,11 +79,12 @@ pub(super) fn tab_bar(mtm: MainThreadMarker, content: &NSView) -> Retained<NSSeg
     segments
 }
 
-/// The tab view under the tab bar: General and History, with no tabs or border of its own.
+/// The tab view under the tab bar: General, History and Agents, with no tabs or border of its own.
 pub(super) fn tab_view(
     mtm: MainThreadMarker,
     general: &NSView,
     history: &NSView,
+    agents: &NSView,
 ) -> Retained<NSTabView> {
     let tabs = NSTabView::initWithFrame(
         mtm.alloc::<NSTabView>(),
@@ -83,7 +94,7 @@ pub(super) fn tab_view(
     tabs.setAutoresizingMask(
         NSAutoresizingMaskOptions::ViewWidthSizable | NSAutoresizingMaskOptions::ViewHeightSizable,
     );
-    for (label, view) in TABS.iter().zip([general, history]) {
+    for (label, view) in TABS.iter().zip([general, history, agents]) {
         let item = NSTabViewItem::new();
         item.setLabel(&NSString::from_str(label));
         item.setView(Some(view));
@@ -132,7 +143,8 @@ pub(super) fn switch_row(
     (switch, line)
 }
 
-fn label(mtm: MainThreadMarker, text: &str, font: &NSFont) -> Retained<NSTextField> {
+/// A one-line label with `text` in `font`.
+pub(super) fn label(mtm: MainThreadMarker, text: &str, font: &NSFont) -> Retained<NSTextField> {
     let field = NSTextField::labelWithString(&NSString::from_str(text), mtm);
     field.setFont(Some(font));
     field

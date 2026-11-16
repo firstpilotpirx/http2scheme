@@ -2,10 +2,10 @@
 
 pub mod check_agent_status;
 pub mod check_agent_status_use_case;
-pub mod install_agent;
-pub mod install_agent_use_case;
 pub mod inspect_skill;
 pub mod inspect_skill_use_case;
+pub mod install_agent;
+pub mod install_agent_use_case;
 pub mod install_skill;
 pub mod install_skill_use_case;
 pub mod open_link;

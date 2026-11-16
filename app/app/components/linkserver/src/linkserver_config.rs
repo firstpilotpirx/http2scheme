@@ -94,7 +94,9 @@ impl LinkserverConfig {
     }
 
     fn show_skill(&self) -> Arc<ShowSkillUseCase> {
-        Arc::new(ShowSkillUseCase::new(self.setup.program.display().to_string()))
+        Arc::new(ShowSkillUseCase::new(
+            self.setup.program.display().to_string(),
+        ))
     }
 
     /// `skill`.

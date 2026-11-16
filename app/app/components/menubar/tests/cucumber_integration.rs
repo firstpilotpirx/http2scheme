@@ -44,6 +44,14 @@ pub struct MenubarWorld {
     pub switches: [bool; 2],
     /// The lines under the two switches as they read last.
     pub lines: [String; 2],
+    /// The Agents tab's row names as they read last.
+    pub agents_names: [String; 3],
+    /// The lines under the Agents tab's rows as they read last.
+    pub agents_lines: [String; 3],
+    /// The Agents tab's install button title as it read last.
+    pub agents_button: String,
+    /// The general pasteboard's text as it read last.
+    pub clipboard: Option<String>,
 }
 
 impl MenubarWorld {
@@ -64,6 +72,10 @@ impl MenubarWorld {
             tab: String::new(),
             switches: [false; 2],
             lines: [String::new(), String::new()],
+            agents_names: Default::default(),
+            agents_lines: Default::default(),
+            agents_button: String::new(),
+            clipboard: None,
         }
     }
 }

@@ -181,7 +181,11 @@ fn prints_three(world: &mut LinkserverWorld) {
     let text = world.printed.out.text();
     let lines: Vec<&str> = text.lines().collect();
     assert_eq!(lines.len(), 3, "{text}");
-    assert!(lines.iter().all(|line| line.starts_with("http://127.0.0.1:7777/open?")));
+    assert!(
+        lines
+            .iter()
+            .all(|line| line.starts_with("http://127.0.0.1:7777/open?"))
+    );
     let urls: Vec<String> = lines.iter().map(|line| parameter(line, "url")).collect();
     assert_eq!(urls, [INTELLIJ_LINE_42, GOLAND_MAIN, INTELLIJ_SECOND]);
     assert_eq!(world.printed.code, Some(0));
@@ -206,5 +210,8 @@ async fn second_opens_goland(world: &mut LinkserverWorld) {
 fn says_slack_not_allowed(world: &mut LinkserverWorld) {
     let text = world.printed.err.text();
     assert!(text.contains("scheme not allowed: slack"), "{text}");
-    assert!(!text.contains("idea"), "only the refused link has a reason: {text}");
+    assert!(
+        !text.contains("idea"),
+        "only the refused link has a reason: {text}"
+    );
 }

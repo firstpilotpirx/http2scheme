@@ -37,12 +37,12 @@
 
 ## 5. Agents tab and refresh at launch
 
-- [ ] 5.1 Red: menubar slice scenarios "A fresh Mac shows the default folder and no skill", "Choosing a work folder shows its state", "A linked skills folder shows where the file lands", "Install puts the skill into the shown folder", "Update replaces an older skill", "Copy puts the skill on the clipboard".
-- [ ] 5.2 Green: `agents_tab_handler.rs` (rows, Choose… with `NSOpenPanel`, Install/Update, Copy skill text with `NSPasteboard`), the third segment and tab in `settings_layout_config.rs` and `settings_window_handler.rs`, as the agreed mock; the `objc2-app-kit` and `objc2-foundation` features of D12.
-- [ ] 5.3 Update `docs/decisions/ADR-001-appkit-ffi.html` to five unsafe files (D11); add the `agents_tab_handler.rs` row and write back the new count of `settings_window_handler.rs` in `metrics/unsafe.tsv`, in the same commit as 5.2.
-- [ ] 5.4 Red: menubar slice scenarios "A new app version refreshes the installed skill" and "A removed skill stays removed".
-- [ ] 5.5 Green: refresh at launch in `menubar_config.rs`.
-- [ ] 5.6 `kit ship` the group.
+- [x] 5.1 Red: menubar slice scenarios "A fresh Mac shows the default folder and no skill", "Choosing a work folder shows its state", "A linked skills folder shows where the file lands", "Install puts the skill into the shown folder", "Update replaces an older skill", "Copy puts the skill on the clipboard".
+- [x] 5.2 Green: `agents_tab_handler.rs` (rows, Choose… with `NSOpenPanel`, Install/Update, Copy skill text with `NSPasteboard`), the third segment and tab in `settings_layout_config.rs` and `settings_window_handler.rs`, as the agreed mock; the `objc2-app-kit` and `objc2-foundation` features of D12.
+- [x] 5.3 Update `docs/decisions/ADR-001-appkit-ffi.html` to five unsafe files (D11); add the `agents_tab_handler.rs` row and write back the new count of `settings_window_handler.rs` in `metrics/unsafe.tsv`, in the same commit as 5.2.
+- [x] 5.4 Red: menubar slice scenarios "A new app version refreshes the installed skill" and "A removed skill stays removed".
+- [x] 5.5 Green: refresh at launch in `menubar_config.rs`.
+- [x] 5.6 `kit ship` the group.
 
 ## 6. End to end, docs and version
 

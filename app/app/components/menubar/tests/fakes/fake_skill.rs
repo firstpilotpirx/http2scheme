@@ -12,7 +12,6 @@ use menubar::menubar_hooks::{SkillAction, SkillText};
 pub const SKILL_TEXT: &str = "---\nname: http2scheme\n---\nthe app's skill text\n";
 
 /// Reads and writes `<folder>/skills/http2scheme/SKILL.md` as the server side does.
-#[derive(Debug, Clone, Copy, Default)]
 pub struct FakeSkill;
 
 fn file(folder: &Path) -> PathBuf {
@@ -22,38 +21,42 @@ fn file(folder: &Path) -> PathBuf {
 fn real_file(folder: &Path) -> Option<PathBuf> {
     let skills = folder.join("skills");
     let linked = fs::symlink_metadata(&skills).is_ok_and(|meta| meta.file_type().is_symlink());
-    linked.then(|| fs::canonicalize(&skills).unwrap().join("http2scheme/SKILL.md"))
+    linked.then(|| {
+        fs::canonicalize(&skills)
+            .unwrap()
+            .join("http2scheme/SKILL.md")
+    })
 }
 
-fn inspect(folder: &Path) -> Result<SkillPlaceValueObject, String> {
+fn inspect(folder: &Path) -> SkillPlaceValueObject {
     let state = match fs::read_to_string(file(folder)) {
         Ok(text) if text == SKILL_TEXT => SkillStateEnum::Installed,
         Ok(_) => SkillStateEnum::Outdated,
         Err(_) => SkillStateEnum::NotInstalled,
     };
-    Ok(SkillPlaceValueObject::new(file(folder), real_file(folder), state))
+    SkillPlaceValueObject::new(file(folder), real_file(folder), state)
 }
 
 fn install(folder: &Path) -> Result<SkillPlaceValueObject, String> {
     let path = file(folder);
     fs::create_dir_all(path.parent().unwrap()).map_err(|error| error.to_string())?;
     fs::write(&path, SKILL_TEXT).map_err(|error| format!("{}: {error}", path.display()))?;
-    inspect(folder)
+    Ok(inspect(folder))
 }
 
 impl FakeSkill {
     /// The text hook.
-    pub fn text(self) -> SkillText {
+    pub fn text() -> SkillText {
         Arc::new(|| SKILL_TEXT.to_owned())
     }
 
     /// The inspect hook.
-    pub fn inspect(self) -> SkillAction {
-        Arc::new(inspect)
+    pub fn inspect() -> SkillAction {
+        Arc::new(|folder| Ok(inspect(folder)))
     }
 
     /// The install hook.
-    pub fn install(self) -> SkillAction {
+    pub fn install() -> SkillAction {
         Arc::new(install)
     }
 }
