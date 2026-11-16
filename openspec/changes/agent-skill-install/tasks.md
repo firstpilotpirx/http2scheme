@@ -55,4 +55,5 @@
 ## Manual checks
 
 - The agent's visual check of the Agents tab (light and dark), Choose… with the real folder panel, Install into a temp Claude folder.
+- Copy skill text in the Agents tab, then compare the clipboard with what `http2scheme skill` prints: the same text.
 - One Claude Code session with the installed skill answers a code question with file links followed by `IDE` links; a click on `IDE` opens IntelliJ.
