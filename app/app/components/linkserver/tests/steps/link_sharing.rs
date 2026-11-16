@@ -16,6 +16,8 @@ const INTELLIJ_LINE_42: &str = "idea://open?file=/Users/me/src/TokenController.j
 const INTELLIJ_SPACES: &str =
     "idea://open?file=/Users/me/My%20Project/Контроллер%20токенов.java&line=3";
 const SLACK: &str = "slack://channel?id=C123";
+const GOLAND_MAIN: &str = "goland://open?file=/Users/me/src/main.go&line=7";
+const INTELLIJ_SECOND: &str = "idea://open?file=/Users/me/src/Other.java&line=1";
 
 fn parameter(link: &str, name: &str) -> String {
     let query = link.split_once('?').unwrap().1;
@@ -64,7 +66,7 @@ async fn ask_for_link(world: &mut LinkserverWorld, which: String) {
     reset_output(world);
     let command = config(world).link_command();
     let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
-    world.printed.code = Some(command.run(link, &mut out, &mut err).await);
+    world.printed.code = Some(command.run(&[link.to_owned()], &mut out, &mut err).await);
 }
 
 #[then(regex = r"^the command prints one open link to the loopback address on port 7777$")]
@@ -144,4 +146,72 @@ async fn follow_printed(world: &mut LinkserverWorld) {
     world.answer.status = response.status().as_u16();
     world.answer.body = response.text().await.unwrap();
     assert_eq!(world.answer.status, 200, "{}", world.answer.body);
+}
+
+#[given(regex = r"^the settings hold the IntelliJ and GoLand schemes on the allowed list$")]
+fn settings_with_both(world: &mut LinkserverWorld) {
+    write_settings(world, 7777, &["idea", "goland"]);
+}
+
+#[given(regex = r"^the settings hold only the IntelliJ scheme on the allowed list$")]
+fn settings_with_only_intellij(world: &mut LinkserverWorld) {
+    write_settings(world, 7777, &["idea"]);
+}
+
+#[when(
+    regex = r"^the user asks in one call for the open links of (an IntelliJ link, a GoLand link and a second IntelliJ link|an IntelliJ link and a Slack link)$"
+)]
+async fn ask_for_links(world: &mut LinkserverWorld, which: String) {
+    let links: Vec<String> = if which.contains("GoLand") {
+        vec![INTELLIJ_LINE_42, GOLAND_MAIN, INTELLIJ_SECOND]
+    } else {
+        vec![INTELLIJ_LINE_42, SLACK]
+    }
+    .into_iter()
+    .map(str::to_owned)
+    .collect();
+    reset_output(world);
+    let command = config(world).link_command();
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    world.printed.code = Some(command.run(&links, &mut out, &mut err).await);
+}
+
+#[then(regex = r"^the command prints three open links, one per line$")]
+fn prints_three(world: &mut LinkserverWorld) {
+    let text = world.printed.out.text();
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines.len(), 3, "{text}");
+    assert!(
+        lines
+            .iter()
+            .all(|line| line.starts_with("http://127.0.0.1:7777/open?"))
+    );
+    let urls: Vec<String> = lines.iter().map(|line| parameter(line, "url")).collect();
+    assert_eq!(urls, [INTELLIJ_LINE_42, GOLAND_MAIN, INTELLIJ_SECOND]);
+    assert_eq!(world.printed.code, Some(0));
+}
+
+#[then(regex = r"^following the second line opens exactly the GoLand link$")]
+async fn second_opens_goland(world: &mut LinkserverWorld) {
+    let text = world.printed.out.text();
+    let second = text.lines().nth(1).unwrap().to_owned();
+    let path = &second["http://127.0.0.1:7777".len()..];
+    let port = free_port();
+    write_settings(world, port, &["idea", "goland"]);
+    serve_in_background(world, port).await;
+    let response = reqwest::get(format!("http://127.0.0.1:{port}{path}"))
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), 200);
+    assert_eq!(world.fakes.opener.links(), [GOLAND_MAIN.to_owned()]);
+}
+
+#[then(regex = r"^it says the Slack scheme is not allowed$")]
+fn says_slack_not_allowed(world: &mut LinkserverWorld) {
+    let text = world.printed.err.text();
+    assert!(text.contains("scheme not allowed: slack"), "{text}");
+    assert!(
+        !text.contains("idea"),
+        "only the refused link has a reason: {text}"
+    );
 }

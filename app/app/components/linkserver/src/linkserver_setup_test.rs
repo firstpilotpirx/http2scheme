@@ -8,6 +8,7 @@ fn setup() -> LinkserverSetup {
         settings_dir: PathBuf::from("/h/settings"),
         log_dir: PathBuf::from("/h/logs"),
         agents_dir: PathBuf::from("/h/agents"),
+        claude_dir: PathBuf::from("/h/.claude"),
         program: PathBuf::from("/bin/tool"),
         label: "io.example.agent".to_owned(),
         host: "127.0.0.1".to_owned(),

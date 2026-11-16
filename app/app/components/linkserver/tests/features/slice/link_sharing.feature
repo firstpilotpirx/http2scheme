@@ -13,6 +13,13 @@ Feature: Link sharing
       And following that link opens exactly that IntelliJ link
 
     @slice
+    Scenario: Several scheme links become open links in order
+      Given the settings hold the IntelliJ and GoLand schemes on the allowed list
+      When the user asks in one call for the open links of an IntelliJ link, a GoLand link and a second IntelliJ link
+      Then the command prints three open links, one per line
+      And following the second line opens exactly the GoLand link
+
+    @slice
     Scenario: A path with spaces survives the round trip
       Given the settings hold port 7777 and the IntelliJ scheme on the allowed list
       When the user asks for the open link of an IntelliJ link whose file path holds spaces written as %20 and non-Latin letters
@@ -34,4 +41,12 @@ Feature: Link sharing
       When the user asks for the open link of a Slack link
       Then the command prints no link
       And it says the Slack scheme is not allowed and how to allow it
+      And it ends with a failure status
+
+    @slice
+    Scenario: One refused link among several prints no link
+      Given the settings hold only the IntelliJ scheme on the allowed list
+      When the user asks in one call for the open links of an IntelliJ link and a Slack link
+      Then the command prints no link
+      And it says the Slack scheme is not allowed
       And it ends with a failure status

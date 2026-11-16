@@ -2,18 +2,22 @@
 
 use std::sync::Arc;
 
+use crate::adapters::secondary::agentskill::inprocess::in_process_agent_skill_gateway::InProcessAgentSkillGateway;
 use crate::adapters::secondary::firstlaunch::filesystem::filesystem_first_launch_repository::FilesystemFirstLaunchRepository;
 use crate::adapters::secondary::linkhistory::filesystem::filesystem_link_history_repository::FilesystemLinkHistoryRepository;
 use crate::adapters::secondary::linkreplay::inprocess::in_process_link_replay_gateway::InProcessLinkReplayGateway;
 use crate::adapters::secondary::loginitem::smappservice::sm_app_service_login_item_gateway::SmAppServiceLoginItemGateway;
 use crate::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
+use crate::adapters::secondary::skillfolder::filesystem::filesystem_skill_folder_repository::FilesystemSkillFolderRepository;
 use crate::core::application::repositories::first_launch_repository::FirstLaunchRepository;
 use crate::core::application::repositories::link_history_repository::LinkHistoryRepository;
+use crate::core::application::repositories::skill_folder_repository::SkillFolderRepository;
+use crate::core::application::services::agent_skill_service::AgentSkillService;
 use crate::core::application::services::link_replay_service::LinkReplayService;
 use crate::core::application::services::login_item_service::LoginItemService;
 use crate::core::application::services::server_state_service::ServerStateService;
 use crate::core::application::services::server_switch_service::ServerSwitchService;
-use crate::menubar_hooks::LinkReplayer;
+use crate::menubar_hooks::MenubarHooks;
 use crate::menubar_setup::MenubarSetup;
 
 /// The secondary ports the menu's use cases drive.
@@ -31,16 +35,20 @@ pub struct MenubarPorts {
     pub history: Arc<dyn LinkHistoryRepository>,
     /// Opens a link again.
     pub replay: Arc<dyn LinkReplayService>,
+    /// The Claude Code folder last installed to.
+    pub skill_folder: Arc<dyn SkillFolderRepository>,
+    /// The skill through the server side.
+    pub skill: Arc<dyn AgentSkillService>,
 }
 
 impl MenubarPorts {
     /// The macOS adapters for the setup, reading and switching the server through `server_output`
-    /// and replaying links through `replay`.
+    /// and replaying links and handling the skill through `hooks`.
     #[must_use]
     pub fn macos(
         setup: &MenubarSetup,
         server_output: &ServeOutputServerStateGateway,
-        replay: LinkReplayer,
+        hooks: MenubarHooks,
     ) -> Self {
         Self {
             server: Arc::new(server_output.clone()),
@@ -48,7 +56,13 @@ impl MenubarPorts {
             login_item: Arc::new(SmAppServiceLoginItemGateway::new(&setup.program)),
             first_launch: Arc::new(FilesystemFirstLaunchRepository::new(&setup.settings_dir)),
             history: Arc::new(FilesystemLinkHistoryRepository::new(&setup.log_dir)),
-            replay: Arc::new(InProcessLinkReplayGateway::new(replay)),
+            replay: Arc::new(InProcessLinkReplayGateway::new(hooks.replay)),
+            skill_folder: Arc::new(FilesystemSkillFolderRepository::new(&setup.settings_dir)),
+            skill: Arc::new(InProcessAgentSkillGateway::new(
+                hooks.skill_text,
+                hooks.inspect_skill,
+                hooks.install_skill,
+            )),
         }
     }
 }

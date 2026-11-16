@@ -38,3 +38,7 @@ harness = false
 [[test]]
 name = "history_tab_handler_integration_test"
 harness = false
+
+[[test]]
+name = "agents_tab_handler_integration_test"
+harness = false

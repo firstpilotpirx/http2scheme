@@ -10,6 +10,12 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
+use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
+use linkserver::linkserver_config::LinkserverConfig;
+use linkserver::linkserver_ports::LinkserverPorts;
+use linkserver::linkserver_programs::LinkserverPrograms;
+use linkserver::linkserver_setup::LinkserverSetup;
+
 /// A program that records each call's arguments and exits with a fixed code.
 pub struct RecordingProgram {
     pub program: PathBuf,
@@ -48,4 +54,41 @@ impl RecordingProgram {
         calls.pop();
         calls
     }
+}
+
+/// The component's root with the macOS adapters over `home`: the program is
+/// `<home>/http2scheme`, the Claude Code folder `<home>/claude`, no color.
+pub fn root_in(home: &Path) -> LinkserverConfig {
+    let setup = LinkserverSetup {
+        settings_dir: home.join("settings"),
+        log_dir: home.join("logs"),
+        agents_dir: home.join("agents"),
+        claude_dir: home.join("claude"),
+        program: home.join("http2scheme"),
+        label: "test.http2scheme".to_owned(),
+        host: "127.0.0.1".to_owned(),
+        hosts: vec!["127.0.0.1".to_owned()],
+        version: "0.0.0".to_owned(),
+        uid: 0,
+        programs: LinkserverPrograms {
+            open: home.join("open"),
+            launchctl: home.join("launchctl"),
+            osascript: home.join("osascript"),
+            lsappinfo: home.join("lsappinfo"),
+        },
+    };
+    let ports = LinkserverPorts::macos(&setup);
+    LinkserverConfig::new(setup, ports, TerminalStyleConfig::new(false))
+}
+
+/// The skill file inside a Claude Code folder.
+pub fn skill_file(claude_dir: &Path) -> PathBuf {
+    claude_dir.join("skills/http2scheme/SKILL.md")
+}
+
+/// A Claude Code folder that cannot hold a skill: a plain file stands where it should be.
+pub fn blocked_folder(home: &Path) -> PathBuf {
+    let dir = home.join("blocked");
+    fs::write(&dir, "a file, not a folder").unwrap();
+    dir
 }

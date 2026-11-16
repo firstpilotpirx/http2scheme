@@ -11,6 +11,7 @@ async fn the_macos_settings_read_the_handed_folder() {
         settings_dir: folder.path().join("settings"),
         log_dir: folder.path().join("logs"),
         agents_dir: folder.path().join("agents"),
+        claude_dir: folder.path().join("claude"),
         program: PathBuf::from("/bin/tool"),
         label: "io.example.agent".to_owned(),
         host: "127.0.0.1".to_owned(),

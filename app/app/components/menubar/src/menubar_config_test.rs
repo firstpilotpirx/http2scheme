@@ -12,6 +12,7 @@ fn config(program: &str, settings: PathBuf) -> MenubarConfig {
         version: "0.1.0".to_owned(),
         settings_dir: settings,
         log_dir: PathBuf::from("logs"),
+        claude_dir: PathBuf::from("/h/.claude"),
         program: PathBuf::from(program),
     };
     let hooks = MenubarHooks {
@@ -20,6 +21,9 @@ fn config(program: &str, settings: PathBuf) -> MenubarConfig {
                 .unwrap();
         }),
         replay: Arc::new(|_| "opened".to_owned()),
+        skill_text: Arc::new(|| "skill".to_owned()),
+        inspect_skill: Arc::new(|_| Err("not read".to_owned())),
+        install_skill: Arc::new(|_| Err("not written".to_owned())),
     };
     MenubarConfig::macos(setup, hooks)
 }

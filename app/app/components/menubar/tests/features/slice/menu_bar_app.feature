@@ -154,3 +154,64 @@ Feature: Menu bar app
       Given the app runs
       When the user chooses Link History…
       Then the Settings window shows its History tab
+
+  Rule: The Agents tab shows the Claude Code folder and the skill state
+
+    @slice @agents_tab
+    Scenario: A fresh Mac shows the default folder and no skill
+      Given the user has never installed the skill
+      When the user opens the Agents tab
+      Then it shows the default Claude Code folder
+      And it says the skill is not installed
+
+    @slice @agents_tab
+    Scenario: Choosing a work folder shows its state
+      Given the Agents tab shows the default folder
+      When the user chooses a work Claude Code folder that holds the current skill
+      Then the tab shows the work folder
+      And it says the skill is installed
+
+    @slice @agents_tab
+    Scenario: A linked skills folder shows where the file lands
+      Given the Claude Code folder's skills folder is a link to a folder elsewhere
+      When the user opens the Agents tab
+      Then the tab shows the skill file's place inside the folder the link points to
+
+  Rule: The Agents tab installs the skill
+
+    @slice @agents_tab
+    Scenario: Install puts the skill into the shown folder
+      Given the Agents tab shows a folder without the skill
+      When the user clicks Install
+      Then the skill file appears in that folder's skills
+      And the tab says the skill is installed
+
+    @slice @agents_tab
+    Scenario: Update replaces an older skill
+      Given the shown folder holds an older version of the skill
+      When the user clicks Update
+      Then the skill file holds the current text
+      And the tab says the skill is installed
+
+  Rule: The Agents tab copies the skill text
+
+    @slice @agents_tab
+    Scenario: Copy puts the skill on the clipboard
+      Given the Agents tab is shown
+      When the user clicks Copy skill text
+      Then the clipboard holds the skill text
+      And the tab says the text was copied
+
+  Rule: The app keeps the installed skill current
+
+    @slice @agents_tab
+    Scenario: A new app version refreshes the installed skill
+      Given the user installed the skill from the app into a folder and that folder holds an older text
+      When the app launches
+      Then that folder's skill holds the app's text
+
+    @slice @agents_tab
+    Scenario: A removed skill stays removed
+      Given the user installed the skill from the app and later deleted the skill file
+      When the app launches
+      Then no skill file is written

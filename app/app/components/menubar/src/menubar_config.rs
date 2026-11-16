@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use objc2::MainThreadMarker;
 
+use crate::adapters::primary::statusmenu::appkit::agents_tab_handler::AgentsTabHandler;
 use crate::adapters::primary::statusmenu::appkit::app_kit_config::{AppKitConfig, ready};
 use crate::adapters::primary::statusmenu::appkit::history_tab_handler::HistoryTabHandler;
 use crate::adapters::primary::statusmenu::appkit::settings_window_handler::SettingsWindowHandler;
@@ -12,10 +13,14 @@ use crate::adapters::secondary::loginitem::smappservice::sm_app_service_login_it
 use crate::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
 use crate::core::application::exceptions::menu_action_error::MenuActionError;
 use crate::core::application::use_cases::browse_history_use_case::BrowseHistoryUseCase;
+use crate::core::application::use_cases::manage_skill::ManageSkill;
+use crate::core::application::use_cases::manage_skill_use_case::ManageSkillUseCase;
 use crate::core::application::use_cases::offer_login_item::OfferLoginItem as _;
 use crate::core::application::use_cases::offer_login_item_use_case::OfferLoginItemUseCase;
 use crate::core::application::use_cases::operate_menu::OperateMenu;
 use crate::core::application::use_cases::operate_menu_use_case::OperateMenuUseCase;
+use crate::core::application::use_cases::refresh_skill::RefreshSkill;
+use crate::core::application::use_cases::refresh_skill_use_case::RefreshSkillUseCase;
 use crate::menubar_hooks::MenubarHooks;
 use crate::menubar_ports::MenubarPorts;
 use crate::menubar_setup::MenubarSetup;
@@ -41,8 +46,8 @@ impl MenubarConfig {
     /// A root over the macOS adapters that starts the server and opens links through `hooks`.
     #[must_use]
     pub fn macos(setup: MenubarSetup, hooks: MenubarHooks) -> Self {
-        let output = ServeOutputServerStateGateway::with_launcher(hooks.serve);
-        let ports = MenubarPorts::macos(&setup, &output, hooks.replay);
+        let output = ServeOutputServerStateGateway::with_launcher(hooks.serve.clone());
+        let ports = MenubarPorts::macos(&setup, &output, hooks);
         Self {
             setup,
             ports,
@@ -88,6 +93,43 @@ impl MenubarConfig {
         .await
     }
 
+    /// Rewrites the skill in the folder last installed to when its text differs from the app's
+    /// (design D8). It waits on the hooks itself, so it runs outside the async runtime, as the
+    /// tabs do.
+    ///
+    /// # Errors
+    ///
+    /// When the remembered folder, the skill file or the write fails.
+    pub fn refresh_skill(&self) -> Result<(), MenuActionError> {
+        ready(self.refresh().execute())
+    }
+
+    /// The refresh at launch over the remembered folder.
+    #[must_use]
+    pub fn refresh(&self) -> Arc<dyn RefreshSkill> {
+        Arc::new(RefreshSkillUseCase::new(
+            self.ports.skill_folder.clone(),
+            self.ports.skill.clone(),
+        ))
+    }
+
+    /// The Agents tab's use case: the remembered folder, else the setup's Claude Code folder.
+    #[must_use]
+    pub fn skill(&self) -> Arc<dyn ManageSkill> {
+        let home = self
+            .setup
+            .claude_dir
+            .parent()
+            .map(std::path::Path::to_path_buf)
+            .unwrap_or_default();
+        Arc::new(ManageSkillUseCase::new(
+            self.setup.claude_dir.clone(),
+            home,
+            self.ports.skill_folder.clone(),
+            self.ports.skill.clone(),
+        ))
+    }
+
     /// The menu's use case; the status menu and the Settings window share one.
     #[must_use]
     pub fn menu(&self) -> Arc<dyn OperateMenu> {
@@ -106,7 +148,13 @@ impl MenubarConfig {
         HistoryTabHandler::install(mtm, Arc::new(history))
     }
 
-    /// Prepares the Settings window over `menu` with the `history` tab; it shows at
+    /// Prepares the Agents tab over the skill's use case.
+    #[must_use]
+    pub fn agents_tab(&self, mtm: MainThreadMarker) -> AgentsTabHandler {
+        AgentsTabHandler::install(mtm, self.skill())
+    }
+
+    /// Prepares the Settings window over `menu` with the `history` and `agents` tabs; it shows at
     /// [`SettingsWindowHandler::show_general`] or [`SettingsWindowHandler::show_history`].
     #[must_use]
     pub fn settings_window(
@@ -114,8 +162,9 @@ impl MenubarConfig {
         mtm: MainThreadMarker,
         menu: Arc<dyn OperateMenu>,
         history: HistoryTabHandler,
+        agents: AgentsTabHandler,
     ) -> SettingsWindowHandler {
-        SettingsWindowHandler::install(mtm, menu, history)
+        SettingsWindowHandler::install(mtm, menu, history, agents)
     }
 
     /// Puts the status item with its menu over `menu` in the menu bar; Settings… calls
@@ -134,8 +183,12 @@ impl MenubarConfig {
     /// Shows the menu and runs the application loop until the app quits.
     pub fn run(&self, mtm: MainThreadMarker) {
         let menu = self.menu();
-        let settings =
-            std::rc::Rc::new(self.settings_window(mtm, menu.clone(), self.history_tab(mtm)));
+        let settings = std::rc::Rc::new(self.settings_window(
+            mtm,
+            menu.clone(),
+            self.history_tab(mtm),
+            self.agents_tab(mtm),
+        ));
         let general = std::rc::Rc::clone(&settings);
         let history = std::rc::Rc::clone(&settings);
         let _menu = self.status_menu(

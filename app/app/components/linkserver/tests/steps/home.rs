@@ -120,6 +120,7 @@ pub fn config(world: &mut LinkserverWorld) -> LinkserverConfig {
         settings_dir: home.join("settings"),
         log_dir: home.join("logs"),
         agents_dir: home.join("agents"),
+        claude_dir: home.join(".claude"),
         program: PathBuf::from(PROGRAM),
         label: LABEL.to_owned(),
         host: "127.0.0.1".to_owned(),

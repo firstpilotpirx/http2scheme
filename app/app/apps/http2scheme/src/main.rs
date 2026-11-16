@@ -16,9 +16,9 @@ use linkserver::linkserver_ports::LinkserverPorts;
 use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
 use menubar::menubar_config::MenubarConfig;
-use menubar::menubar_hooks::MenubarHooks;
+use menubar::menubar_hooks::{self, MenubarHooks, SkillAction as SkillHook, SkillText};
 use menubar::menubar_setup::MenubarSetup;
-use tokio::runtime::Runtime;
+use tokio::runtime::{Handle, Runtime};
 
 const LABEL: &str = "io.github.firstpilotpirx.http2scheme";
 const HOST: &str = "127.0.0.1";
@@ -26,6 +26,7 @@ const HOSTS: [&str; 2] = ["127.0.0.1", "localhost"];
 const SETTINGS_DIR: &str = "Library/Application Support/http2scheme";
 const LOG_DIR: &str = "Library/Logs/http2scheme";
 const AGENTS_DIR: &str = "Library/LaunchAgents";
+const CLAUDE_DIR: &str = ".claude";
 const OPEN_PROGRAM: (&str, &str) = ("HTTP2SCHEME_OPEN_PROGRAM", "/usr/bin/open");
 const LAUNCHCTL_PROGRAM: (&str, &str) = ("HTTP2SCHEME_LAUNCHCTL_PROGRAM", "/bin/launchctl");
 const OSASCRIPT_PROGRAM: (&str, &str) = ("HTTP2SCHEME_OSASCRIPT_PROGRAM", "/usr/bin/osascript");
@@ -46,10 +47,16 @@ struct Cli {
 enum Command {
     /// Run the server in the foreground until it is stopped.
     Serve,
-    /// Print the http link that opens a scheme link.
+    /// Print the http links that open scheme links, one per line in the same order.
     Link {
-        /// The scheme link, for example `idea://open?file=/a/B.java&line=3`.
-        link: String,
+        /// The scheme links, for example `idea://open?file=/a/B.java&line=3`.
+        #[arg(required = true)]
+        links: Vec<String>,
+    },
+    /// Print the agent skill that teaches coding agents to write IDE links.
+    Skill {
+        #[command(subcommand)]
+        action: Option<SkillAction>,
     },
     /// Run the server at login and restart it after a crash.
     Install,
@@ -61,6 +68,16 @@ enum Command {
     Stop,
     /// Show whether the server is installed, loaded and answering.
     Status,
+}
+
+#[derive(Subcommand)]
+enum SkillAction {
+    /// Write the skill to `<folder>/skills/http2scheme/SKILL.md`.
+    Install {
+        /// The Claude Code folder; `~/.claude` when not given.
+        #[arg(long)]
+        claude_dir: Option<PathBuf>,
+    },
 }
 
 fn program((variable, default): (&str, &str)) -> PathBuf {
@@ -78,6 +95,7 @@ fn setup() -> Result<LinkserverSetup, String> {
         settings_dir: home.join(SETTINGS_DIR),
         log_dir: home.join(LOG_DIR),
         agents_dir: home.join(AGENTS_DIR),
+        claude_dir: home.join(CLAUDE_DIR),
         program: current,
         label: LABEL.to_owned(),
         host: HOST.to_owned(),
@@ -110,13 +128,58 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     let (out, err) = (&mut std::io::stdout(), &mut std::io::stderr());
     match command {
         Command::Serve => root.serve_command().run(stopped(), out, err).await,
-        Command::Link { link } => root.link_command().run(&link, out, err).await,
+        Command::Link { links } => root.link_command().run(&links, out, err).await,
+        Command::Skill { action } => skill(action, &root).await,
+        service => manage(service, &root).await,
+    }
+}
+
+/// `skill` prints the skill; `skill install` writes it into a Claude Code folder.
+async fn skill(action: Option<SkillAction>, root: &LinkserverConfig) -> u8 {
+    let (out, err) = (&mut std::io::stdout(), &mut std::io::stderr());
+    match action {
+        None => root.skill_command().run(out, err).await,
+        Some(SkillAction::Install { claude_dir }) => {
+            let command = root.install_skill_command();
+            command.run(claude_dir.as_deref(), out, err).await
+        }
+    }
+}
+
+/// The commands that manage the background service.
+async fn manage(command: Command, root: &LinkserverConfig) -> u8 {
+    let (out, err) = (&mut std::io::stdout(), &mut std::io::stderr());
+    match command {
         Command::Install => root.install_command().await.run(out, err).await,
         Command::Uninstall => root.uninstall_command().run(out, err).await,
         Command::Start => root.start_command().run(out, err).await,
         Command::Stop => root.stop_command().run(out, err).await,
-        Command::Status => root.status_command().await.run(out, err).await,
+        _ => root.status_command().await.run(out, err).await,
     }
+}
+
+/// The three skill hooks of the Agents tab, each run on the async runtime.
+fn skill_hooks(handle: &Handle, root: &LinkserverConfig) -> (SkillText, SkillHook, SkillHook) {
+    let (text, inspect, install) = (
+        root.skill_text_handler(),
+        root.inspect_skill_handler(),
+        root.install_skill_handler(),
+    );
+    let (text_handle, inspect_handle, install_handle) =
+        (handle.clone(), handle.clone(), handle.clone());
+    (
+        Arc::new(move || text_handle.block_on(text.text())),
+        Arc::new(move |dir| {
+            inspect_handle
+                .block_on(inspect.inspect(dir))
+                .and_then(menubar_hooks::skill_place)
+        }),
+        Arc::new(move |dir| {
+            install_handle
+                .block_on(install.install(dir))
+                .and_then(menubar_hooks::skill_place)
+        }),
+    )
 }
 
 fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -> MenubarConfig {
@@ -124,6 +187,7 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
     let replayer = root.replay_handler();
     let handle = runtime.handle().clone();
     let replay_handle = handle.clone();
+    let (skill_text, inspect_skill, install_skill) = skill_hooks(&handle, &root);
     let hooks = MenubarHooks {
         serve: Arc::new(move |shutdown, mut out, mut err| {
             let root = Arc::clone(&root);
@@ -131,16 +195,33 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
                 .spawn(async move { root.serve_command().run(shutdown, &mut out, &mut err).await });
         }),
         replay: Arc::new(move |link| replay_handle.block_on(replayer.replay(link))),
+        skill_text,
+        inspect_skill,
+        install_skill,
     };
     MenubarConfig::macos(
         MenubarSetup {
             version: setup.version.clone(),
             settings_dir: setup.settings_dir.clone(),
             log_dir: setup.log_dir.clone(),
+            claude_dir: setup.claude_dir.clone(),
             program: setup.program.clone(),
         },
         hooks,
     )
+}
+
+/// Offers the login item and refreshes the installed skill; a failure is printed, not fatal.
+fn prepare_menu(runtime: &Runtime, menubar: &MenubarConfig) {
+    let login = runtime
+        .block_on(menubar.offer_login_item())
+        .map_err(|error| error.to_string());
+    let skill = menubar
+        .refresh_skill()
+        .map_err(|error| format!("skill refresh: {error}"));
+    for reason in [login, skill].into_iter().filter_map(Result::err) {
+        eprintln!("{reason}");
+    }
 }
 
 fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
@@ -160,9 +241,7 @@ fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
         stopped().await;
         std::process::exit(0);
     });
-    if let Err(error) = runtime.block_on(menubar.offer_login_item()) {
-        eprintln!("{error}");
-    }
+    prepare_menu(runtime, &menubar);
     menubar.run(mtm);
     ExitCode::SUCCESS
 }

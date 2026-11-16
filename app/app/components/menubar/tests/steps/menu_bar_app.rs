@@ -11,11 +11,12 @@ use std::sync::Arc;
 use cucumber::{given, then, when};
 use menubar::core::domain::login_item_state_enum::LoginItemStateEnum;
 use menubar::menubar_config::MenubarConfig;
+use menubar::menubar_hooks::MenubarHooks;
 use menubar::menubar_ports::MenubarPorts;
 use menubar::menubar_setup::MenubarSetup;
 
 use crate::MenubarWorld;
-use crate::fakes::FakeLoginItem;
+use crate::fakes::{FakeLoginItem, FakeSkill};
 
 const APPLICATIONS: &str = "/Applications/http2scheme.app/Contents/MacOS/http2scheme";
 const DOWNLOADS: &str = "/Users/someone/Downloads/http2scheme.app/Contents/MacOS/http2scheme";
@@ -28,9 +29,17 @@ pub(super) fn config(world: &MenubarWorld) -> MenubarConfig {
         version: "0.1.0".to_owned(),
         settings_dir: home.join("settings"),
         log_dir: home.join("logs"),
+        claude_dir: home.join(".claude"),
         program: PathBuf::from(&world.program),
     };
-    let mut ports = MenubarPorts::macos(&setup, &world.output, world.replayer.replayer());
+    let hooks = MenubarHooks {
+        serve: Arc::new(|_, _, _| {}),
+        replay: world.replayer.replayer(),
+        skill_text: FakeSkill::text(),
+        inspect_skill: FakeSkill::inspect(),
+        install_skill: FakeSkill::install(),
+    };
+    let mut ports = MenubarPorts::macos(&setup, &world.output, hooks);
     ports.login_item = world.login_item.clone();
     MenubarConfig::new(setup, ports)
 }

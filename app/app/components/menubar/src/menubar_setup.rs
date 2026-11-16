@@ -11,6 +11,8 @@ pub struct MenubarSetup {
     pub settings_dir: PathBuf,
     /// The folder of the request log.
     pub log_dir: PathBuf,
+    /// The Claude Code folder the Agents tab shows first (`~/.claude`); its parent is shown as `~`.
+    pub claude_dir: PathBuf,
     /// The running program.
     pub program: PathBuf,
 }

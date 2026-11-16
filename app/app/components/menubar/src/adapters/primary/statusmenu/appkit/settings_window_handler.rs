@@ -1,5 +1,6 @@
-//! The Settings window: the General tab with the Serve links and Start at login switches, and the
-//! History tab with the latest requests (design D19, after the settings window of `VoicePuncher`).
+//! The Settings window: the General tab with the Serve links and Start at login switches, the
+//! History tab with the latest requests (design D19, after the settings window of `VoicePuncher`)
+//! and the Agents tab with the skill.
 
 #![expect(unsafe_code, reason = "ADR-001: AppKit FFI")]
 
@@ -16,6 +17,7 @@ use objc2_app_kit::{
 };
 use objc2_foundation::{NSObject, NSObjectProtocol, NSString};
 
+use super::agents_tab_handler::AgentsTabHandler;
 use super::app_kit_config::ready;
 use super::history_tab_handler::{HistoryTabHandler, click};
 use super::history_table_config::rect;
@@ -59,6 +61,7 @@ struct Parts {
 struct SettingsIvars {
     menu: Arc<dyn OperateMenu>,
     history: HistoryTabHandler,
+    agents: AgentsTabHandler,
     parts: OnceCell<Parts>,
 }
 
@@ -100,18 +103,21 @@ impl SettingsTarget {
     }
 
     fn tab_chosen(&self) {
-        let chosen = self.parts().segments.selectedSegment();
-        self.select(usize::try_from(chosen).unwrap_or_default());
+        let chosen = usize::try_from(self.parts().segments.selectedSegment()).unwrap_or_default();
+        self.select(chosen);
+        self.ivars().agents.show();
     }
 
     fn new(
         mtm: MainThreadMarker,
         menu: Arc<dyn OperateMenu>,
         history: HistoryTabHandler,
+        agents: AgentsTabHandler,
     ) -> Retained<Self> {
         let this = Self::alloc(mtm).set_ivars(SettingsIvars {
             menu,
             history,
+            agents,
             parts: OnceCell::new(),
         });
         // SAFETY: `NSObject`'s `init` on a freshly allocated object.
@@ -147,7 +153,8 @@ impl SettingsTarget {
             segments.setTarget(Some(self as &AnyObject));
             segments.setAction(Some(sel!(chooseTab:)));
         }
-        let tabs = tab_view(mtm, &general, &self.ivars().history.view());
+        let ivars = self.ivars();
+        let tabs = tab_view(mtm, &general, &ivars.history.view(), &ivars.agents.view());
         content.addSubview(&tabs);
         window.setContentView(Some(&content));
         window.center();
@@ -197,6 +204,7 @@ impl SettingsTarget {
         self.select(tab);
         self.run(MenuCommandEnum::Show);
         self.ivars().history.show();
+        self.ivars().agents.show();
         NSApplication::sharedApplication(self.mtm()).activate();
         self.parts().window.makeKeyAndOrderFront(None);
     }
@@ -230,16 +238,17 @@ pub struct SettingsWindowHandler {
 }
 
 impl SettingsWindowHandler {
-    /// Prepares the window over the menu's `menu` use case with the `history` tab; nothing
-    /// shows until [`Self::show_general`] or [`Self::show_history`].
+    /// Prepares the window over the menu's `menu` use case with the `history` and `agents`
+    /// tabs; nothing shows until [`Self::show_general`] or [`Self::show_history`].
     #[must_use]
     pub fn install(
         mtm: MainThreadMarker,
         menu: Arc<dyn OperateMenu>,
         history: HistoryTabHandler,
+        agents: AgentsTabHandler,
     ) -> Self {
         Self {
-            target: SettingsTarget::new(mtm, menu, history),
+            target: SettingsTarget::new(mtm, menu, history, agents),
         }
     }
 
@@ -306,7 +315,7 @@ impl SettingsWindowHandler {
         self.target.parts().window.title().to_string()
     }
 
-    /// Clicks segment `index` of the tab bar: 0 General, 1 History.
+    /// Clicks segment `index` of the tab bar: 0 General, 1 History, 2 Agents.
     pub fn choose_tab(&self, index: usize) {
         let segments = &self.target.parts().segments;
         segments.setSelectedSegment(isize::try_from(index).unwrap_or_default());
@@ -324,6 +333,12 @@ impl SettingsWindowHandler {
     #[must_use]
     pub fn history(&self) -> &HistoryTabHandler {
         &self.target.ivars().history
+    }
+
+    /// The Agents tab.
+    #[must_use]
+    pub fn agents(&self) -> &AgentsTabHandler {
+        &self.target.ivars().agents
     }
 
     /// Whether the window is on the screen.

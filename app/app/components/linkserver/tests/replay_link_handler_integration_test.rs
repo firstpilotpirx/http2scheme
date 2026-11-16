@@ -22,6 +22,7 @@ fn root(home: &Path, open: &RecordingProgram) -> LinkserverConfig {
         settings_dir: home.join("settings"),
         log_dir: home.join("logs"),
         agents_dir: home.join("agents"),
+        claude_dir: home.join("claude"),
         program: home.join("http2scheme"),
         label: "test.http2scheme".to_owned(),
         host: "127.0.0.1".to_owned(),

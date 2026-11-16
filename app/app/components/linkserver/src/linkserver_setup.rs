@@ -18,6 +18,8 @@ pub struct LinkserverSetup {
     pub log_dir: PathBuf,
     /// The folder of the per-user agent definitions.
     pub agents_dir: PathBuf,
+    /// The Claude Code folder the skill installs into by default (`~/.claude`).
+    pub claude_dir: PathBuf,
     /// The program the agent runs.
     pub program: PathBuf,
     /// The agent label.

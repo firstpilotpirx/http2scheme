@@ -2,7 +2,11 @@
 
 pub mod browse_history;
 pub mod browse_history_use_case;
+pub mod manage_skill;
+pub mod manage_skill_use_case;
 pub mod offer_login_item;
 pub mod offer_login_item_use_case;
 pub mod operate_menu;
 pub mod operate_menu_use_case;
+pub mod refresh_skill;
+pub mod refresh_skill_use_case;

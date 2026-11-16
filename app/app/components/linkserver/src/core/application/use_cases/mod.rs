@@ -2,8 +2,12 @@
 
 pub mod check_agent_status;
 pub mod check_agent_status_use_case;
+pub mod inspect_skill;
+pub mod inspect_skill_use_case;
 pub mod install_agent;
 pub mod install_agent_use_case;
+pub mod install_skill;
+pub mod install_skill_use_case;
 pub mod open_link;
 pub mod open_link_command;
 pub mod open_link_use_case;
@@ -13,6 +17,8 @@ pub mod prepare_settings;
 pub mod prepare_settings_use_case;
 pub mod replay_link;
 pub mod replay_link_use_case;
+pub mod show_skill;
+pub mod show_skill_use_case;
 pub mod start_agent;
 pub mod start_agent_use_case;
 pub mod stop_agent;
@@ -22,3 +28,5 @@ pub mod uninstall_agent_use_case;
 
 #[cfg(test)]
 mod agent_fixtures_test;
+#[cfg(test)]
+mod skill_fixtures_test;

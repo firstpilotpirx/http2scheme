@@ -14,6 +14,17 @@ pub enum MenuActionError {
         /// What went wrong.
         reason: String,
     },
+    /// The remembered Claude Code folder cannot be read or written.
+    #[error("{path}: {reason}")]
+    SkillFolder {
+        /// The record file.
+        path: String,
+        /// What went wrong.
+        reason: String,
+    },
+    /// The skill could not be read or written.
+    #[error("{0}")]
+    Skill(String),
     /// The first-launch record cannot be read or written.
     #[error("{path}: {reason}")]
     FirstLaunch {

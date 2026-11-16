@@ -1,9 +1,13 @@
-//! What the app hands the component to drive its server: the launcher and the replayer.
+//! What the app hands the component to drive its server: the launcher, the replayer and the skill.
 
 use std::future::Future;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
+
+use crate::core::domain::skill_place_value_object::SkillPlaceValueObject;
+use crate::core::domain::skill_state_enum::SkillStateEnum;
 
 /// Completes when the server must stop.
 pub type ServeShutdown = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -13,6 +17,10 @@ pub type ServeOutput = Box<dyn Write + Send>;
 pub type ServeLauncher = Arc<dyn Fn(ServeShutdown, ServeOutput, ServeOutput) + Send + Sync>;
 /// Opens a link again and answers the result word; it returns when the attempt is logged.
 pub type LinkReplayer = Arc<dyn Fn(&str) -> String + Send + Sync>;
+/// Answers the agent skill text, the same the skill command prints.
+pub type SkillText = Arc<dyn Fn() -> String + Send + Sync>;
+/// Inspects or installs the skill in a Claude Code folder; the reason when it fails.
+pub type SkillAction = Arc<dyn Fn(&Path) -> Result<SkillPlaceValueObject, String> + Send + Sync>;
 
 /// The calls into the server the app runs; `menubar` knows nothing else of it.
 #[derive(Clone)]
@@ -21,6 +29,24 @@ pub struct MenubarHooks {
     pub serve: ServeLauncher,
     /// Opens a link of the History tab again.
     pub replay: LinkReplayer,
+    /// The agent skill text.
+    pub skill_text: SkillText,
+    /// The skill's place and state in a folder.
+    pub inspect_skill: SkillAction,
+    /// Writes the skill into a folder.
+    pub install_skill: SkillAction,
+}
+
+/// A skill place from the server's answer: the file, the real file behind a link, the state name.
+///
+/// # Errors
+/// The state name is none of `not-installed`, `installed`, `outdated`.
+pub fn skill_place(
+    (file, real_file, state): (PathBuf, Option<PathBuf>, &str),
+) -> Result<SkillPlaceValueObject, String> {
+    let state =
+        SkillStateEnum::from_name(state).ok_or_else(|| format!("unknown skill state: {state}"))?;
+    Ok(SkillPlaceValueObject::new(file, real_file, state))
 }
 
 #[cfg(test)]
