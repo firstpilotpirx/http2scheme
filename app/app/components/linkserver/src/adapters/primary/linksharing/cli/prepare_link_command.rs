@@ -51,6 +51,23 @@ impl PrepareLinkCommand {
         out: &mut (dyn Write + Send),
         err: &mut (dyn Write + Send),
     ) -> u8 {
+        match self.prepare(links).await {
+            Ok(prepared) => {
+                let opened = prepared
+                    .iter()
+                    .map(|open| self.style.path(&open_url(&self.host, open)));
+                write_lines(out, opened);
+                0
+            }
+            Err(reasons) => {
+                write_lines(err, reasons);
+                1
+            }
+        }
+    }
+
+    /// The open link of every scheme link, or the reasons of the refused ones, each once.
+    async fn prepare(&self, links: &[String]) -> Result<Vec<PreparedLinkValueObject>, Vec<String>> {
         let mut prepared = Vec::with_capacity(links.len());
         let mut reasons: Vec<String> = Vec::new();
         for link in links {
@@ -61,16 +78,11 @@ impl PrepareLinkCommand {
         }
         let mut seen = std::collections::HashSet::new();
         reasons.retain(|line| seen.insert(line.clone()));
-        if !reasons.is_empty() {
-            for line in reasons {
-                let _ = writeln!(err, "{line}");
-            }
-            return 1;
+        if reasons.is_empty() {
+            Ok(prepared)
+        } else {
+            Err(reasons)
         }
-        for open in &prepared {
-            let _ = writeln!(out, "{}", self.style.path(&open_url(&self.host, open)));
-        }
-        0
     }
 
     fn reason(&self, error: &PrepareLinkError) -> Vec<String> {
@@ -88,6 +100,12 @@ impl PrepareLinkCommand {
             }
             other => vec![self.style.fail(&other.to_string())],
         }
+    }
+}
+
+fn write_lines(to: &mut (dyn Write + Send), lines: impl IntoIterator<Item = String>) {
+    for line in lines {
+        let _ = writeln!(to, "{line}");
     }
 }
 

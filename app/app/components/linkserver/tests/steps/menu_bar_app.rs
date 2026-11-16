@@ -1,5 +1,6 @@
 //! Steps of the `menu-bar-app` capability that reach the server: ▶ on a History tab row runs
-//! the root's replay handler, whose newest logged attempt is the tab's first row.
+//! the root's replay handler, whose newest logged attempt is the tab's first row; the Agents tab
+//! runs the root's skill handlers.
 #![allow(
     clippy::needless_pass_by_value,
     reason = "cucumber hands captures over by value"
@@ -13,6 +14,7 @@ use linkserver::core::domain::link_open_attempted_domain_event::LinkOpenAttempte
 use linkserver::core::domain::link_rejected_error::LinkRejectedError;
 use linkserver::core::domain::open_outcome_enum::OpenOutcomeEnum;
 
+use super::agent_skill::{current_text, skill_file, work_dir};
 use super::home::{config, free_port, write_settings};
 use crate::LinkserverWorld;
 
@@ -63,4 +65,45 @@ fn first_row(world: &mut LinkserverWorld, result: String) {
         Vec::<u16>::new(),
         "no tab closes"
     );
+}
+
+#[given(regex = r"^a work Claude Code folder holds the current skill$")]
+fn work_holds_current(world: &mut LinkserverWorld) {
+    let file = skill_file(&work_dir(world));
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    std::fs::write(file, current_text()).unwrap();
+}
+
+#[when(regex = r"^the Agents tab asks the server (about|to install the skill into) that folder$")]
+async fn agents_tab_asks(world: &mut LinkserverWorld, request: String) {
+    let dir = work_dir(world);
+    let root = config(world);
+    let answer = if request == "about" {
+        root.inspect_skill_handler().inspect(&dir).await
+    } else {
+        root.install_skill_handler().install(&dir).await
+    };
+    let (file, real_file, state) = answer.unwrap();
+    assert_eq!(real_file, None);
+    world.answer.body = format!("{state} {}", file.display());
+}
+
+#[then(regex = r"^the server answers that the skill is installed in that folder$")]
+fn answers_installed(world: &mut LinkserverWorld) {
+    let file = skill_file(&work_dir(world));
+    assert_eq!(world.answer.body, format!("installed {}", file.display()));
+}
+
+#[when(regex = r"^the Agents tab asks the server for the skill text$")]
+async fn asks_for_text(world: &mut LinkserverWorld) {
+    world.answer.body = config(world).skill_text_handler().text().await;
+}
+
+#[then(regex = r"^the answer is the text the skill command prints$")]
+async fn answer_is_printed_text(world: &mut LinkserverWorld) {
+    let command = config(world).skill_command();
+    let (mut out, mut err) = (world.printed.out.clone(), world.printed.err.clone());
+    assert_eq!(command.run(&mut out, &mut err).await, 0);
+    assert_eq!(world.answer.body, world.printed.out.text());
+    assert_eq!(world.answer.body, current_text());
 }

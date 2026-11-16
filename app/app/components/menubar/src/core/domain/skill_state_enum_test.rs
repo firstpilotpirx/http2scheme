@@ -16,3 +16,20 @@ fn only_an_older_skill_asks_for_an_update() {
     assert_eq!(SkillStateEnum::Installed.button(), "Install");
     assert_eq!(SkillStateEnum::Outdated.button(), "Update");
 }
+
+#[test]
+fn the_server_names_map_to_states() {
+    assert_eq!(
+        SkillStateEnum::from_name("not-installed"),
+        Some(SkillStateEnum::NotInstalled)
+    );
+    assert_eq!(
+        SkillStateEnum::from_name("installed"),
+        Some(SkillStateEnum::Installed)
+    );
+    assert_eq!(
+        SkillStateEnum::from_name("outdated"),
+        Some(SkillStateEnum::Outdated)
+    );
+    assert_eq!(SkillStateEnum::from_name("gone"), None);
+}

@@ -11,18 +11,14 @@ use std::sync::Arc;
 
 use clap::{CommandFactory as _, Parser, Subcommand};
 use linkserver::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
-use linkserver::core::domain::skill_place_value_object::SkillPlaceValueObject as ServerSkillPlace;
-use linkserver::core::domain::skill_state_enum::SkillStateEnum as ServerSkillState;
 use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
 use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
-use menubar::core::domain::skill_place_value_object::SkillPlaceValueObject;
-use menubar::core::domain::skill_state_enum::SkillStateEnum;
 use menubar::menubar_config::MenubarConfig;
-use menubar::menubar_hooks::MenubarHooks;
+use menubar::menubar_hooks::{self, MenubarHooks, SkillAction as SkillHook, SkillText};
 use menubar::menubar_setup::MenubarSetup;
-use tokio::runtime::Runtime;
+use tokio::runtime::{Handle, Runtime};
 
 const LABEL: &str = "io.github.firstpilotpirx.http2scheme";
 const HOST: &str = "127.0.0.1";
@@ -133,44 +129,65 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     match command {
         Command::Serve => root.serve_command().run(stopped(), out, err).await,
         Command::Link { links } => root.link_command().run(&links, out, err).await,
-        Command::Skill { action: None } => root.skill_command().run(out, err).await,
-        Command::Skill {
-            action: Some(SkillAction::Install { claude_dir }),
-        } => {
+        Command::Skill { action } => skill(action, &root).await,
+        service => manage(service, &root).await,
+    }
+}
+
+/// `skill` prints the skill; `skill install` writes it into a Claude Code folder.
+async fn skill(action: Option<SkillAction>, root: &LinkserverConfig) -> u8 {
+    let (out, err) = (&mut std::io::stdout(), &mut std::io::stderr());
+    match action {
+        None => root.skill_command().run(out, err).await,
+        Some(SkillAction::Install { claude_dir }) => {
             let command = root.install_skill_command();
             command.run(claude_dir.as_deref(), out, err).await
         }
+    }
+}
+
+/// The commands that manage the background service.
+async fn manage(command: Command, root: &LinkserverConfig) -> u8 {
+    let (out, err) = (&mut std::io::stdout(), &mut std::io::stderr());
+    match command {
         Command::Install => root.install_command().await.run(out, err).await,
         Command::Uninstall => root.uninstall_command().run(out, err).await,
         Command::Start => root.start_command().run(out, err).await,
         Command::Stop => root.stop_command().run(out, err).await,
-        Command::Status => root.status_command().await.run(out, err).await,
+        _ => root.status_command().await.run(out, err).await,
     }
 }
 
-/// The server component's skill place in the menu bar component's own shape (design D14).
-fn to_menubar(place: &ServerSkillPlace) -> SkillPlaceValueObject {
-    let state = match place.state() {
-        ServerSkillState::NotInstalled => SkillStateEnum::NotInstalled,
-        ServerSkillState::Installed => SkillStateEnum::Installed,
-        ServerSkillState::Outdated => SkillStateEnum::Outdated,
-    };
-    SkillPlaceValueObject::new(
-        place.file().to_path_buf(),
-        place.real_file().map(std::path::Path::to_path_buf),
-        state,
+/// The three skill hooks of the Agents tab, each run on the async runtime.
+fn skill_hooks(handle: &Handle, root: &LinkserverConfig) -> (SkillText, SkillHook, SkillHook) {
+    let (text, inspect, install) = (
+        root.skill_text_handler(),
+        root.inspect_skill_handler(),
+        root.install_skill_handler(),
+    );
+    let (text_handle, inspect_handle, install_handle) =
+        (handle.clone(), handle.clone(), handle.clone());
+    (
+        Arc::new(move || text_handle.block_on(text.text())),
+        Arc::new(move |dir| {
+            inspect_handle
+                .block_on(inspect.inspect(dir))
+                .and_then(menubar_hooks::skill_place)
+        }),
+        Arc::new(move |dir| {
+            install_handle
+                .block_on(install.install(dir))
+                .and_then(menubar_hooks::skill_place)
+        }),
     )
 }
 
 fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -> MenubarConfig {
     let root = Arc::new(root);
     let replayer = root.replay_handler();
-    let skill = root.agent_skill_handler();
     let handle = runtime.handle().clone();
     let replay_handle = handle.clone();
-    let (text_skill, text_handle) = (skill.clone(), handle.clone());
-    let (inspect_skill, inspect_handle) = (skill.clone(), handle.clone());
-    let (install_skill, install_handle) = (skill, handle.clone());
+    let (skill_text, inspect_skill, install_skill) = skill_hooks(&handle, &root);
     let hooks = MenubarHooks {
         serve: Arc::new(move |shutdown, mut out, mut err| {
             let root = Arc::clone(&root);
@@ -178,17 +195,9 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
                 .spawn(async move { root.serve_command().run(shutdown, &mut out, &mut err).await });
         }),
         replay: Arc::new(move |link| replay_handle.block_on(replayer.replay(link))),
-        skill_text: Arc::new(move || text_handle.block_on(text_skill.text())),
-        inspect_skill: Arc::new(move |dir| {
-            inspect_handle
-                .block_on(inspect_skill.inspect(dir))
-                .map(|place| to_menubar(&place))
-        }),
-        install_skill: Arc::new(move |dir| {
-            install_handle
-                .block_on(install_skill.install(dir))
-                .map(|place| to_menubar(&place))
-        }),
+        skill_text,
+        inspect_skill,
+        install_skill,
     };
     MenubarConfig::macos(
         MenubarSetup {
@@ -200,6 +209,19 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
         },
         hooks,
     )
+}
+
+/// Offers the login item and refreshes the installed skill; a failure is printed, not fatal.
+fn prepare_menu(runtime: &Runtime, menubar: &MenubarConfig) {
+    let login = runtime
+        .block_on(menubar.offer_login_item())
+        .map_err(|error| error.to_string());
+    let skill = menubar
+        .refresh_skill()
+        .map_err(|error| format!("skill refresh: {error}"));
+    for reason in [login, skill].into_iter().filter_map(Result::err) {
+        eprintln!("{reason}");
+    }
 }
 
 fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
@@ -219,12 +241,7 @@ fn app(runtime: &Runtime, setup: &LinkserverSetup) -> ExitCode {
         stopped().await;
         std::process::exit(0);
     });
-    if let Err(error) = runtime.block_on(menubar.offer_login_item()) {
-        eprintln!("{error}");
-    }
-    if let Err(error) = menubar.refresh_skill() {
-        eprintln!("skill refresh: {error}");
-    }
+    prepare_menu(runtime, &menubar);
     menubar.run(mtm);
     ExitCode::SUCCESS
 }

@@ -63,3 +63,7 @@ impl SkillRepository for FilesystemSkillRepository {
         fs::write(&file, text).map_err(|error| io_error(&file, &error))
     }
 }
+
+#[cfg(test)]
+#[path = "filesystem_skill_repository_test.rs"]
+mod filesystem_skill_repository_test;

@@ -20,6 +20,7 @@ use menubar::core::application::exceptions::menu_action_error::MenuActionError;
 use menubar::core::application::use_cases::browse_history::BrowseHistory;
 use menubar::core::application::use_cases::manage_skill::ManageSkill;
 use menubar::core::application::use_cases::operate_menu::OperateMenu;
+use menubar::core::domain::agents_command_enum::AgentsCommandEnum;
 use menubar::core::domain::agents_view_value_object::AgentsViewValueObject;
 use menubar::core::domain::history_command_enum::HistoryCommandEnum;
 use menubar::core::domain::history_view_value_object::{
@@ -48,21 +49,13 @@ struct NoSkill;
 
 #[async_trait]
 impl ManageSkill for NoSkill {
-    async fn show(&self, folder: Option<std::path::PathBuf>) -> AgentsViewValueObject {
+    async fn execute(&self, command: AgentsCommandEnum) -> AgentsViewValueObject {
+        let folder = match command {
+            AgentsCommandEnum::Show(folder) => folder,
+            AgentsCommandEnum::Install(folder) | AgentsCommandEnum::Copy(folder) => Some(folder),
+        };
         let folder = folder.unwrap_or_else(|| "/Users/someone/.claude".into());
         AgentsViewValueObject::new(folder, "/Users/someone".into(), None, None)
-    }
-
-    async fn install(&self, folder: std::path::PathBuf) -> AgentsViewValueObject {
-        self.show(Some(folder)).await
-    }
-
-    async fn skill_text(&self) -> String {
-        String::new()
-    }
-
-    async fn refresh(&self) -> Result<(), MenuActionError> {
-        Ok(())
     }
 }
 

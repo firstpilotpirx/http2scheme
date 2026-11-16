@@ -11,39 +11,19 @@ use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
 use objc2_app_kit::{
-    NSButton, NSColor, NSFont, NSModalResponseOK, NSOpenPanel, NSPasteboard,
-    NSPasteboardTypeString, NSTextField, NSView,
+    NSButton, NSColor, NSModalResponseOK, NSOpenPanel, NSPasteboard, NSPasteboardTypeString, NSView,
 };
 use objc2_foundation::{NSObject, NSObjectProtocol, NSString, NSURL};
 
+use super::agents_row_config::{BUTTONS, GAP, Row, row, skill_name};
 use super::app_kit_config::ready;
 use super::history_tab_handler::click;
-use super::history_table_config::{pin_to_top, rect};
-use super::settings_layout_config::{
-    GENERAL_HEIGHT, LINE_HEIGHT, MARGIN, NAME_HEIGHT, NAME_SIZE, NOTE_SIZE, ROW_HEIGHT, WIDTH,
-    label,
-};
+use super::history_table_config::rect;
+use super::settings_layout_config::{AGENTS_HEIGHT as HEIGHT, WIDTH};
 use crate::core::application::use_cases::manage_skill::ManageSkill;
+use crate::core::domain::agents_command_enum::AgentsCommandEnum;
 use crate::core::domain::agents_view_value_object::AgentsViewValueObject;
 use crate::core::domain::skill_state_enum::SkillStateEnum;
-
-/// The height of the Agents tab: three rows in the General tab's style.
-pub(super) const HEIGHT: f64 = GENERAL_HEIGHT + ROW_HEIGHT;
-const NAMES: [&str; 3] = ["Claude Code folder", "Skill", "Skill text"];
-const BUTTONS: [&str; 3] = ["Choose…", "Install", "Copy skill text"];
-const SEPARATOR: &str = " ·";
-const BUTTON_WIDTH: f64 = 140.0;
-const BUTTON_HEIGHT: f64 = 24.0;
-const GAP: f64 = 4.0;
-
-/// One row: its name, the coloured state after the name (the skill row only), the grey line under
-/// the name and the button on the right.
-struct Row {
-    name: Retained<NSTextField>,
-    state: Retained<NSTextField>,
-    line: Retained<NSTextField>,
-    button: Retained<NSButton>,
-}
 
 /// The ivars of the target of the three buttons.
 struct AgentsIvars {
@@ -72,20 +52,18 @@ define_class!(
 
         #[unsafe(method(install:))]
         fn install_clicked(&self, _sender: Option<&AnyObject>) {
-            let view = ready(self.ivars().use_case.install(self.folder()));
+            let view = ready(self.ivars().use_case.execute(AgentsCommandEnum::Install(self.folder())));
             self.draw(view);
         }
 
         #[unsafe(method(copy:))]
         fn copy_clicked(&self, _sender: Option<&AnyObject>) {
-            let text = ready(self.ivars().use_case.skill_text());
+            let view = ready(self.ivars().use_case.execute(AgentsCommandEnum::Copy(self.folder())));
             let pasteboard = NSPasteboard::generalPasteboard();
             pasteboard.clearContents();
-            pasteboard.setString_forType(&NSString::from_str(&text), string_type());
-            let view = self.ivars().shown.borrow().clone();
-            if let Some(view) = view {
-                self.draw(view.copied());
-            }
+            let text = NSString::from_str(view.clipboard().unwrap_or_default());
+            pasteboard.setString_forType(&text, string_type());
+            self.draw(view);
         }
     }
 );
@@ -127,47 +105,10 @@ impl AgentsTarget {
         };
         let mut index = 0;
         buttons.map(|button| {
-            let row = self.row(index, button);
+            let row = row(self.mtm(), &self.ivars().view, index, button);
             index += 1;
             row
         })
-    }
-
-    fn row(&self, index: usize, button: Retained<NSButton>) -> Row {
-        let mtm = self.mtm();
-        let view = &self.ivars().view;
-        let place = f64::from(u32::try_from(index).unwrap_or_default());
-        let top = HEIGHT - MARGIN - place * ROW_HEIGHT;
-        let button_x = WIDTH - MARGIN - BUTTON_WIDTH;
-        let name = label(mtm, NAMES[index], &NSFont::systemFontOfSize(NAME_SIZE));
-        name.setFrame(rect(MARGIN, top - NAME_HEIGHT, button_x, NAME_HEIGHT));
-        let state = label(mtm, "", &NSFont::systemFontOfSize(NAME_SIZE));
-        state.setFrame(rect(MARGIN, top - NAME_HEIGHT, button_x, NAME_HEIGHT));
-        let line = label(mtm, "", &NSFont::systemFontOfSize(NOTE_SIZE));
-        line.setTextColor(Some(&NSColor::secondaryLabelColor()));
-        line.setFrame(rect(
-            MARGIN,
-            top - NAME_HEIGHT - GAP - LINE_HEIGHT,
-            button_x - 2.0 * MARGIN,
-            LINE_HEIGHT,
-        ));
-        button.setFrame(rect(
-            button_x,
-            top - BUTTON_HEIGHT,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-        ));
-        let parts: [&NSView; 4] = [&name, &state, &line, &button];
-        for part in parts {
-            pin_to_top(part);
-            view.addSubview(part);
-        }
-        Row {
-            name,
-            state,
-            line,
-            button,
-        }
     }
 
     /// The folder the tab shows, or the remembered one before the first read.
@@ -175,7 +116,7 @@ impl AgentsTarget {
         let shown = self.ivars().shown.borrow().clone();
         shown.map_or_else(
             || {
-                ready(self.ivars().use_case.show(None))
+                ready(self.ivars().use_case.execute(AgentsCommandEnum::Show(None)))
                     .folder()
                     .to_path_buf()
             },
@@ -184,12 +125,16 @@ impl AgentsTarget {
     }
 
     fn show(&self, folder: Option<PathBuf>) {
-        let view = ready(self.ivars().use_case.show(folder));
+        let view = ready(
+            self.ivars()
+                .use_case
+                .execute(AgentsCommandEnum::Show(folder)),
+        );
         self.draw(view);
     }
 
-    /// The folder the user picks in the folder panel, starting at the shown one.
-    fn pick_folder(&self) -> Option<PathBuf> {
+    /// The folder panel: folders only, hidden ones shown, opening at the shown folder.
+    fn folder_panel(&self) -> Retained<NSOpenPanel> {
         let panel = NSOpenPanel::openPanel(self.mtm());
         panel.setCanChooseDirectories(true);
         panel.setCanChooseFiles(false);
@@ -198,6 +143,12 @@ impl AgentsTarget {
         if let Some(url) = NSURL::from_directory_path(self.folder()) {
             panel.setDirectoryURL(Some(&url));
         }
+        panel
+    }
+
+    /// The folder the user picks in the folder panel.
+    fn pick_folder(&self) -> Option<PathBuf> {
+        let panel = self.folder_panel();
         (panel.runModal() == NSModalResponseOK)
             .then(|| panel.URL().and_then(|url| url.to_file_path()))
             .flatten()
@@ -208,11 +159,10 @@ impl AgentsTarget {
         folder
             .line
             .setStringValue(&NSString::from_str(&view.folder_line()));
-        let (name, state) = match view.state() {
-            Some(state) => (format!("{}{SEPARATOR}", NAMES[1]), Some(state)),
-            None => (NAMES[1].to_owned(), None),
-        };
-        skill.name.setStringValue(&NSString::from_str(&name));
+        let state = view.state();
+        skill
+            .name
+            .setStringValue(&NSString::from_str(&skill_name(state)));
         skill.name.sizeToFit();
         let width = skill.name.frame().size.width;
         let frame = skill.name.frame();
@@ -232,15 +182,22 @@ impl AgentsTarget {
         let alert = view.error().is_some().then(NSColor::systemRedColor);
         skill.line.setTextColor(Some(&grey_unless(alert)));
         skill.button.setTitle(&NSString::from_str(view.button()));
-        let default = state == Some(SkillStateEnum::Outdated);
         skill
             .button
-            .setKeyEquivalent(&NSString::from_str(if default { "\r" } else { "" }));
+            .setKeyEquivalent(&NSString::from_str(key_equivalent(state)));
         text.line
             .setStringValue(&NSString::from_str(view.copy_line()));
         let done = view.is_copied().then(NSColor::systemGreenColor);
         text.line.setTextColor(Some(&grey_unless(done)));
         *self.ivars().shown.borrow_mut() = Some(view);
+    }
+}
+
+/// Return presses Update only when an older skill is installed.
+const fn key_equivalent(state: Option<SkillStateEnum>) -> &'static str {
+    match state {
+        Some(SkillStateEnum::Outdated) => "\r",
+        Some(SkillStateEnum::NotInstalled | SkillStateEnum::Installed) | None => "",
     }
 }
 
@@ -340,4 +297,24 @@ impl AgentsTabHandler {
             .stringForType(string_type())
             .map(|text| text.to_string())
     }
+
+    /// The folder panel as Choose… opens it: whether it picks folders, files and hidden ones,
+    /// and the folder it starts in.
+    #[must_use]
+    pub fn folder_panel(&self) -> ([bool; 3], Option<PathBuf>) {
+        let panel = self.target.folder_panel();
+        let picks = [
+            panel.canChooseDirectories(),
+            panel.canChooseFiles(),
+            panel.showsHiddenFiles(),
+        ];
+        (
+            picks,
+            panel.directoryURL().and_then(|url| url.to_file_path()),
+        )
+    }
 }
+
+#[cfg(test)]
+#[path = "agents_tab_handler_test.rs"]
+mod agents_tab_handler_test;

@@ -6,11 +6,10 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use super::manage_skill::ManageSkill;
-use crate::core::application::exceptions::menu_action_error::MenuActionError;
 use crate::core::application::repositories::skill_folder_repository::SkillFolderRepository;
 use crate::core::application::services::agent_skill_service::AgentSkillService;
+use crate::core::domain::agents_command_enum::AgentsCommandEnum;
 use crate::core::domain::agents_view_value_object::AgentsViewValueObject;
-use crate::core::domain::skill_state_enum::SkillStateEnum;
 
 /// Starts from the folder last installed to, else `default_dir`; writes `home` as `~`.
 pub struct ManageSkillUseCase {
@@ -45,23 +44,24 @@ impl ManageSkillUseCase {
             }
         }
     }
-}
 
-#[async_trait]
-impl ManageSkill for ManageSkillUseCase {
     async fn show(&self, folder: Option<PathBuf>) -> AgentsViewValueObject {
-        let folder = match folder {
-            Some(folder) => folder,
-            None => match self.folders.find().await {
-                Ok(Some(remembered)) => remembered,
-                Ok(None) => self.default_dir.clone(),
-                Err(error) => {
-                    log::warn!("{error}");
-                    self.default_dir.clone()
-                }
-            },
-        };
-        self.view(folder, None).await
+        match folder {
+            Some(folder) => self.view(folder, None).await,
+            None => self.remembered().await,
+        }
+    }
+
+    /// The folder last installed to, else the default one with the reason the record is unreadable.
+    async fn remembered(&self) -> AgentsViewValueObject {
+        match self.folders.find().await {
+            Ok(Some(remembered)) => self.view(remembered, None).await,
+            Ok(None) => self.view(self.default_dir.clone(), None).await,
+            Err(error) => {
+                self.view(self.default_dir.clone(), Some(error.to_string()))
+                    .await
+            }
+        }
     }
 
     async fn install(&self, folder: PathBuf) -> AgentsViewValueObject {
@@ -79,26 +79,20 @@ impl ManageSkill for ManageSkillUseCase {
         }
     }
 
-    async fn skill_text(&self) -> String {
-        self.skill.text().await
+    async fn copy(&self, folder: PathBuf) -> AgentsViewValueObject {
+        let text = self.skill.text().await;
+        self.view(folder, None).await.copied(text)
     }
+}
 
-    async fn refresh(&self) -> Result<(), MenuActionError> {
-        let Some(folder) = self.folders.find().await? else {
-            return Ok(());
-        };
-        let place = self
-            .skill
-            .inspect(&folder)
-            .await
-            .map_err(MenuActionError::Skill)?;
-        if place.state() == SkillStateEnum::Outdated {
-            self.skill
-                .install(&folder)
-                .await
-                .map_err(MenuActionError::Skill)?;
+#[async_trait]
+impl ManageSkill for ManageSkillUseCase {
+    async fn execute(&self, command: AgentsCommandEnum) -> AgentsViewValueObject {
+        match command {
+            AgentsCommandEnum::Show(folder) => self.show(folder).await,
+            AgentsCommandEnum::Install(folder) => self.install(folder).await,
+            AgentsCommandEnum::Copy(folder) => self.copy(folder).await,
         }
-        Ok(())
     }
 }
 

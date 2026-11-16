@@ -33,7 +33,6 @@ pub const WINDOW_TITLE: &str = "http2scheme Settings";
 const STARTING: &str = "Starting";
 const POLL: Duration = Duration::from_millis(50);
 const POLL_LIMIT: Duration = Duration::from_secs(1);
-const AGENTS: usize = 2;
 
 /// One switch of the General tab with the line under its name.
 struct SwitchRow {
@@ -106,9 +105,7 @@ impl SettingsTarget {
     fn tab_chosen(&self) {
         let chosen = usize::try_from(self.parts().segments.selectedSegment()).unwrap_or_default();
         self.select(chosen);
-        if chosen == AGENTS {
-            self.ivars().agents.show();
-        }
+        self.ivars().agents.show();
     }
 
     fn new(

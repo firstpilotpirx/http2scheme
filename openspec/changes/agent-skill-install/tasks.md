@@ -31,8 +31,8 @@
 - [x] 4.2 Green: `skill_state_enum.rs`, `skill_place_value_object.rs`, `agents_view_value_object.rs` in `menubar` domain.
 - [x] 4.3 Red: integration test for `FilesystemSkillFolderRepository` (absent → none, save then find).
 - [x] 4.4 Green: `skill_folder_repository.rs` port and `filesystem_skill_folder_repository.rs`.
-- [x] 4.5 Red: unit tests for `ManageSkillUseCase`: view of the remembered folder else `~/.claude`, choose a folder, install remembers the folder, copy returns the text, refresh installs only when outdated.
-- [x] 4.6 Green: `agent_skill_service.rs` port, `manage_skill` port and use case, `in_process_agent_skill_gateway.rs`, the three hooks in `menubar_hooks.rs`, wiring in `menubar_config.rs` and `main.rs`.
+- [x] 4.5 Red: unit tests for `ManageSkillUseCase`: view of the remembered folder else `~/.claude`, choose a folder, install remembers the folder, copy returns the text (one `execute` over `AgentsCommandEnum`); `RefreshSkillUseCase` installs only when outdated.
+- [x] 4.6 Green: `agent_skill_service.rs` port, `agents_command_enum.rs`, `manage_skill` and `refresh_skill` ports and use cases, `in_process_agent_skill_gateway.rs`, the three hooks in `menubar_hooks.rs`, wiring in `menubar_config.rs` and `main.rs`.
 - [x] 4.7 `kit ship` the group.
 
 ## 5. Agents tab and refresh at launch

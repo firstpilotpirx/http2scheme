@@ -12,6 +12,17 @@ pub enum SkillStateEnum {
 }
 
 impl SkillStateEnum {
+    /// The state the server component names `not-installed`, `installed` or `outdated`.
+    #[must_use]
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "not-installed" => Some(Self::NotInstalled),
+            "installed" => Some(Self::Installed),
+            "outdated" => Some(Self::Outdated),
+            _ => None,
+        }
+    }
+
     /// The words after `Skill · `.
     #[must_use]
     pub const fn label(self) -> &'static str {

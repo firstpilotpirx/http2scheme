@@ -8,6 +8,7 @@
 mod fakes;
 mod steps;
 mod support;
+mod world;
 
 use std::sync::Arc;
 
@@ -15,6 +16,8 @@ use cucumber::World as _;
 use fakes::{FakeLoginItem, FakeReplayer, FakeServer};
 use menubar::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
 use menubar::core::domain::login_item_state_enum::LoginItemStateEnum;
+use world::agents_seen::AgentsSeen;
+use world::history_seen::HistorySeen;
 
 /// The state one scenario builds up.
 #[derive(Debug, cucumber::World)]
@@ -32,10 +35,8 @@ pub struct MenubarWorld {
     pub login_item: Arc<FakeLoginItem>,
     /// The running program.
     pub program: String,
-    /// The History tab as it read last: `[time, result, link]`.
-    pub rows: Vec<[String; 3]>,
-    /// The line the History tab showed in place of rows.
-    pub note: Option<String>,
+    /// The History tab as it read last.
+    pub history: HistorySeen,
     /// The menu as it read last: `(title, enabled, checked)`.
     pub items: Vec<(String, bool, bool)>,
     /// The Settings window's selected tab as it read last.
@@ -44,14 +45,8 @@ pub struct MenubarWorld {
     pub switches: [bool; 2],
     /// The lines under the two switches as they read last.
     pub lines: [String; 2],
-    /// The Agents tab's row names as they read last.
-    pub agents_names: [String; 3],
-    /// The lines under the Agents tab's rows as they read last.
-    pub agents_lines: [String; 3],
-    /// The Agents tab's install button title as it read last.
-    pub agents_button: String,
-    /// The general pasteboard's text as it read last.
-    pub clipboard: Option<String>,
+    /// The Agents tab and the clipboard as they read last.
+    pub agents: AgentsSeen,
 }
 
 impl MenubarWorld {
@@ -63,8 +58,7 @@ impl MenubarWorld {
             output: ServeOutputServerStateGateway::with_launcher(server.launcher(7777)),
             server,
             replayer,
-            rows: Vec::new(),
-            note: None,
+            history: HistorySeen::default(),
             home,
             login_item: Arc::new(FakeLoginItem::new(LoginItemStateEnum::Off)),
             program: "/Applications/http2scheme.app/Contents/MacOS/http2scheme".to_owned(),
@@ -72,10 +66,7 @@ impl MenubarWorld {
             tab: String::new(),
             switches: [false; 2],
             lines: [String::new(), String::new()],
-            agents_names: Default::default(),
-            agents_lines: Default::default(),
-            agents_button: String::new(),
-            clipboard: None,
+            agents: AgentsSeen::default(),
         }
     }
 }

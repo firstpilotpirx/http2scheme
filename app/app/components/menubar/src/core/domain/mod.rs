@@ -1,5 +1,6 @@
 //! Domain types (flat layout, one public type per file).
 
+pub mod agents_command_enum;
 pub mod agents_view_value_object;
 pub mod history_command_enum;
 pub mod history_view_value_object;

@@ -19,6 +19,8 @@ use crate::core::application::use_cases::offer_login_item::OfferLoginItem as _;
 use crate::core::application::use_cases::offer_login_item_use_case::OfferLoginItemUseCase;
 use crate::core::application::use_cases::operate_menu::OperateMenu;
 use crate::core::application::use_cases::operate_menu_use_case::OperateMenuUseCase;
+use crate::core::application::use_cases::refresh_skill::RefreshSkill;
+use crate::core::application::use_cases::refresh_skill_use_case::RefreshSkillUseCase;
 use crate::menubar_hooks::MenubarHooks;
 use crate::menubar_ports::MenubarPorts;
 use crate::menubar_setup::MenubarSetup;
@@ -99,7 +101,16 @@ impl MenubarConfig {
     ///
     /// When the remembered folder, the skill file or the write fails.
     pub fn refresh_skill(&self) -> Result<(), MenuActionError> {
-        ready(self.skill().refresh())
+        ready(self.refresh().execute())
+    }
+
+    /// The refresh at launch over the remembered folder.
+    #[must_use]
+    pub fn refresh(&self) -> Arc<dyn RefreshSkill> {
+        Arc::new(RefreshSkillUseCase::new(
+            self.ports.skill_folder.clone(),
+            self.ports.skill.clone(),
+        ))
     }
 
     /// The Agents tab's use case: the remembered folder, else the setup's Claude Code folder.

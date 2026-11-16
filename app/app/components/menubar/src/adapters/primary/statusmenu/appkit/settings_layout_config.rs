@@ -10,8 +10,8 @@ use objc2_app_kit::{
 };
 use objc2_foundation::{NSSize, NSString};
 
+use super::history_tab_handler;
 use super::history_table_config::{pin_to_top, rect};
-use super::{agents_tab_handler, history_tab_handler};
 
 /// The width of the window.
 pub(super) const WIDTH: f64 = 720.0;
@@ -23,6 +23,8 @@ pub(super) const MARGIN: f64 = 20.0;
 pub(super) const ROW_HEIGHT: f64 = 56.0;
 /// The General tab is as high as its two rows, with no empty space under them.
 pub(super) const GENERAL_HEIGHT: f64 = 2.0 * MARGIN + 2.0 * ROW_HEIGHT - 14.0;
+/// The Agents tab: one row more than General.
+pub(super) const AGENTS_HEIGHT: f64 = GENERAL_HEIGHT + ROW_HEIGHT;
 const TABS: [&str; 3] = ["General", "History", "Agents"];
 const NAMES: [&str; 2] = ["Serve links", "Start at login"];
 const ROW_WIDTH: f64 = 360.0;
@@ -38,11 +40,7 @@ pub(super) const NOTE_SIZE: f64 = 12.0;
 
 /// The height of the window's content while tab `tab` shows: the tab bar and that tab.
 pub(super) fn tab_height(tab: usize) -> f64 {
-    BAR + [
-        GENERAL_HEIGHT,
-        history_tab_handler::HEIGHT,
-        agents_tab_handler::HEIGHT,
-    ][tab.min(2)]
+    BAR + [GENERAL_HEIGHT, history_tab_handler::HEIGHT, AGENTS_HEIGHT][tab.min(2)]
 }
 
 /// The General, History and Agents segments centered at the top of `content`, with a line under them

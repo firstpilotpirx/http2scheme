@@ -8,6 +8,7 @@ use crate::core::application::exceptions::menu_action_error::MenuActionError;
 use crate::core::application::repositories::skill_folder_repository::MockSkillFolderRepository;
 use crate::core::application::services::agent_skill_service::MockAgentSkillService;
 use crate::core::application::use_cases::manage_skill::ManageSkill;
+use crate::core::domain::agents_command_enum::AgentsCommandEnum;
 use crate::core::domain::skill_place_value_object::SkillPlaceValueObject;
 use crate::core::domain::skill_state_enum::SkillStateEnum;
 
@@ -46,7 +47,7 @@ fn use_case(
 #[tokio::test]
 async fn without_a_remembered_folder_it_shows_the_default_one() {
     let view = use_case(remembers(None), inspects(SkillStateEnum::NotInstalled))
-        .show(None)
+        .execute(AgentsCommandEnum::Show(None))
         .await;
     assert_eq!(view.folder(), Path::new("/h/.claude"));
     assert_eq!(view.state(), Some(SkillStateEnum::NotInstalled));
@@ -58,7 +59,7 @@ async fn it_starts_from_the_remembered_folder() {
         remembers(Some("/w/.claude")),
         inspects(SkillStateEnum::Installed),
     )
-    .show(None)
+    .execute(AgentsCommandEnum::Show(None))
     .await;
     assert_eq!(view.folder(), Path::new("/w/.claude"));
 }
@@ -69,7 +70,7 @@ async fn a_chosen_folder_is_shown_with_its_state() {
         MockSkillFolderRepository::new(),
         inspects(SkillStateEnum::Outdated),
     )
-    .show(Some(PathBuf::from("/w/.claude")))
+    .execute(AgentsCommandEnum::Show(Some(PathBuf::from("/w/.claude"))))
     .await;
     assert_eq!(view.folder(), Path::new("/w/.claude"));
     assert_eq!(view.button(), "Update");
@@ -89,7 +90,7 @@ async fn install_writes_and_remembers_the_folder() {
         .times(1)
         .returning(|_| Ok(()));
     let view = use_case(folders, skill)
-        .install(PathBuf::from("/w/.claude"))
+        .execute(AgentsCommandEnum::Install(PathBuf::from("/w/.claude")))
         .await;
     assert_eq!(view.state(), Some(SkillStateEnum::Installed));
     assert_eq!(view.error(), None);
@@ -102,64 +103,62 @@ async fn a_failed_install_shows_the_reason_and_remembers_nothing() {
         .expect_install()
         .returning(|_| Err("/w/.claude/skills: permission denied".to_owned()));
     let view = use_case(MockSkillFolderRepository::new(), skill)
-        .install(PathBuf::from("/w/.claude"))
+        .execute(AgentsCommandEnum::Install(PathBuf::from("/w/.claude")))
         .await;
     assert_eq!(view.error(), Some("/w/.claude/skills: permission denied"));
     assert_eq!(view.state(), Some(SkillStateEnum::NotInstalled));
 }
 
 #[tokio::test]
-async fn copy_returns_the_skill_text() {
-    let mut skill = MockAgentSkillService::new();
+async fn copy_shows_the_folder_and_hands_over_the_text() {
+    let mut skill = inspects(SkillStateEnum::Installed);
     skill.expect_text().returning(|| "the skill".to_owned());
-    let text = use_case(MockSkillFolderRepository::new(), skill)
-        .skill_text()
+    let view = use_case(MockSkillFolderRepository::new(), skill)
+        .execute(AgentsCommandEnum::Copy(PathBuf::from("/w/.claude")))
         .await;
-    assert_eq!(text, "the skill");
+    assert_eq!(view.folder(), Path::new("/w/.claude"));
+    assert_eq!(view.clipboard(), Some("the skill"));
 }
 
 #[tokio::test]
-async fn refresh_installs_only_an_outdated_skill() {
-    let mut skill = inspects(SkillStateEnum::Outdated);
-    skill
-        .expect_install()
-        .with(eq(PathBuf::from("/w/.claude")))
-        .times(1)
-        .returning(|dir| Ok(place(dir, SkillStateEnum::Installed)));
-    use_case(remembers(Some("/w/.claude")), skill)
-        .refresh()
-        .await
-        .unwrap();
+async fn an_unreadable_record_shows_the_default_folder_and_why() {
+    let mut folders = MockSkillFolderRepository::new();
+    folders
+        .expect_find()
+        .returning(|| Err(MenuActionError::Skill("record unreadable".to_owned())));
+    let view = use_case(folders, inspects(SkillStateEnum::NotInstalled))
+        .execute(AgentsCommandEnum::Show(None))
+        .await;
+    assert_eq!(view.folder(), Path::new("/h/.claude"));
+    assert!(view.error().is_some());
 }
 
 #[tokio::test]
-async fn refresh_leaves_a_current_or_removed_skill() {
-    for state in [SkillStateEnum::Installed, SkillStateEnum::NotInstalled] {
-        let mut skill = inspects(state);
-        skill.expect_install().never();
-        use_case(remembers(Some("/w/.claude")), skill)
-            .refresh()
-            .await
-            .unwrap();
-    }
-}
-
-#[tokio::test]
-async fn refresh_does_nothing_without_a_remembered_folder() {
+async fn an_unreadable_folder_shows_the_reason() {
     let mut skill = MockAgentSkillService::new();
-    skill.expect_inspect().never();
-    use_case(remembers(None), skill).refresh().await.unwrap();
+    skill
+        .expect_inspect()
+        .returning(|_| Err("/w/.claude: denied".to_owned()));
+    let view = use_case(MockSkillFolderRepository::new(), skill)
+        .execute(AgentsCommandEnum::Show(Some(PathBuf::from("/w/.claude"))))
+        .await;
+    assert_eq!(view.state(), None);
+    assert_eq!(view.error(), Some("/w/.claude: denied"));
 }
 
 #[tokio::test]
-async fn refresh_reports_a_failed_write() {
-    let mut skill = inspects(SkillStateEnum::Outdated);
+async fn a_failed_record_after_install_is_shown() {
+    let mut skill = MockAgentSkillService::new();
     skill
         .expect_install()
-        .returning(|_| Err("denied".to_owned()));
-    let error = use_case(remembers(Some("/w")), skill)
-        .refresh()
-        .await
-        .unwrap_err();
-    assert_eq!(error, MenuActionError::Skill("denied".to_owned()));
+        .returning(|dir| Ok(place(dir, SkillStateEnum::Installed)));
+    let mut folders = MockSkillFolderRepository::new();
+    folders
+        .expect_save()
+        .returning(|_| Err(MenuActionError::Skill("record not written".to_owned())));
+    let view = use_case(folders, skill)
+        .execute(AgentsCommandEnum::Install(PathBuf::from("/w/.claude")))
+        .await;
+    assert_eq!(view.state(), Some(SkillStateEnum::Installed));
+    assert!(view.error().is_some());
 }

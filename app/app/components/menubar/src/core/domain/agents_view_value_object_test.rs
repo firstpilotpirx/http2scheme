@@ -105,7 +105,9 @@ fn an_unread_folder_has_no_state() {
 fn a_copy_changes_the_note() {
     let shown = view(SkillStateEnum::Installed, None, None);
     assert_eq!(shown.copy_line(), "Paste it into any agent's skill folder.");
-    let copied = shown.copied();
+    assert_eq!(shown.clipboard(), None);
+    let copied = shown.copied("the skill".to_owned());
     assert!(copied.is_copied());
+    assert_eq!(copied.clipboard(), Some("the skill"));
     assert_eq!(copied.copy_line(), "Copied to the clipboard.");
 }

@@ -23,6 +23,16 @@ impl SkillStateEnum {
             Some(_) => Self::Outdated,
         }
     }
+
+    /// The state's name for another component: `not-installed`, `installed` or `outdated`.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::NotInstalled => "not-installed",
+            Self::Installed => "installed",
+            Self::Outdated => "outdated",
+        }
+    }
 }
 
 #[cfg(test)]

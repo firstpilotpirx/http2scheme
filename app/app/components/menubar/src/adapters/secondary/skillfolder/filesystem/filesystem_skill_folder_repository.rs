@@ -53,3 +53,7 @@ impl SkillFolderRepository for FilesystemSkillFolderRepository {
             .map_err(|error| self.error(&error))
     }
 }
+
+#[cfg(test)]
+#[path = "filesystem_skill_folder_repository_test.rs"]
+mod filesystem_skill_folder_repository_test;

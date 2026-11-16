@@ -17,7 +17,7 @@ pub struct AgentsViewValueObject {
     home: PathBuf,
     place: Option<SkillPlaceValueObject>,
     error: Option<String>,
-    copied: bool,
+    clipboard: Option<String>,
 }
 
 impl AgentsViewValueObject {
@@ -34,15 +34,21 @@ impl AgentsViewValueObject {
             home,
             place,
             error,
-            copied: false,
+            clipboard: None,
         }
     }
 
-    /// The same view after the skill text was put on the clipboard.
+    /// The same view after Copy skill text: `text` goes on the clipboard.
     #[must_use]
-    pub fn copied(mut self) -> Self {
-        self.copied = true;
+    pub fn copied(mut self, text: String) -> Self {
+        self.clipboard = Some(text);
         self
+    }
+
+    /// The text to put on the clipboard, after Copy skill text.
+    #[must_use]
+    pub fn clipboard(&self) -> Option<&str> {
+        self.clipboard.as_deref()
     }
 
     /// The shown Claude Code folder.
@@ -110,13 +116,17 @@ impl AgentsViewValueObject {
     /// The line under Skill text.
     #[must_use]
     pub const fn copy_line(&self) -> &'static str {
-        if self.copied { COPIED_NOTE } else { PASTE_NOTE }
+        if self.is_copied() {
+            COPIED_NOTE
+        } else {
+            PASTE_NOTE
+        }
     }
 
     /// Whether the text was just copied.
     #[must_use]
     pub const fn is_copied(&self) -> bool {
-        self.copied
+        self.clipboard.is_some()
     }
 }
 

@@ -2,11 +2,12 @@
 
 use std::future::Future;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::domain::skill_place_value_object::SkillPlaceValueObject;
+use crate::core::domain::skill_state_enum::SkillStateEnum;
 
 /// Completes when the server must stop.
 pub type ServeShutdown = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -34,6 +35,18 @@ pub struct MenubarHooks {
     pub inspect_skill: SkillAction,
     /// Writes the skill into a folder.
     pub install_skill: SkillAction,
+}
+
+/// A skill place from the server's answer: the file, the real file behind a link, the state name.
+///
+/// # Errors
+/// The state name is none of `not-installed`, `installed`, `outdated`.
+pub fn skill_place(
+    (file, real_file, state): (PathBuf, Option<PathBuf>, &str),
+) -> Result<SkillPlaceValueObject, String> {
+    let state =
+        SkillStateEnum::from_name(state).ok_or_else(|| format!("unknown skill state: {state}"))?;
+    Ok(SkillPlaceValueObject::new(file, real_file, state))
 }
 
 #[cfg(test)]

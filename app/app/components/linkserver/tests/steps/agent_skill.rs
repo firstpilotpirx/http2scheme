@@ -58,7 +58,7 @@ fn default_dir(world: &mut LinkserverWorld) -> PathBuf {
 }
 
 /// The second Claude Code folder kept for work.
-fn work_dir(world: &mut LinkserverWorld) -> PathBuf {
+pub(super) fn work_dir(world: &mut LinkserverWorld) -> PathBuf {
     home(world).join("work-claude")
 }
 
@@ -67,11 +67,11 @@ fn elsewhere(world: &mut LinkserverWorld) -> PathBuf {
     home(world).join("elsewhere")
 }
 
-fn skill_file(dir: &Path) -> PathBuf {
+pub(super) fn skill_file(dir: &Path) -> PathBuf {
     dir.join("skills/http2scheme/SKILL.md")
 }
 
-fn current_text() -> String {
+pub(super) fn current_text() -> String {
     AgentSkillValueObject::for_program(PROGRAM)
         .text()
         .to_owned()

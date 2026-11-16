@@ -27,8 +27,8 @@ fn open_history(world: &mut MenubarWorld, replay: Option<usize>) {
     if let Some(index) = replay {
         window.history().replay(index);
     }
-    world.rows = window.history().rows();
-    world.note = window.history().note();
+    world.history.rows = window.history().rows();
+    world.history.note = window.history().note();
 }
 
 fn link_of(name: &str) -> &'static str {
@@ -92,7 +92,7 @@ fn window_lists(world: &mut MenubarWorld, name: String, result: String) {
         .replayer
         .append("2026-11-12T10:00:00Z", &result, link_of(&name));
     open_history(world, None);
-    assert_eq!(world.rows[0][2], link_of(&name));
+    assert_eq!(world.history.rows[0][2], link_of(&name));
 }
 
 #[when(regex = r"^the user opens the History tab$")]
@@ -109,34 +109,46 @@ fn replays(world: &mut MenubarWorld) {
     regex = r#"^the (first|second) row shows the (IntelliJ|GoLand|Slack) link with the result "(.+)"$"#
 )]
 fn row_shows(world: &mut MenubarWorld, place: String, name: String, result: String) {
-    let row = &world.rows[usize::from(place == "second")];
-    assert_eq!(row[2], link_of(&name), "{:?}", world.rows);
+    let row = &world.history.rows[usize::from(place == "second")];
+    assert_eq!(row[2], link_of(&name), "{:?}", world.history.rows);
     assert_eq!(row[1], result);
 }
 
 #[then(regex = r#"^the first row shows that (IntelliJ|Slack) link with the result "(.+)"$"#)]
 fn first_row_that(world: &mut MenubarWorld, name: String, result: String) {
     row_shows(world, "first".to_owned(), name, result);
-    assert_eq!(world.rows.len(), 2, "the new request is a row of its own");
+    assert_eq!(
+        world.history.rows.len(),
+        2,
+        "the new request is a row of its own"
+    );
 }
 
 #[then(regex = r"^it lists (\d+) rows, the latest \d+$")]
 fn lists_latest(world: &mut MenubarWorld, count: usize) {
-    assert_eq!(world.rows.len(), count);
-    assert_eq!(world.rows[0][2], "idea://open?line=104");
-    assert_eq!(world.rows[count - 1][2], "idea://open?line=5");
+    assert_eq!(world.history.rows.len(), count);
+    assert_eq!(world.history.rows[0][2], "idea://open?line=104");
+    assert_eq!(world.history.rows[count - 1][2], "idea://open?line=5");
 }
 
 #[then(regex = r"^it lists the two requests$")]
 fn lists_two(world: &mut MenubarWorld) {
-    let links: Vec<&str> = world.rows.iter().map(|row| row[2].as_str()).collect();
+    let links: Vec<&str> = world
+        .history
+        .rows
+        .iter()
+        .map(|row| row[2].as_str())
+        .collect();
     assert_eq!(links, [GOLAND, INTELLIJ]);
 }
 
 #[then(regex = r"^the tab says no link has been opened yet$")]
 fn says_nothing_yet(world: &mut MenubarWorld) {
-    assert_eq!(world.rows, Vec::<[String; 3]>::new());
-    assert_eq!(world.note.as_deref(), Some("No link has been opened yet."));
+    assert_eq!(world.history.rows, Vec::<[String; 3]>::new());
+    assert_eq!(
+        world.history.note.as_deref(),
+        Some("No link has been opened yet.")
+    );
 }
 
 #[then(regex = r"^the Mac opens that IntelliJ link$")]

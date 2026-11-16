@@ -48,10 +48,10 @@ fn on_agents_tab(world: &mut MenubarWorld, act: impl FnOnce(&AgentsTabHandler)) 
     world.tab = window.selected_tab();
     let agents = window.agents();
     act(agents);
-    world.agents_names = agents.names();
-    world.agents_lines = agents.lines();
-    world.agents_button = agents.button();
-    world.clipboard = agents.clipboard();
+    world.agents.names = agents.names();
+    world.agents.lines = agents.lines();
+    world.agents.button = agents.button();
+    world.agents.clipboard = agents.clipboard();
 }
 
 #[given(regex = r"^the user has never installed the skill$")]
@@ -65,7 +65,7 @@ fn never_installed(world: &mut MenubarWorld) {
 fn tab_shown(world: &mut MenubarWorld) {
     on_agents_tab(world, |_| {});
     assert_eq!(world.tab, "Agents");
-    assert_eq!(world.agents_lines[0], "~/.claude");
+    assert_eq!(world.agents.lines[0], "~/.claude");
 }
 
 #[given(regex = r"^the Claude Code folder's skills folder is a link to a folder elsewhere$")]
@@ -80,7 +80,7 @@ fn linked_skills(world: &mut MenubarWorld) {
 fn older_skill(world: &mut MenubarWorld) {
     write_skill(&default_folder(world), OLDER);
     on_agents_tab(world, |_| {});
-    assert_eq!(world.agents_button, "Update");
+    assert_eq!(world.agents.button, "Update");
 }
 
 #[when(regex = r"^the user opens the Agents tab$")]
@@ -110,8 +110,8 @@ fn clicks_copy(world: &mut MenubarWorld) {
 
 #[then(regex = r"^it shows the default Claude Code folder$")]
 fn shows_default(world: &mut MenubarWorld) {
-    assert_eq!(world.agents_names[0], "Claude Code folder");
-    assert_eq!(world.agents_lines[0], "~/.claude");
+    assert_eq!(world.agents.names[0], "Claude Code folder");
+    assert_eq!(world.agents.lines[0], "~/.claude");
 }
 
 #[then(regex = r"^(?:it|the tab) says the skill is (not installed|installed)$")]
@@ -121,14 +121,14 @@ fn says_state(world: &mut MenubarWorld, state: String) {
     } else {
         "Not installed"
     };
-    assert_eq!(world.agents_names[1], format!("Skill · {label}"));
+    assert_eq!(world.agents.names[1], format!("Skill · {label}"));
 }
 
 #[then(regex = r"^the tab shows the work folder$")]
 fn shows_work(world: &mut MenubarWorld) {
-    assert_eq!(world.agents_lines[0], "~/work-claude");
+    assert_eq!(world.agents.lines[0], "~/work-claude");
     assert_eq!(
-        world.agents_lines[1],
+        world.agents.lines[1],
         "~/work-claude/skills/http2scheme/SKILL.md"
     );
 }
@@ -150,9 +150,9 @@ fn shows_real_place(world: &mut MenubarWorld) {
         real.display()
     );
     assert!(
-        world.agents_lines[1] == expected || world.agents_lines[1] == alternative,
+        world.agents.lines[1] == expected || world.agents.lines[1] == alternative,
         "{}",
-        world.agents_lines[1]
+        world.agents.lines[1]
     );
 }
 
@@ -164,12 +164,12 @@ fn skill_written(world: &mut MenubarWorld) {
 
 #[then(regex = r"^the clipboard holds the skill text$")]
 fn clipboard_holds(world: &mut MenubarWorld) {
-    assert_eq!(world.clipboard.as_deref(), Some(SKILL_TEXT));
+    assert_eq!(world.agents.clipboard.as_deref(), Some(SKILL_TEXT));
 }
 
 #[then(regex = r"^the tab says the text was copied$")]
 fn says_copied(world: &mut MenubarWorld) {
-    assert_eq!(world.agents_lines[2], COPIED_NOTE);
+    assert_eq!(world.agents.lines[2], COPIED_NOTE);
 }
 
 fn work_folder(world: &MenubarWorld) -> PathBuf {

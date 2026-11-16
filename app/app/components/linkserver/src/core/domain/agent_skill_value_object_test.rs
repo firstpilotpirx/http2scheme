@@ -42,3 +42,16 @@ fn two_programs_give_two_texts() {
         AgentSkillValueObject::for_program("/b/http2scheme")
     );
 }
+
+#[test]
+fn the_text_names_the_schemes_the_single_call_and_the_fix_line() {
+    let text = AgentSkillValueObject::for_program("/p").text().to_owned();
+    for part in [
+        "Go → `goland://`",
+        "every other language → `idea://`",
+        "one call",
+        "IDE links: ",
+    ] {
+        assert!(text.contains(part), "the skill text lacks {part:?}");
+    }
+}

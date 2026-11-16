@@ -12,7 +12,9 @@ use crate::adapters::primary::agentcontrol::cli::terminal_style_config::Terminal
 use crate::adapters::primary::agentcontrol::cli::uninstall_agent_command::UninstallAgentCommand;
 use crate::adapters::primary::agentskill::cli::install_skill_command::InstallSkillCommand;
 use crate::adapters::primary::agentskill::cli::show_skill_command::ShowSkillCommand;
-use crate::adapters::primary::agentskill::inprocess::agent_skill_handler::AgentSkillHandler;
+use crate::adapters::primary::agentskill::inprocess::inspect_skill_handler::InspectSkillHandler;
+use crate::adapters::primary::agentskill::inprocess::install_skill_handler::InstallSkillHandler;
+use crate::adapters::primary::agentskill::inprocess::skill_text_handler::SkillTextHandler;
 use crate::adapters::primary::linkopening::http::axum_config::AxumConfig;
 use crate::adapters::primary::linkopening::http::open_link_handler::OpenLinkHandler;
 use crate::adapters::primary::linkopening::http::open_link_response::OpenLinkResponse;
@@ -127,14 +129,22 @@ impl LinkserverConfig {
         )
     }
 
-    /// The menu bar app's Agents tab.
+    /// The skill text for the menu bar app's Copy skill text.
     #[must_use]
-    pub fn agent_skill_handler(&self) -> AgentSkillHandler {
-        AgentSkillHandler::new(
-            self.show_skill(),
-            Arc::new(self.inspect_skill()),
-            Arc::new(self.install_skill()),
-        )
+    pub fn skill_text_handler(&self) -> SkillTextHandler {
+        SkillTextHandler::new(self.show_skill())
+    }
+
+    /// The skill state for the menu bar app's Agents tab.
+    #[must_use]
+    pub fn inspect_skill_handler(&self) -> InspectSkillHandler {
+        InspectSkillHandler::new(Arc::new(self.inspect_skill()))
+    }
+
+    /// Install and Update of the menu bar app's Agents tab.
+    #[must_use]
+    pub fn install_skill_handler(&self) -> InstallSkillHandler {
+        InstallSkillHandler::new(Arc::new(self.install_skill()))
     }
 
     /// The ▶ of the menu bar app's History tab.

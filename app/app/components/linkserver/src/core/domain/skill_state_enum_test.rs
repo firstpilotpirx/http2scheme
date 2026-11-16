@@ -28,3 +28,10 @@ fn another_text_is_outdated() {
         SkillStateEnum::Outdated
     );
 }
+
+#[test]
+fn each_state_has_a_name() {
+    assert_eq!(SkillStateEnum::NotInstalled.name(), "not-installed");
+    assert_eq!(SkillStateEnum::Installed.name(), "installed");
+    assert_eq!(SkillStateEnum::Outdated.name(), "outdated");
+}

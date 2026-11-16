@@ -1,7 +1,10 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use super::MenubarHooks;
+use std::path::PathBuf;
+
+use super::{MenubarHooks, skill_place};
+use crate::core::domain::skill_state_enum::SkillStateEnum;
 
 #[test]
 fn the_hooks_call_what_the_app_hands_in() {
@@ -27,4 +30,27 @@ fn the_hooks_call_what_the_app_hands_in() {
     let dir = std::path::Path::new("/c");
     assert_eq!((hooks.inspect_skill)(dir).unwrap_err(), "inspected");
     assert_eq!((hooks.install_skill)(dir).unwrap_err(), "installed");
+}
+
+#[test]
+fn a_server_answer_becomes_a_skill_place() {
+    let place = skill_place((
+        PathBuf::from("/c/skills/http2scheme/SKILL.md"),
+        Some(PathBuf::from("/real/SKILL.md")),
+        "outdated",
+    ))
+    .unwrap();
+    assert_eq!(place.state(), SkillStateEnum::Outdated);
+    assert_eq!(
+        place.real_file(),
+        Some(std::path::Path::new("/real/SKILL.md"))
+    );
+}
+
+#[test]
+fn an_unknown_state_name_is_a_reason() {
+    assert_eq!(
+        skill_place((PathBuf::from("/c"), None, "gone")).unwrap_err(),
+        "unknown skill state: gone"
+    );
 }
