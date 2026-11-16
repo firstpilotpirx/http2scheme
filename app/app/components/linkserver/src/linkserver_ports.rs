@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::adapters::secondary::agentcontrol::filesystem::filesystem_agent_definition_repository::FilesystemAgentDefinitionRepository;
 use crate::adapters::secondary::agentcontrol::launchd::launchd_agent_supervisor_gateway::LaunchdAgentSupervisorGateway;
+use crate::adapters::secondary::agentskill::filesystem::filesystem_skill_repository::FilesystemSkillRepository;
 use crate::adapters::secondary::apporder::lsappinfo::ls_app_info_app_order_gateway::LsAppInfoAppOrderGateway;
 use crate::adapters::secondary::browsertabs::applescript::apple_script_browser_tab_closer_gateway::AppleScriptBrowserTabCloserGateway;
 use crate::adapters::secondary::linkopening::launchservices::launch_services_scheme_link_opener_gateway::LaunchServicesSchemeLinkOpenerGateway;
@@ -15,6 +16,7 @@ use crate::adapters::secondary::settings::filesystem::filesystem_settings_reposi
 use crate::core::application::repositories::agent_definition_repository::AgentDefinitionRepository;
 use crate::core::application::repositories::open_attempt_repository::OpenAttemptRepository;
 use crate::core::application::repositories::settings_repository::SettingsRepository;
+use crate::core::application::repositories::skill_repository::SkillRepository;
 use crate::core::application::services::agent_supervisor_service::AgentSupervisorService;
 use crate::core::application::services::app_order_service::AppOrderService;
 use crate::core::application::services::browser_tab_closer_service::BrowserTabCloserService;
@@ -47,6 +49,8 @@ pub struct LinkserverPorts {
     pub supervisor: Arc<dyn AgentSupervisorService>,
     /// Asks the server whether it answers.
     pub health: Arc<dyn ServerHealthService>,
+    /// The skill file of a Claude Code folder.
+    pub skills: Arc<dyn SkillRepository>,
 }
 
 impl LinkserverPorts {
@@ -83,6 +87,7 @@ impl LinkserverPorts {
                 setup.host.clone(),
                 HEALTH_TIMEOUT,
             )),
+            skills: Arc::new(FilesystemSkillRepository),
         }
     }
 }

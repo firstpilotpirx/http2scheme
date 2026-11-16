@@ -10,6 +10,7 @@ use crate::adapters::primary::agentcontrol::cli::start_agent_command::StartAgent
 use crate::adapters::primary::agentcontrol::cli::stop_agent_command::StopAgentCommand;
 use crate::adapters::primary::agentcontrol::cli::terminal_style_config::TerminalStyleConfig;
 use crate::adapters::primary::agentcontrol::cli::uninstall_agent_command::UninstallAgentCommand;
+use crate::adapters::primary::agentskill::cli::install_skill_command::InstallSkillCommand;
 use crate::adapters::primary::agentskill::cli::show_skill_command::ShowSkillCommand;
 use crate::adapters::primary::linkopening::http::axum_config::AxumConfig;
 use crate::adapters::primary::linkopening::http::open_link_handler::OpenLinkHandler;
@@ -18,7 +19,9 @@ use crate::adapters::primary::linkreplay::inprocess::replay_link_handler::Replay
 use crate::adapters::primary::linksharing::cli::prepare_link_command::PrepareLinkCommand;
 use crate::adapters::primary::serving::cli::serve_command::{ServeCommand, ServerFactory};
 use crate::core::application::use_cases::check_agent_status_use_case::CheckAgentStatusUseCase;
+use crate::core::application::use_cases::inspect_skill_use_case::InspectSkillUseCase;
 use crate::core::application::use_cases::install_agent_use_case::InstallAgentUseCase;
+use crate::core::application::use_cases::install_skill_use_case::InstallSkillUseCase;
 use crate::core::application::use_cases::open_link_use_case::OpenLinkUseCase;
 use crate::core::application::use_cases::prepare_link_use_case::PrepareLinkUseCase;
 use crate::core::application::use_cases::prepare_settings_use_case::PrepareSettingsUseCase;
@@ -97,6 +100,28 @@ impl LinkserverConfig {
     #[must_use]
     pub fn skill_command(&self) -> ShowSkillCommand {
         ShowSkillCommand::new(self.show_skill())
+    }
+
+    /// Reads the skill state of a Claude Code folder.
+    #[must_use]
+    pub fn inspect_skill(&self) -> InspectSkillUseCase {
+        InspectSkillUseCase::new(self.show_skill(), self.ports.skills.clone())
+    }
+
+    /// Writes the skill into a Claude Code folder.
+    #[must_use]
+    pub fn install_skill(&self) -> InstallSkillUseCase {
+        InstallSkillUseCase::new(self.show_skill(), self.ports.skills.clone())
+    }
+
+    /// `skill install`; without `--claude-dir` it installs into the setup's Claude Code folder.
+    #[must_use]
+    pub fn install_skill_command(&self) -> InstallSkillCommand {
+        InstallSkillCommand::new(
+            Arc::new(self.install_skill()),
+            self.setup.claude_dir.clone(),
+            self.style,
+        )
     }
 
     /// The ▶ of the menu bar app's History tab.

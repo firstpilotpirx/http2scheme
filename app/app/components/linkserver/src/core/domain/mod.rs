@@ -14,3 +14,5 @@ pub mod scheme_link_value_object;
 pub mod scheme_name_value_object;
 pub mod server_settings_value_object;
 pub mod settings_invalid_error;
+pub mod skill_place_value_object;
+pub mod skill_state_enum;

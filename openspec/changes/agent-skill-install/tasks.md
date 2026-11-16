@@ -11,13 +11,13 @@
 
 ## 2. Installing the skill
 
-- [ ] 2.1 Red: integration test for `FilesystemSkillRepository`: save creates `skills/http2scheme/SKILL.md`, find reads it back, a linked `skills` folder reports its real path, a sibling skill stays.
-- [ ] 2.2 Green: `skill_repository.rs` port, `skill_place_value_object.rs`, `skill_state_enum.rs`, `filesystem_skill_repository.rs`.
-- [ ] 2.3 Red: unit tests for `InspectSkillUseCase` (absent, equal, different) and `InstallSkillUseCase` (writes, returns the place, maps a write error).
-- [ ] 2.4 Green: `inspect_skill` and `install_skill` ports and use cases, `install_skill_error.rs`.
-- [ ] 2.5 Red: slice scenarios "Install writes the skill into the default folder", "Install into a chosen work profile folder", "Install over an older skill replaces it", "A linked skills folder is named in the output".
-- [ ] 2.6 Green: `install_skill_command.rs`, `skill install [--claude-dir]` in `main.rs`.
-- [ ] 2.7 `kit ship` the group.
+- [x] 2.1 Red: integration test for `FilesystemSkillRepository`: save creates `skills/http2scheme/SKILL.md`, find reads it back, a linked `skills` folder reports its real path, a sibling skill stays.
+- [x] 2.2 Green: `skill_repository.rs` port, `skill_place_value_object.rs`, `skill_state_enum.rs`, `filesystem_skill_repository.rs`.
+- [x] 2.3 Red: unit tests for `InspectSkillUseCase` (absent, equal, different) and `InstallSkillUseCase` (writes, returns the place, maps a write error).
+- [x] 2.4 Green: `inspect_skill` and `install_skill` ports and use cases, `install_skill_error.rs`.
+- [x] 2.5 Red: slice scenarios "Install writes the skill into the default folder", "Install into a chosen work profile folder", "Install over an older skill replaces it", "A linked skills folder is named in the output".
+- [x] 2.6 Green: `install_skill_command.rs`, `skill install [--claude-dir]` in `main.rs`.
+- [x] 2.7 `kit ship` the group.
 
 ## 3. Many links in one `link` call
 

@@ -26,6 +26,7 @@ const HOSTS: [&str; 2] = ["127.0.0.1", "localhost"];
 const SETTINGS_DIR: &str = "Library/Application Support/http2scheme";
 const LOG_DIR: &str = "Library/Logs/http2scheme";
 const AGENTS_DIR: &str = "Library/LaunchAgents";
+const CLAUDE_DIR: &str = ".claude";
 const OPEN_PROGRAM: (&str, &str) = ("HTTP2SCHEME_OPEN_PROGRAM", "/usr/bin/open");
 const LAUNCHCTL_PROGRAM: (&str, &str) = ("HTTP2SCHEME_LAUNCHCTL_PROGRAM", "/bin/launchctl");
 const OSASCRIPT_PROGRAM: (&str, &str) = ("HTTP2SCHEME_OSASCRIPT_PROGRAM", "/usr/bin/osascript");
@@ -52,7 +53,10 @@ enum Command {
         link: String,
     },
     /// Print the agent skill that teaches coding agents to write IDE links.
-    Skill,
+    Skill {
+        #[command(subcommand)]
+        action: Option<SkillAction>,
+    },
     /// Run the server at login and restart it after a crash.
     Install,
     /// Stop the server and remove it from login; settings, key and logs stay.
@@ -63,6 +67,16 @@ enum Command {
     Stop,
     /// Show whether the server is installed, loaded and answering.
     Status,
+}
+
+#[derive(Subcommand)]
+enum SkillAction {
+    /// Write the skill to `<folder>/skills/http2scheme/SKILL.md`.
+    Install {
+        /// The Claude Code folder; `~/.claude` when not given.
+        #[arg(long)]
+        claude_dir: Option<PathBuf>,
+    },
 }
 
 fn program((variable, default): (&str, &str)) -> PathBuf {
@@ -80,6 +94,7 @@ fn setup() -> Result<LinkserverSetup, String> {
         settings_dir: home.join(SETTINGS_DIR),
         log_dir: home.join(LOG_DIR),
         agents_dir: home.join(AGENTS_DIR),
+        claude_dir: home.join(CLAUDE_DIR),
         program: current,
         label: LABEL.to_owned(),
         host: HOST.to_owned(),
@@ -113,7 +128,13 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     match command {
         Command::Serve => root.serve_command().run(stopped(), out, err).await,
         Command::Link { link } => root.link_command().run(&link, out, err).await,
-        Command::Skill => root.skill_command().run(out, err).await,
+        Command::Skill { action: None } => root.skill_command().run(out, err).await,
+        Command::Skill {
+            action: Some(SkillAction::Install { claude_dir }),
+        } => {
+            let command = root.install_skill_command();
+            command.run(claude_dir.as_deref(), out, err).await
+        }
         Command::Install => root.install_command().await.run(out, err).await,
         Command::Uninstall => root.uninstall_command().run(out, err).await,
         Command::Start => root.start_command().run(out, err).await,
