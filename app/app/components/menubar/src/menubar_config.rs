@@ -12,6 +12,8 @@ use crate::adapters::secondary::loginitem::smappservice::sm_app_service_login_it
 use crate::adapters::secondary::serverstate::serveoutput::serve_output_server_state_gateway::ServeOutputServerStateGateway;
 use crate::core::application::exceptions::menu_action_error::MenuActionError;
 use crate::core::application::use_cases::browse_history_use_case::BrowseHistoryUseCase;
+use crate::core::application::use_cases::manage_skill::ManageSkill;
+use crate::core::application::use_cases::manage_skill_use_case::ManageSkillUseCase;
 use crate::core::application::use_cases::offer_login_item::OfferLoginItem as _;
 use crate::core::application::use_cases::offer_login_item_use_case::OfferLoginItemUseCase;
 use crate::core::application::use_cases::operate_menu::OperateMenu;
@@ -41,8 +43,8 @@ impl MenubarConfig {
     /// A root over the macOS adapters that starts the server and opens links through `hooks`.
     #[must_use]
     pub fn macos(setup: MenubarSetup, hooks: MenubarHooks) -> Self {
-        let output = ServeOutputServerStateGateway::with_launcher(hooks.serve);
-        let ports = MenubarPorts::macos(&setup, &output, hooks.replay);
+        let output = ServeOutputServerStateGateway::with_launcher(hooks.serve.clone());
+        let ports = MenubarPorts::macos(&setup, &output, hooks);
         Self {
             setup,
             ports,
@@ -86,6 +88,23 @@ impl MenubarConfig {
         )
         .execute()
         .await
+    }
+
+    /// The Agents tab's use case: the remembered folder, else the setup's Claude Code folder.
+    #[must_use]
+    pub fn skill(&self) -> Arc<dyn ManageSkill> {
+        let home = self
+            .setup
+            .claude_dir
+            .parent()
+            .map(std::path::Path::to_path_buf)
+            .unwrap_or_default();
+        Arc::new(ManageSkillUseCase::new(
+            self.setup.claude_dir.clone(),
+            home,
+            self.ports.skill_folder.clone(),
+            self.ports.skill.clone(),
+        ))
     }
 
     /// The menu's use case; the status menu and the Settings window share one.

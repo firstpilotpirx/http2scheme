@@ -15,6 +15,10 @@ use linkserver::linkserver_config::LinkserverConfig;
 use linkserver::linkserver_ports::LinkserverPorts;
 use linkserver::linkserver_programs::LinkserverPrograms;
 use linkserver::linkserver_setup::LinkserverSetup;
+use linkserver::core::domain::skill_place_value_object::SkillPlaceValueObject as ServerSkillPlace;
+use linkserver::core::domain::skill_state_enum::SkillStateEnum as ServerSkillState;
+use menubar::core::domain::skill_place_value_object::SkillPlaceValueObject;
+use menubar::core::domain::skill_state_enum::SkillStateEnum;
 use menubar::menubar_config::MenubarConfig;
 use menubar::menubar_hooks::MenubarHooks;
 use menubar::menubar_setup::MenubarSetup;
@@ -144,11 +148,29 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     }
 }
 
+/// The server component's skill place in the menu bar component's own shape (design D14).
+fn to_menubar(place: &ServerSkillPlace) -> SkillPlaceValueObject {
+    let state = match place.state() {
+        ServerSkillState::NotInstalled => SkillStateEnum::NotInstalled,
+        ServerSkillState::Installed => SkillStateEnum::Installed,
+        ServerSkillState::Outdated => SkillStateEnum::Outdated,
+    };
+    SkillPlaceValueObject::new(
+        place.file().to_path_buf(),
+        place.real_file().map(std::path::Path::to_path_buf),
+        state,
+    )
+}
+
 fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -> MenubarConfig {
     let root = Arc::new(root);
     let replayer = root.replay_handler();
+    let skill = root.agent_skill_handler();
     let handle = runtime.handle().clone();
     let replay_handle = handle.clone();
+    let (text_skill, text_handle) = (skill.clone(), handle.clone());
+    let (inspect_skill, inspect_handle) = (skill.clone(), handle.clone());
+    let (install_skill, install_handle) = (skill, handle.clone());
     let hooks = MenubarHooks {
         serve: Arc::new(move |shutdown, mut out, mut err| {
             let root = Arc::clone(&root);
@@ -156,12 +178,24 @@ fn menubar(runtime: &Runtime, setup: &LinkserverSetup, root: LinkserverConfig) -
                 .spawn(async move { root.serve_command().run(shutdown, &mut out, &mut err).await });
         }),
         replay: Arc::new(move |link| replay_handle.block_on(replayer.replay(link))),
+        skill_text: Arc::new(move || text_handle.block_on(text_skill.text())),
+        inspect_skill: Arc::new(move |dir| {
+            inspect_handle
+                .block_on(inspect_skill.inspect(dir))
+                .map(|place| to_menubar(&place))
+        }),
+        install_skill: Arc::new(move |dir| {
+            install_handle
+                .block_on(install_skill.install(dir))
+                .map(|place| to_menubar(&place))
+        }),
     };
     MenubarConfig::macos(
         MenubarSetup {
             version: setup.version.clone(),
             settings_dir: setup.settings_dir.clone(),
             log_dir: setup.log_dir.clone(),
+            claude_dir: setup.claude_dir.clone(),
             program: setup.program.clone(),
         },
         hooks,

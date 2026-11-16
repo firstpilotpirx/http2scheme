@@ -4,9 +4,11 @@ use std::sync::Mutex;
 
 mod fake_replayer;
 mod fake_server;
+mod fake_skill;
 
 pub use fake_replayer::FakeReplayer;
 pub use fake_server::FakeServer;
+pub use fake_skill::{FakeSkill, SKILL_TEXT};
 
 use async_trait::async_trait;
 use menubar::core::application::exceptions::menu_action_error::MenuActionError;

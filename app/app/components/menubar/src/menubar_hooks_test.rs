@@ -12,6 +12,9 @@ fn the_hooks_call_what_the_app_hands_in() {
             counter.fetch_add(1, Ordering::SeqCst);
         }),
         replay: Arc::new(|link| format!("opened {link}")),
+        skill_text: Arc::new(|| "skill".to_owned()),
+        inspect_skill: Arc::new(|_| Err("inspected".to_owned())),
+        install_skill: Arc::new(|_| Err("installed".to_owned())),
     };
     (hooks.serve)(
         Box::pin(std::future::ready(())),
@@ -20,4 +23,8 @@ fn the_hooks_call_what_the_app_hands_in() {
     );
     assert_eq!(started.load(Ordering::SeqCst), 1);
     assert_eq!((hooks.replay)("idea://x"), "opened idea://x");
+    assert_eq!((hooks.skill_text)(), "skill");
+    let dir = std::path::Path::new("/c");
+    assert_eq!((hooks.inspect_skill)(dir).unwrap_err(), "inspected");
+    assert_eq!((hooks.install_skill)(dir).unwrap_err(), "installed");
 }
