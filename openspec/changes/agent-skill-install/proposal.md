@@ -33,7 +33,7 @@ Interface: the Agents tab of the Settings window; the terminal output of `link` 
 
 ## Impact
 
-- `app/app/components/linkserver`: the `link` command takes a list; a new `skill` command and use cases to render and install the skill; the skill text under the component.
+- `app/app/components/linkserver`: the `link` command takes a list; a new `skill` command and use cases to render and install the skill; the skill text is read from `skills/http2scheme/SKILL.md` at build time.
 - `skills/http2scheme/SKILL.md`: the skill text (D1); `AGENTS.md` layout list names `skills/`.
 - `docs/decisions/ADR-001-appkit-ffi.html`, `metrics/unsafe.tsv`: the fifth unsafe file (design D11).
 - `app/app/components/menubar`: the Agents tab (AppKit: folder picker `NSOpenPanel`, clipboard `NSPasteboard`), its use case, a small file remembering the chosen folder, the refresh at launch.
