@@ -7,6 +7,7 @@ A tiny local HTTP server for macOS, written in Rust. It lets apps that allow onl
 - `app/app/` — the Cargo workspace: `apps/http2scheme` (the binary: CLI, the menu bar app mode and wiring), `components/menubar` (the menu bar status item and the login item; the only unsafe code, ADR-001) and `components/linkserver` (the component: `src/core/{domain,application}`, `src/adapters/{primary,secondary}/<feature>/<tech>/`, the composition root `linkserver_config.rs`; sibling unit tests `*_test.rs`; adapter integration tests, slice and component features in `tests/`).
 - `app/e2e/` — its own Cargo workspace: cucumber E2E scenarios on the built binary, with recording `open`, `launchctl` and `osascript` scripts; the `@bundle` scenarios run on `dist/http2scheme.app` and its disk image.
 - `app/packaging/` — the bundle's `Info.plist`, the icon set, the disk image background and `draw-artwork.swift`, which draws them (`just icons`).
+- `skills/http2scheme/SKILL.md` — the agent skill text (open `SKILL.md` format), built into the binary with `include_str!`; `{{program}}` becomes the program's full path.
 - `docs/decisions/` — the ADRs (`kit report` pages).
 - `scripts/` — the gate (`qa.sh`), the architecture checks (`arch/`), the rule ledger (`rules.tsv`); `tests/gate_fixtures/` proves every check can fail; `metrics/` holds the complexity and unsafe-use records.
 - `justfile` — every task; `just --list` shows them.

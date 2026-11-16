@@ -26,6 +26,13 @@ Feature: Link sharing
       Then the settings and a new key are created
       And the printed link carries that key
 
+    @e2e
+    Scenario: Several scheme links become open links in order
+      Given the settings hold the IntelliJ and GoLand schemes on the allowed list
+      When the user asks in one call for the open links of an IntelliJ link, a GoLand link and a second IntelliJ link
+      Then the command prints three open links, one per line
+      And following the second line opens exactly the GoLand link
+
   Rule: The link command refuses links the server would refuse
 
     @e2e

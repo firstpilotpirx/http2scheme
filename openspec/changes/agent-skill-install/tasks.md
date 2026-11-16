@@ -46,11 +46,11 @@
 
 ## 6. End to end, docs and version
 
-- [ ] 6.1 E2E scenarios on the binary: `skill` prints the skill with the binary's path; `skill install` with a temp `HOME` writes the file; `link` with three links prints three lines.
-- [ ] 6.2 AGENTS.md: add `skills/` (the agent skill text, built into the binary) to the layout list.
-- [ ] 6.3 README: rewrite "Links from an AI agent" for the skill, the Agents tab, `skill install` and the many-link `link`.
-- [ ] 6.4 Bump the version to 0.2.0 in `app/app/Cargo.toml`.
-- [ ] 6.5 `kit ship` the group.
+- [x] 6.1 E2E scenarios on the binary: `skill` prints the skill with the binary's path; `skill install` with a temp `HOME` writes the file; `link` with three links prints three lines.
+- [x] 6.2 AGENTS.md: add `skills/` (the agent skill text, built into the binary) to the layout list.
+- [x] 6.3 README: rewrite "Links from an AI agent" for the skill, the Agents tab, `skill install` and the many-link `link`.
+- [x] 6.4 Bump the version to 0.2.0 in `app/app/Cargo.toml`.
+- [x] 6.5 `kit ship` the group.
 
 ## Manual checks
 

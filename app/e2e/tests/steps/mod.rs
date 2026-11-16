@@ -1,5 +1,6 @@
 //! Step definitions, one module per capability.
 
+pub mod agent_skill;
 pub mod background_service;
 pub mod link_opening;
 pub mod link_sharing;

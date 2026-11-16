@@ -76,14 +76,34 @@ just check
 
 ## Links from an AI agent
 
-An agent that wants to give you a clickable place in code runs:
+http2scheme ships a skill for coding agents (Claude Code, Codex, Gemini CLI and others that read the open `SKILL.md` format). With it, every time an agent points to a place in code, it writes the short file link and a small `IDE` link next to it:
 
-```bash
-http2scheme link 'idea://open?file=/path/to/File.kt&line=42'
+```markdown
+The port is read in [server.rs:42](app/src/server.rs:42) [IDE](http://127.0.0.1:7777/open?key=…&url=…)
 ```
 
-and pastes the `http://127.0.0.1:7777/open?key=…&url=…` link it prints into the chat. A click opens the
-file in the IDE at that line. Put the scheme link in single quotes; write a space in it as `%20`.
+A click on `IDE` opens the file in the IDE at that line. The skill text is in [skills/http2scheme/SKILL.md](skills/http2scheme/SKILL.md).
+
+Install it for Claude Code in one of two ways:
+
+- **The app:** Settings… → **Agents**. The tab shows the Claude Code folder (`~/.claude` by default; **Choose…** picks another, for example a work profile), where the skill lands and whether it is current. Click **Install** (or **Update**). After an app update, the app refreshes the skill it installed at its next launch.
+- **The terminal:**
+
+  ```bash
+  http2scheme skill install
+  ```
+
+  Add `--claude-dir <folder>` for another Claude Code folder. When the `skills` folder is a link, the command also prints the real folder the file landed in.
+
+For any other agent, **Copy skill text** in the Agents tab (or `http2scheme skill`) gives the full text to put into that agent's skill folder.
+
+The agent makes the links itself, all of a reply's links in one call; each scheme link gives one open link per line, in order:
+
+```bash
+http2scheme link 'idea://open?file=/path/to/File.kt&line=42' 'goland://open?file=/path/to/main.go&line=7'
+```
+
+Put each scheme link in single quotes; write a space in it as `%20`. When any link is refused, the command prints no link, only the reasons, and fails.
 
 ## License
 

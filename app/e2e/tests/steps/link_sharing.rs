@@ -13,6 +13,8 @@ const INTELLIJ_LINE_42: &str = "idea://open?file=/Users/me/src/TokenController.j
 const INTELLIJ_SPACES: &str =
     "idea://open?file=/Users/me/My%20Project/Контроллер%20токенов.java&line=3";
 const SLACK: &str = "slack://channel?id=C123";
+const GOLAND: &str = "goland://open?file=/Users/me/src/main.go&line=7";
+const INTELLIJ_SECOND: &str = "idea://open?file=/Users/me/src/Other.java&line=1";
 
 fn printed(world: &E2eWorld) -> String {
     let lines: Vec<&str> = world.printed.out.lines().collect();
@@ -122,4 +124,50 @@ fn says_not_allowed(world: &mut E2eWorld) {
 fn exit_status(world: &mut E2eWorld, which: String) {
     let code = world.printed.code.unwrap();
     assert_eq!(code == 0, which == "success", "status {code}");
+}
+
+#[given(regex = r"^the settings hold the IntelliJ and GoLand schemes on the allowed list$")]
+fn settings_with_two_schemes(world: &mut E2eWorld) {
+    let port = free_port();
+    world.home.write_settings(port, &["idea", "goland"], true);
+    world.port = Some(port);
+}
+
+#[when(
+    regex = r"^the user asks in one call for the open links of an IntelliJ link, a GoLand link and a second IntelliJ link$"
+)]
+async fn ask_for_three(world: &mut E2eWorld) {
+    world.link = Some(GOLAND.to_owned());
+    let (code, out, err) = world
+        .home
+        .run(&["link", INTELLIJ_LINE_42, GOLAND, INTELLIJ_SECOND])
+        .await;
+    (world.printed.code, world.printed.out, world.printed.err) = (Some(code), out, err);
+}
+
+#[then(regex = r"^the command prints three open links, one per line$")]
+fn prints_three(world: &mut E2eWorld) {
+    let prefix = format!("http://127.0.0.1:{}/open?", world.port.unwrap());
+    let lines: Vec<&str> = world.printed.out.lines().collect();
+    assert_eq!(lines.len(), 3, "{}", world.printed.out);
+    assert!(
+        lines.iter().all(|line| line.starts_with(&prefix)),
+        "{}",
+        world.printed.out
+    );
+    assert_eq!(world.printed.code, Some(0));
+}
+
+#[then(regex = r"^following the second line opens exactly the GoLand link$")]
+async fn follow_second(world: &mut E2eWorld) {
+    let link = world.printed.out.lines().nth(1).unwrap().to_owned();
+    let port = world.port.unwrap();
+    let mut server = world.home.spawn_serve();
+    assert!(wait_until_answering(&mut server, Some(port)).await);
+    world.server = Some(server);
+    let address = format!("127.0.0.1:{port}");
+    let path = link.strip_prefix(&format!("http://{address}")).unwrap();
+    let (status, body) = get(&address, &address, path).await.unwrap();
+    assert_eq!(status, 200, "{body}");
+    assert_eq!(world.home.calls("open"), [vec![GOLAND.to_owned()]]);
 }
