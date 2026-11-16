@@ -170,7 +170,7 @@ async fn run_link_or_serve(command: &str, fake: Arc<Fake>, style: TerminalStyleC
     if command == "link" {
         let settings = "/home/settings.toml".to_owned();
         return PrepareLinkCommand::new(fake, "127.0.0.1".to_owned(), settings, style)
-            .run(&argument, out, err)
+            .run(std::slice::from_ref(&argument), out, err)
             .await;
     }
     let log = "/home/requests.log".to_owned();

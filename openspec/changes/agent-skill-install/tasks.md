@@ -21,9 +21,9 @@
 
 ## 3. Many links in one `link` call
 
-- [ ] 3.1 Red: slice scenarios "Several scheme links become open links in order" and "One refused link among several prints no link"; unit test for the command printing in order and printing nothing on one refusal.
-- [ ] 3.2 Green: `PrepareLinkCommand::run` takes a slice, checks every link first, then prints; `Link { links }` with at least one value in `main.rs`; the existing scenarios keep passing.
-- [ ] 3.3 `kit ship` the group.
+- [x] 3.1 Red: slice scenarios "Several scheme links become open links in order" and "One refused link among several prints no link"; unit test for the command printing in order and printing nothing on one refusal.
+- [x] 3.2 Green: `PrepareLinkCommand::run` takes a slice, checks every link first, then prints; `Link { links }` with at least one value in `main.rs`; the existing scenarios keep passing.
+- [x] 3.3 `kit ship` the group.
 
 ## 4. Menubar core for the Agents tab
 

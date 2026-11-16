@@ -1,4 +1,4 @@
-//! `http2scheme link <scheme link>`.
+//! `http2scheme link <scheme link>...`.
 
 use std::io::Write;
 use std::sync::Arc;
@@ -18,7 +18,7 @@ const QUERY_VALUE: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'_')
     .remove(b'~');
 
-/// Prints the open link for a scheme link, or the reason it is refused.
+/// Prints the open link of each scheme link, or the reason each refused one is refused.
 pub struct PrepareLinkCommand {
     use_case: Arc<dyn PrepareLink>,
     host: String,
@@ -43,37 +43,54 @@ impl PrepareLinkCommand {
         }
     }
 
-    /// Runs the command; the exit status is 0 when a link was printed.
+    /// Runs the command for `links`; it prints their open links, one per line in order, only when
+    /// every link is accepted (design D3); the exit status is 0 when the links were printed.
     pub async fn run(
         &self,
-        link: &str,
+        links: &[String],
         out: &mut (dyn Write + Send),
         err: &mut (dyn Write + Send),
     ) -> u8 {
-        match self.use_case.execute(link).await {
-            Ok(prepared) => {
-                let _ = writeln!(out, "{}", self.style.path(&open_url(&self.host, &prepared)));
-                0
+        let mut prepared = Vec::with_capacity(links.len());
+        let mut reasons: Vec<String> = Vec::new();
+        for link in links {
+            match self.use_case.execute(link).await {
+                Ok(open) => prepared.push(open),
+                Err(error) => {
+                    for line in self.reason(&error) {
+                        if !reasons.contains(&line) {
+                            reasons.push(line);
+                        }
+                    }
+                }
             }
-            Err(PrepareLinkError::Rejected(LinkRejectedError::SchemeNotAllowed { scheme })) => {
-                let _ = writeln!(
-                    err,
-                    "{}",
-                    self.style.fail(&format!("scheme not allowed: {scheme}"))
-                );
+        }
+        if !reasons.is_empty() {
+            for line in reasons {
+                let _ = writeln!(err, "{line}");
+            }
+            return 1;
+        }
+        for open in &prepared {
+            let _ = writeln!(out, "{}", self.style.path(&open_url(&self.host, open)));
+        }
+        0
+    }
+
+    fn reason(&self, error: &PrepareLinkError) -> Vec<String> {
+        match error {
+            PrepareLinkError::Rejected(LinkRejectedError::SchemeNotAllowed { scheme }) => {
                 let hint = format!("  add \"{scheme}\" to allowed_schemes in ");
-                let _ = writeln!(
-                    err,
-                    "{}{}",
-                    self.style.detail(&hint),
-                    self.style.path(&self.settings_file)
-                );
-                1
+                vec![
+                    self.style.fail(&format!("scheme not allowed: {scheme}")),
+                    format!(
+                        "{}{}",
+                        self.style.detail(&hint),
+                        self.style.path(&self.settings_file)
+                    ),
+                ]
             }
-            Err(error) => {
-                let _ = writeln!(err, "{}", self.style.fail(&error.to_string()));
-                1
-            }
+            other => vec![self.style.fail(&other.to_string())],
         }
     }
 }

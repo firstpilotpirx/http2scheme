@@ -47,10 +47,11 @@ struct Cli {
 enum Command {
     /// Run the server in the foreground until it is stopped.
     Serve,
-    /// Print the http link that opens a scheme link.
+    /// Print the http links that open scheme links, one per line in the same order.
     Link {
-        /// The scheme link, for example `idea://open?file=/a/B.java&line=3`.
-        link: String,
+        /// The scheme links, for example `idea://open?file=/a/B.java&line=3`.
+        #[arg(required = true)]
+        links: Vec<String>,
     },
     /// Print the agent skill that teaches coding agents to write IDE links.
     Skill {
@@ -127,7 +128,7 @@ async fn run(command: Command, root: LinkserverConfig) -> u8 {
     let (out, err) = (&mut std::io::stdout(), &mut std::io::stderr());
     match command {
         Command::Serve => root.serve_command().run(stopped(), out, err).await,
-        Command::Link { link } => root.link_command().run(&link, out, err).await,
+        Command::Link { links } => root.link_command().run(&links, out, err).await,
         Command::Skill { action: None } => root.skill_command().run(out, err).await,
         Command::Skill {
             action: Some(SkillAction::Install { claude_dir }),
